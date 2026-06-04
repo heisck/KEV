@@ -1,4 +1,4 @@
-import axios, { AxiosError, type InternalAxiosRequestConfig } from 'axios';
+import { create, type AxiosError, type InternalAxiosRequestConfig } from 'axios';
 import * as Crypto from 'expo-crypto';
 import { env } from '@/config/env';
 import { logger } from '@/lib/logger';
@@ -7,11 +7,14 @@ import { tokenStore } from '@/lib/secureStore';
 export const CORRELATION_HEADER = 'X-Correlation-Id';
 
 /** Shared axios instance. Types for responses come from @kev/api-types. */
-export const api = axios.create({
+const apiConfig = {
   baseURL: env.apiUrl,
   timeout: 15_000,
   headers: { 'Content-Type': 'application/json' },
-});
+};
+
+export const api = create(apiConfig);
+const authApi = create(apiConfig);
 
 // Attach the bearer token and a per-request correlation id (propagated to the backend).
 api.interceptors.request.use(async (config: InternalAxiosRequestConfig) => {
@@ -28,7 +31,7 @@ async function refreshAccessToken(): Promise<string | null> {
   const refreshToken = await tokenStore.getRefresh();
   if (!refreshToken) return null;
   try {
-    const res = await axios.post(`${env.apiUrl}/api/auth/refresh`, { refreshToken });
+    const res = await authApi.post('/api/auth/refresh', { refreshToken });
     const next = res.data?.accessToken as string | undefined;
     if (!next) return null;
     await tokenStore.setTokens(next, refreshToken);
