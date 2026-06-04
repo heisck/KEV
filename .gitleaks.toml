@@ -1,0 +1,22 @@
+# gitleaks config — secret scanning (pre-commit hook + CI).
+# Extends the bundled ruleset and allowlists known-safe placeholders.
+title = "KEV gitleaks config"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Allow example env files, lockfiles, and reference mockups"
+paths = [
+  '''.*\.env\.example$''',
+  '''package-lock\.json$''',
+  '''ui-mockup-html/.*''',
+  '''docs/.*\.md$''',
+]
+# Placeholder tokens used throughout *.env.example and docs
+regexes = [
+  '''EXAMPLE_[A-Z0-9_]+''',
+  '''your[-_][a-z0-9-_]+[-_]here''',
+  '''<[A-Z0-9_-]+>''',
+  '''changeme''',
+]

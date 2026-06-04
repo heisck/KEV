@@ -1,0 +1,14 @@
+{
+  "recommendations": [
+    "dbaeumer.vscode-eslint",
+    "esbenp.prettier-vscode",
+    "expo.vscode-expo-tools",
+    "bradlc.vscode-tailwindcss",
+    "vmware.vscode-boot-dev-pack",
+    "redhat.java",
+    "ms-python.python",
+    "charliermarsh.ruff",
+    "redhat.vscode-yaml",
+    "eamodio.gitlens"
+  ]
+}

@@ -1,0 +1,35 @@
+#!/usr/bin/env node
+/**
+ * Cross-platform launcher for the ML service via uv.
+ *
+ *   node scripts/run-ml.mjs dev     # uvicorn --reload on :8000
+ *   node scripts/run-ml.mjs test    # pytest
+ *   node scripts/run-ml.mjs lint    # ruff check
+ *   node scripts/run-ml.mjs <args>  # uv run <args>
+ */
+import { spawn } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
+import { dirname, join } from 'node:path';
+
+const root = join(dirname(fileURLToPath(import.meta.url)), '..');
+const mlDir = join(root, 'ml');
+const isWin = process.platform === 'win32';
+const port = process.env.ML_PORT ?? '8000';
+
+const mode = process.argv[2] ?? 'dev';
+const presets = {
+  dev: ['run', 'uvicorn', 'app.main:app', '--reload', '--host', '0.0.0.0', '--port', port],
+  serve: ['run', 'uvicorn', 'app.main:app', '--host', '0.0.0.0', '--port', port],
+  test: ['run', 'pytest'],
+  lint: ['run', 'ruff', 'check', '.'],
+  typecheck: ['run', 'mypy', 'app'],
+};
+const args = presets[mode] ?? ['run', ...process.argv.slice(2)];
+
+const child = spawn('uv', args, { cwd: mlDir, stdio: 'inherit', shell: isWin });
+child.on('error', (err) => {
+  console.error(`[run-ml] Failed to start uv: ${err.message}`);
+  console.error('[run-ml] Is uv installed and on PATH? (winget install astral-sh.uv)');
+  process.exit(1);
+});
+child.on('exit', (code) => process.exit(code ?? 0));

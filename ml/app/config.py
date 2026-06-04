@@ -1,0 +1,15 @@
+from pydantic import Field
+from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+class Settings(BaseSettings):
+    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
+
+    hf_token: str = ""
+    hf_face_model_id: str = ""
+    sentry_dsn: str = Field(default="", validation_alias="ML_SENTRY_DSN")
+    sentry_environment: str = Field(default="development", validation_alias="SENTRY_ENVIRONMENT")
+    port: int = Field(default=8000, validation_alias="ML_PORT")
+
+
+settings = Settings()

@@ -1,0 +1,12 @@
+# Local development profile (activated with SPRING_PROFILES_ACTIVE=dev).
+spring:
+  jpa:
+    properties:
+      hibernate.format_sql: true
+  flyway:
+    clean-disabled: false # allow `flyway:clean` locally
+
+logging:
+  level:
+    com.kev.backend: DEBUG
+    org.hibernate.SQL: DEBUG

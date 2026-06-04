@@ -1,0 +1,29 @@
+# Normalize line endings — keep the repo LF everywhere, regardless of OS.
+* text=auto eol=lf
+
+# Scripts / wrappers that MUST keep specific endings
+*.cmd        text eol=crlf
+*.bat        text eol=crlf
+*.ps1        text eol=crlf
+mvnw         text eol=lf
+gradlew      text eol=lf
+*.sh         text eol=lf
+
+# Binaries — never touch
+*.png        binary
+*.jpg        binary
+*.jpeg       binary
+*.gif        binary
+*.ico        binary
+*.jar        binary
+*.keystore   binary
+*.jks        binary
+*.p12        binary
+*.safetensors binary
+*.onnx       binary
+*.woff       binary
+*.woff2      binary
+
+# Generated files — collapse in diffs / mark generated on GitHub
+package-lock.json   linguist-generated=true
+packages/api-types/** linguist-generated=true

@@ -1,0 +1,52 @@
+version: 2
+updates:
+  # ── JS workspaces (root + frontend + packages) ──
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 10
+    labels: ['dependencies', 'frontend']
+    groups:
+      react-and-expo:
+        patterns: ['expo*', 'react', 'react-*', '@react-native*', 'react-native*']
+      dev-tooling:
+        patterns:
+          ['eslint*', 'prettier', 'jest*', '@testing-library/*', 'typescript', 'turbo', 'knip']
+
+  # ── Backend (Maven) ──
+  - package-ecosystem: maven
+    directory: /backend
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 10
+    labels: ['dependencies', 'backend']
+    groups:
+      spring:
+        patterns: ['org.springframework*', 'io.spring*']
+
+  # ── ML service (uv / Python) ──
+  - package-ecosystem: uv
+    directory: /ml
+    schedule:
+      interval: weekly
+      day: monday
+    labels: ['dependencies', 'ml']
+
+  # ── GitHub Actions ──
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    labels: ['dependencies', 'ci']
+
+  # ── ML Dockerfile ──
+  - package-ecosystem: docker
+    directory: /ml
+    schedule:
+      interval: weekly
+      day: monday
+    labels: ['dependencies', 'ml', 'docker']

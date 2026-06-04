@@ -1,0 +1,6 @@
+# Maestro E2E smoke flow. Requires a dev build on a device/emulator.
+# Run with: npm run e2e   (or: maestro test .maestro)
+appId: com.kev.app
+---
+- launchApp
+- assertVisible: 'KEV'

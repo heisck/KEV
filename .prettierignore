@@ -1,0 +1,22 @@
+# Build / deps
+node_modules/
+**/node_modules/
+.turbo/
+dist/
+build/
+coverage/
+**/.expo/
+frontend/android/
+frontend/ios/
+
+# Generated
+package-lock.json
+packages/api-types/**
+**/*.gen.ts
+
+# Other toolchains (handled by their own formatters)
+backend/
+ml/
+
+# The HTML mockups are reference artifacts — leave them untouched
+ui-mockup-html/

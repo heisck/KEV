@@ -1,0 +1,26 @@
+# Test profile — no external services required for unit/slice tests.
+# Integration tests that need Postgres use Testcontainers (@ServiceConnection)
+# and are gated on Docker availability (@EnabledIf DockerAvailable#check).
+spring:
+  cache:
+    type: none
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration
+      - org.springframework.boot.autoconfigure.data.redis.RedisReactiveAutoConfiguration
+
+management:
+  health:
+    redis:
+      enabled: false
+
+kev:
+  auth:
+    jwt:
+      secret: test-secret-test-secret-test-secret-32bytes-minimum!!
+      issuer: kev-backend-test
+    google:
+      client-ids: test-client-id.apps.googleusercontent.com
+
+sentry:
+  dsn: ''

@@ -1,0 +1,45 @@
+[project]
+name = "kev-ml"
+version = "0.0.1"
+description = "KEV ML service — Hugging Face face models behind FastAPI."
+readme = "README.md"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.34",
+    "pydantic-settings>=2.6",
+    "huggingface-hub>=0.27",
+    "sentry-sdk[fastapi]>=2.20",
+]
+
+# NOTE: transformers/torch (multi-GB) are intentionally NOT hard dependencies so
+# `uv sync` and CI stay fast. Add them in the build phase when wiring the real
+# face-embedding model:  uv add transformers torch
+
+[dependency-groups]
+dev = [
+    "pytest>=8.3",
+    "pytest-benchmark>=5.0",
+    "httpx>=0.28",
+    "ruff>=0.9",
+    "mypy>=1.14",
+]
+
+[tool.uv]
+package = false
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]

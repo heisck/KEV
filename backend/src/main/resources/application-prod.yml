@@ -1,0 +1,24 @@
+# Production profile (activated with SPRING_PROFILES_ACTIVE=prod).
+spring:
+  jpa:
+    properties:
+      hibernate.format_sql: false
+  flyway:
+    clean-disabled: true
+
+management:
+  health:
+    redis:
+      enabled: true # Redis is required in prod, so include it in health.
+  endpoint:
+    health:
+      show-details: never
+
+logging:
+  level:
+    com.kev.backend: INFO
+    org.springframework.web: WARN
+  # Structured ECS JSON logs to file for log aggregation (Spring Boot native).
+  structured:
+    format:
+      file: ecs

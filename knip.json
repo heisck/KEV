@@ -1,0 +1,21 @@
+{
+  "$schema": "https://unpkg.com/knip@5/schema.json",
+  "workspaces": {
+    "frontend": {
+      "entry": [
+        "app/**/*.{ts,tsx}",
+        "app.config.ts",
+        "metro.config.js",
+        "babel.config.js",
+        "jest-setup.ts",
+        "**/*.{test,spec}.{ts,tsx}"
+      ],
+      "project": ["**/*.{ts,tsx}", "!**/*.d.ts"],
+      "ignoreDependencies": ["expo-dev-client", "expo-updates"]
+    },
+    "packages/api-types": {
+      "entry": ["src/index.ts"],
+      "project": ["src/**/*.ts"]
+    }
+  }
+}

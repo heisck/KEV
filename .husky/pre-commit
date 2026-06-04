@@ -1,0 +1,8 @@
+npx lint-staged
+
+# Secret scan on staged changes (skipped locally if gitleaks isn't installed; CI always enforces it).
+if command -v gitleaks >/dev/null 2>&1; then
+  gitleaks protect --staged --redact --config .gitleaks.toml
+else
+  echo "i  gitleaks not installed locally — skipping secret scan (CI enforces it). Install: winget install gitleaks"
+fi

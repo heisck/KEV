@@ -1,0 +1,31 @@
+# OPTIONAL local dev parity. Production uses Neon (Postgres) + Upstash (Redis) — NOT these.
+# Use this only for offline development:
+#   docker compose up -d
+# then point the backend at localhost in backend/.env:
+#   SPRING_DATASOURCE_URL=jdbc:postgresql://localhost:5432/kev
+#   UPSTASH_REDIS_HOST=localhost  UPSTASH_REDIS_PORT=6379  UPSTASH_REDIS_SSL=false
+services:
+  postgres:
+    image: postgres:17
+    environment:
+      POSTGRES_DB: kev
+      POSTGRES_USER: kev
+      POSTGRES_PASSWORD: kev
+    ports: ['5432:5432']
+    volumes: ['kev-pg:/var/lib/postgresql/data']
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U kev']
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7
+    ports: ['6379:6379']
+
+  ml:
+    build: ./ml
+    ports: ['8000:8000']
+
+volumes:
+  kev-pg:
