@@ -8,6 +8,10 @@ jest.mock('expo-secure-store', () => ({
   deleteItemAsync: jest.fn(async () => undefined),
 }));
 
+jest.mock('expo-status-bar', () => ({
+  StatusBar: () => null,
+}));
+
 jest.mock('react-native-nfc-manager', () => ({
   __esModule: true,
   default: {

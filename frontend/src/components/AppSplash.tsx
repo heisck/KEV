@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Animated, Easing, StyleSheet, View } from 'react-native';
+import { StatusBar } from 'expo-status-bar';
 import Svg, { Path } from 'react-native-svg';
 
 import {
@@ -175,19 +176,22 @@ export function AppSplash({ isActive = true, onFinish }: AppSplashProps) {
   const animation = useSplashAnimation(isActive, onFinish);
 
   return (
-    <Animated.View
-      accessibilityElementsHidden
-      importantForAccessibility="no-hide-descendants"
-      pointerEvents="none"
-      style={[styles.screen, styles.overlay, { opacity: animation.overlayOpacity }]}
-    >
+    <>
+      <StatusBar style="light" />
       <Animated.View
-        style={[styles.stage, { transform: [{ translateX: animation.stageTranslateX }] }]}
+        accessibilityElementsHidden
+        importantForAccessibility="no-hide-descendants"
+        pointerEvents="none"
+        style={[styles.screen, styles.overlay, { opacity: animation.overlayOpacity }]}
       >
-        <GridLines opacities={animation.lineOpacity} />
-        <CommaMark opacity={animation.commaOpacity} scale={animation.commaScale} />
+        <Animated.View
+          style={[styles.stage, { transform: [{ translateX: animation.stageTranslateX }] }]}
+        >
+          <GridLines opacities={animation.lineOpacity} />
+          <CommaMark opacity={animation.commaOpacity} scale={animation.commaScale} />
+        </Animated.View>
       </Animated.View>
-    </Animated.View>
+    </>
   );
 }
 

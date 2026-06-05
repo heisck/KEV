@@ -20,14 +20,14 @@ const config: ExpoConfig = {
   scheme: 'kev',
   userInterfaceStyle: 'automatic',
   ios: {
-    icon: './assets/expo.icon',
+    icon: './assets/images/icon.png',
     bundleIdentifier: 'com.kev.app',
     supportsTablet: true,
   },
   android: {
     package: 'com.kev.app',
     adaptiveIcon: {
-      backgroundColor: '#E6F4FE',
+      backgroundColor: '#5C9E08',
       foregroundImage: './assets/images/android-icon-foreground.png',
       backgroundImage: './assets/images/android-icon-background.png',
       monochromeImage: './assets/images/android-icon-monochrome.png',
@@ -45,7 +45,9 @@ const config: ExpoConfig = {
     [
       'expo-splash-screen',
       {
-        backgroundColor: '#F5F0EB',
+        backgroundColor: '#5C9E08',
+        image: './assets/images/splash-start.png',
+        imageWidth: 160,
       },
     ],
     [
