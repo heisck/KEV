@@ -2,6 +2,17 @@ import Svg, { Path } from 'react-native-svg';
 
 type IconProps = { size?: number };
 
+export function BackIcon({ size = 24 }: IconProps) {
+  return (
+    <Svg height={size} viewBox="0 0 24 24" width={size}>
+      <Path
+        d="M10.78 5.47a.75.75 0 0 1 0 1.06L6.06 11.25H19a.75.75 0 0 1 0 1.5H6.06l4.72 4.72a.75.75 0 1 1-1.06 1.06l-6-6a.75.75 0 0 1 0-1.06l6-6a.75.75 0 0 1 1.06 0Z"
+        fill="#1B1B1D"
+      />
+    </Svg>
+  );
+}
+
 export function EmailIcon({ size = 20 }: IconProps) {
   return (
     <Svg height={size} viewBox="0 0 24 24" width={size}>
