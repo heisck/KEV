@@ -1,5 +1,5 @@
-import { AppSplashFinalState } from '@/components/AppSplash';
+import { AuthScreen } from '@/screens/AuthScreen';
 
 export default function Index() {
-  return <AppSplashFinalState />;
+  return <AuthScreen />;
 }
