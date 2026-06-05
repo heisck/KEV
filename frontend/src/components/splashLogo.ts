@@ -7,9 +7,9 @@ export type LineSpec = {
   col: number;
 };
 
-export const BG = '#F5F0EB';
-export const INK = '#111111';
-export const LINE = '#CFC8C0';
+export const BG = '#5C9E08';
+export const INK = '#FFFFFF';
+export const LINE = '#FFFFFF';
 export const CELL = 32;
 export const COLS = 5;
 export const ROWS = 4;
@@ -20,6 +20,7 @@ export const COMMA_WIDTH = Math.round((COMMA_HEIGHT * 94) / 144);
 export const COMMA_LEFT = GRID_WIDTH - 10;
 export const COMMA_TOP = LOGO_HEIGHT - COMMA_HEIGHT + 4;
 export const LOGO_WIDTH = COMMA_LEFT + COMMA_WIDTH;
+export const GRID_CENTER_OFFSET = (LOGO_WIDTH - GRID_WIDTH) / 2;
 export const COMMA_PATH =
   'M72 2 C91 41,102 79,96 113 C90 148,62 174,31 171 C9 169,-3 150,8 127 C16 110,35 101,50 88 C76 65,84 31,72 2Z';
 

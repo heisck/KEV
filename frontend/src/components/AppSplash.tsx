@@ -11,6 +11,7 @@ import {
   COMMA_TOP,
   COMMA_WIDTH,
   finalHiddenLines,
+  GRID_CENTER_OFFSET,
   GRID_WIDTH,
   hideLine,
   INK,
@@ -32,6 +33,7 @@ type SplashAnimation = {
   commaScale: Animated.Value;
   lineOpacity: Animated.Value[];
   overlayOpacity: Animated.Value;
+  stageTranslateX: Animated.Value;
 };
 
 function createSplashAnimation(): SplashAnimation {
@@ -40,6 +42,7 @@ function createSplashAnimation(): SplashAnimation {
     commaScale: new Animated.Value(0.94),
     lineOpacity: lineSpecs.map(() => new Animated.Value(1)),
     overlayOpacity: new Animated.Value(1),
+    stageTranslateX: new Animated.Value(GRID_CENTER_OFFSET),
   };
 }
 
@@ -52,7 +55,7 @@ function fadeValue(value: Animated.Value, toValue: number, duration: number) {
   }).start();
 }
 
-function revealComma({ commaOpacity, commaScale }: SplashAnimation) {
+function revealLogo({ commaOpacity, commaScale, stageTranslateX }: SplashAnimation) {
   Animated.parallel([
     Animated.timing(commaOpacity, {
       toValue: 1,
@@ -65,6 +68,12 @@ function revealComma({ commaOpacity, commaScale }: SplashAnimation) {
       damping: 16,
       mass: 0.7,
       stiffness: 150,
+      useNativeDriver: true,
+    }),
+    Animated.timing(stageTranslateX, {
+      toValue: 0,
+      duration: 420,
+      easing: Easing.out(Easing.cubic),
       useNativeDriver: true,
     }),
   ]).start();
@@ -91,7 +100,7 @@ function scheduleSplash(animation: SplashAnimation, onFinish: () => void) {
   }
 
   timers.push(
-    setTimeout(() => revealComma(animation), 1220),
+    setTimeout(() => revealLogo(animation), 1220),
     setTimeout(() => fadeValue(animation.overlayOpacity, 0, 260), 1820),
     setTimeout(onFinish, 2100),
   );
@@ -102,6 +111,7 @@ function scheduleSplash(animation: SplashAnimation, onFinish: () => void) {
     animation.commaOpacity.stopAnimation();
     animation.commaScale.stopAnimation();
     animation.overlayOpacity.stopAnimation();
+    animation.stageTranslateX.stopAnimation();
   };
 }
 
@@ -171,10 +181,12 @@ export function AppSplash({ isActive = true, onFinish }: AppSplashProps) {
       pointerEvents="none"
       style={[styles.screen, styles.overlay, { opacity: animation.overlayOpacity }]}
     >
-      <View style={styles.stage}>
+      <Animated.View
+        style={[styles.stage, { transform: [{ translateX: animation.stageTranslateX }] }]}
+      >
         <GridLines opacities={animation.lineOpacity} />
         <CommaMark opacity={animation.commaOpacity} scale={animation.commaScale} />
-      </View>
+      </Animated.View>
     </Animated.View>
   );
 }
