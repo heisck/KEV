@@ -1,5 +1,5 @@
 export const AUTH_HERO_IMAGE_URL =
-  'https://images.unsplash.com/photo-1576495199011-eb94736d05d6?auto=format&fit=crop&w=1200&q=80';
+  'https://lh3.googleusercontent.com/aida-public/AB6AXuBGTxz5nYdAUZfqgCDwdwPdskwGJsj5Ssnd-cQvioLU6l-gG0sjh27y2dIIaIe88lIaNlrj0SYzDKlcX4u1a6NUYNlZUlNb-2AfONqH4YC7PVZjp0C0-H8w817kv1w8MyEh1QlAVCO5jg2qN9KYBqWEl2XOhTlMgtFfhQFgLPSbO6FdOO1X10HVYRTgXhlGyKHKzhpYkbhy5qtHf-4ZAEwYaXYN-yaJ3rwVKA3MRJsP3IqCSdzcK4SY63PBKcC8XsksZEIn-AEmZ3g';
 
 export const LIMEADE = '#5C9E08';
 

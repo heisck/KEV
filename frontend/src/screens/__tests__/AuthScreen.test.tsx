@@ -18,13 +18,13 @@ function renderAuthScreen(onSendCode = jest.fn()) {
 
 describe('AuthScreen', () => {
   it('renders the email and social auth actions', () => {
-    const { getByPlaceholderText, getByText } = renderAuthScreen();
+    const { getByLabelText, getByPlaceholderText, getByText } = renderAuthScreen();
 
-    expect(getByText('Verify your Account')).toBeTruthy();
+    expect(getByLabelText('Verify Account')).toBeTruthy();
     expect(getByPlaceholderText('Write your gmail')).toBeTruthy();
     expect(getByText('Send Code')).toBeTruthy();
-    expect(getByText('Google')).toBeTruthy();
-    expect(getByText('Apple')).toBeTruthy();
+    expect(getByLabelText('Google')).toBeTruthy();
+    expect(getByLabelText('Apple')).toBeTruthy();
   });
 
   it('submits the trimmed email address', () => {
