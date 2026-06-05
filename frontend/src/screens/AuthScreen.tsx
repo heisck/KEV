@@ -13,6 +13,7 @@ type AuthScreenProps = {
 
 export function AuthScreen({ onApplePress, onGooglePress, onSendCode }: AuthScreenProps) {
   const [email, setEmail] = useState('');
+  const [isEmailFocused, setIsEmailFocused] = useState(false);
   const handleSendCode = useCallback(() => onSendCode?.(email.trim()), [email, onSendCode]);
 
   return (
@@ -31,13 +32,18 @@ export function AuthScreen({ onApplePress, onGooglePress, onSendCode }: AuthScre
         <TextInput
           autoCapitalize="none"
           autoComplete="email"
+          autoCorrect={false}
+          disableFullscreenUI
           keyboardType="email-address"
+          onBlur={() => setIsEmailFocused(false)}
           onChangeText={setEmail}
+          onFocus={() => setIsEmailFocused(true)}
           placeholder="Write your gmail"
           placeholderTextColor="#9CA3AF"
           selectionColor="#091426"
-          style={styles.input}
+          style={[styles.input, isEmailFocused && styles.inputFocused]}
           textContentType="emailAddress"
+          underlineColorAndroid="transparent"
           value={email}
         />
       </View>
@@ -115,6 +121,8 @@ const styles = StyleSheet.create({
     elevation: 2,
     fontSize: 16,
     height: 50,
+    outlineColor: 'transparent',
+    outlineWidth: 0,
     paddingLeft: 54,
     paddingRight: 24,
     shadowColor: '#111111',
@@ -122,6 +130,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.06,
     shadowRadius: 8,
   },
+  inputFocused: { borderColor: LIMEADE },
   primaryButton: {
     alignItems: 'center',
     backgroundColor: LIMEADE,
