@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Animated, Easing, StyleSheet, View } from 'react-native';
-import { StatusBar } from 'expo-status-bar';
 import Svg, { Path } from 'react-native-svg';
 
+import { SystemStatusBar } from '@/components/SystemStatusBar';
 import {
   BG,
   CELL,
@@ -177,7 +177,7 @@ export function AppSplash({ isActive = true, onFinish }: AppSplashProps) {
 
   return (
     <>
-      <StatusBar style="light" />
+      <SystemStatusBar backgroundColor={BG} barStyle="light-content" translucent={false} />
       <Animated.View
         accessibilityElementsHidden
         importantForAccessibility="no-hide-descendants"

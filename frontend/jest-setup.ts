@@ -2,14 +2,14 @@
 // automatically (jest-native is deprecated), so no extend-expect import is needed.
 
 // Mock native modules so unit tests never touch the native runtime.
+jest.mock('@/components/SystemStatusBar', () => ({
+  SystemStatusBar: () => null,
+}));
+
 jest.mock('expo-secure-store', () => ({
   getItemAsync: jest.fn(async () => null),
   setItemAsync: jest.fn(async () => undefined),
   deleteItemAsync: jest.fn(async () => undefined),
-}));
-
-jest.mock('expo-status-bar', () => ({
-  StatusBar: () => null,
 }));
 
 jest.mock('react-native-nfc-manager', () => ({
