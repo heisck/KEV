@@ -1,9 +1,19 @@
 import { fireEvent, render } from '@testing-library/react-native';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { AuthScreen } from '@/screens/AuthScreen';
 
 function renderAuthScreen(onSendCode = jest.fn()) {
-  return render(<AuthScreen onSendCode={onSendCode} />);
+  return render(
+    <SafeAreaProvider
+      initialMetrics={{
+        frame: { height: 844, width: 390, x: 0, y: 0 },
+        insets: { bottom: 0, left: 0, right: 0, top: 0 },
+      }}
+    >
+      <AuthScreen onSendCode={onSendCode} />
+    </SafeAreaProvider>,
+  );
 }
 
 describe('AuthScreen', () => {

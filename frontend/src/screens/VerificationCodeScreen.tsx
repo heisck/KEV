@@ -21,6 +21,7 @@ export function VerificationCodeScreen({
   recipient,
 }: VerificationCodeScreenProps) {
   const [code, setCode] = useState<string[]>(Array(CODE_LENGTH).fill(''));
+  const [focusedIndex, setFocusedIndex] = useState<number | null>(null);
   const inputs = useRef<(TextInput | null)[]>([]);
   const value = code.join('');
 
@@ -64,10 +65,14 @@ export function VerificationCodeScreen({
       <View style={styles.codeRow}>
         {code.map((digit, index) => (
           <TextInput
+            autoCorrect={false}
+            disableFullscreenUI
             key={index}
             keyboardType="number-pad"
             maxLength={CODE_LENGTH}
+            onBlur={() => setFocusedIndex(null)}
             onChangeText={(text) => updateDigit(index, text)}
+            onFocus={() => setFocusedIndex(index)}
             onKeyPress={({ nativeEvent }) => {
               if (nativeEvent.key === 'Backspace' && !code[index] && index > 0) {
                 inputs.current[index - 1]?.focus();
@@ -78,9 +83,10 @@ export function VerificationCodeScreen({
             }}
             returnKeyType="done"
             selectionColor="#091426"
-            style={styles.codeInput}
+            style={[styles.codeInput, focusedIndex === index && styles.codeInputFocused]}
             testID={`verification-code-digit-${index}`}
             textContentType={index === 0 ? 'oneTimeCode' : 'none'}
+            underlineColorAndroid="transparent"
             value={digit}
           />
         ))}
@@ -139,10 +145,13 @@ const styles = StyleSheet.create({
     fontSize: 22,
     fontWeight: '700',
     height: 50,
+    outlineColor: 'transparent',
+    outlineWidth: 0,
     textAlign: 'center',
     textAlignVertical: 'center',
     width: 44,
   },
+  codeInputFocused: { borderColor: LIMEADE },
   primaryButton: {
     alignItems: 'center',
     backgroundColor: LIMEADE,
