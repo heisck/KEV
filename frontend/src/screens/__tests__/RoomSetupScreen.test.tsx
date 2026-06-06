@@ -1,4 +1,4 @@
-import { fireEvent, render } from '@testing-library/react-native';
+import { act, fireEvent, render } from '@testing-library/react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { RoomSetupScreen } from '@/screens/RoomSetupScreen';
@@ -18,13 +18,68 @@ function renderRoomSetupScreen() {
 
 describe('RoomSetupScreen', () => {
   it('renders the collapsed session setup step', () => {
-    const { getByLabelText, getByPlaceholderText, getByText } = renderRoomSetupScreen();
+    const { getByLabelText, getByPlaceholderText, getByText, queryByLabelText } =
+      renderRoomSetupScreen();
 
-    expect(getByText('Room Setup')).toBeTruthy();
+    expect(getByText('Home')).toBeTruthy();
+    expect(getByLabelText('Open quick actions')).toBeTruthy();
+    expect(getByLabelText('Search sessions')).toBeTruthy();
+    expect(getByText('Session History')).toBeTruthy();
+    expect(queryByLabelText('Close room setup')).toBeNull();
     expect(getByLabelText('KEV logo')).toBeTruthy();
+    expect(getByLabelText('Expand room dock')).toBeTruthy();
     expect(getByPlaceholderText('Active Session Code')).toBeTruthy();
     expect(getByText('Or')).toBeTruthy();
     expect(getByText('Swipe to create a new room')).toBeTruthy();
+  });
+
+  it('toggles the session history strip', () => {
+    const { getByLabelText, getByText, queryByText } = renderRoomSetupScreen();
+
+    fireEvent.press(getByLabelText('Open quick actions'));
+    expect(getByText('Notifications')).toBeTruthy();
+    fireEvent.press(getByLabelText('Hide session history'));
+
+    expect(queryByText('Session History')).toBeNull();
+
+    fireEvent.press(getByLabelText('Open quick actions'));
+    fireEvent.press(getByLabelText('Show session history'));
+    expect(getByText('Session History')).toBeTruthy();
+  });
+
+  it('expands search into a session history input', () => {
+    jest.useFakeTimers();
+    const { getByLabelText, getByPlaceholderText, getByText, queryByText } =
+      renderRoomSetupScreen();
+
+    try {
+      fireEvent.press(getByLabelText('Search sessions'));
+      act(() => jest.runOnlyPendingTimers());
+
+      expect(queryByText('Home')).toBeNull();
+      expect(getByText('Search')).toBeTruthy();
+      expect(getByPlaceholderText('session history')).toBeTruthy();
+      expect(getByLabelText('Open quick actions')).toBeTruthy();
+      expect(getByLabelText('Close session search')).toBeTruthy();
+      expect(getByLabelText('Submit session search')).toBeTruthy();
+
+      fireEvent.press(getByLabelText('Close session search'));
+      act(() => jest.runOnlyPendingTimers());
+      expect(getByText('Home')).toBeTruthy();
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  it('expands the floating dock icons without opening extra panels', () => {
+    const { getByLabelText, queryByText } = renderRoomSetupScreen();
+
+    fireEvent.press(getByLabelText('Expand room dock'));
+
+    expect(getByLabelText('Open home dock')).toBeTruthy();
+    expect(getByLabelText('Open profile dock')).toBeTruthy();
+    expect(queryByText('Active Session')).toBeNull();
+    expect(queryByText('Contributors')).toBeNull();
   });
 
   it('expands into new room setup', () => {

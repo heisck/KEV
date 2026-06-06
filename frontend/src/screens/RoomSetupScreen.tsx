@@ -6,6 +6,8 @@ import { AppLogoMark, getCenteredHeroLogoTop } from '@/components/AppLogoMark';
 import { SystemStatusBar } from '@/components/SystemStatusBar';
 import { CourseRangeChip } from '@/components/room/CourseRangeChip';
 import { Field, RoomIcon, RoundAction, SendBadgeIcon } from '@/components/room/RoomSetupControls';
+import { RoomSetupDock } from '@/components/room/RoomSetupDock';
+import { RoomSessionHistory } from '@/components/room/RoomSessionHistory';
 import { RoomSetupSwipePrompt } from '@/components/room/RoomSetupSwipePrompt';
 import { RoomSetupTopNav } from '@/components/room/RoomSetupTopNav';
 import { LIMEADE } from '@/screens/authConfig';
@@ -20,6 +22,7 @@ import { useSlideUpPanel } from '@/hooks/useSlideUpPanel';
 type RoomSetupScreenProps = {
   onClose?: () => void;
   onComplete?: () => void;
+  roomCode?: string;
 };
 type CourseRange = { course: string; id: string; indexFrom: string; indexTo: string };
 
@@ -32,7 +35,7 @@ function getCourseRangeLabel({ course, indexFrom, indexTo }: CourseRange) {
   return `${indexFrom}-${indexTo} ${course}`;
 }
 
-export function RoomSetupScreen({ onClose, onComplete }: RoomSetupScreenProps) {
+export function RoomSetupScreen({ onComplete, roomCode = '482913' }: RoomSetupScreenProps) {
   const { height, width } = useWindowDimensions();
   const { bottom, top } = useSafeAreaInsets();
   const [floorIndex, setFloorIndex] = useState(DEFAULT_ROOM_SETUP_FLOOR_INDEX);
@@ -42,6 +45,7 @@ export function RoomSetupScreen({ onClose, onComplete }: RoomSetupScreenProps) {
   const [indexFrom, setIndexFrom] = useState('');
   const [indexTo, setIndexTo] = useState('');
   const [sessionCode, setSessionCode] = useState('');
+  const [isHistoryVisible, setIsHistoryVisible] = useState(true);
   const [courses, setCourses] = useState<CourseRange[]>([]);
   const nextCourseId = useRef(0);
   const { hide, isVisible: isExpanded, show, translateY } = useSlideUpPanel(height);
@@ -67,7 +71,8 @@ export function RoomSetupScreen({ onClose, onComplete }: RoomSetupScreenProps) {
 
   const logoTop = getCenteredHeroLogoTop(height, height * 0.31, top);
   const collapsedInputBottom = Math.round(height * 0.24) + bottom + 38;
-  const collapsedDividerBottom = collapsedInputBottom - Math.round((bottom + 34) / 2);
+  const collapsedDividerBottom = collapsedInputBottom - 56;
+  const collapsedHistoryTop = Math.max(top, 14) + 54;
   const collapsedInputPosition = getCenteredWidth(width);
 
   return (
@@ -80,9 +85,10 @@ export function RoomSetupScreen({ onClose, onComplete }: RoomSetupScreenProps) {
       />
 
       <RoomSetupTopNav
+        isHistoryVisible={isHistoryVisible}
         isExpanded={isExpanded}
-        onClose={onClose}
         onCollapse={hide}
+        onToggleHistory={() => setIsHistoryVisible((current) => !current)}
         screenHeight={height}
         topInset={top}
         translateY={translateY}
@@ -96,6 +102,16 @@ export function RoomSetupScreen({ onClose, onComplete }: RoomSetupScreenProps) {
 
       {!isExpanded ? (
         <>
+          {isHistoryVisible ? (
+            <RoomSessionHistory
+              style={{
+                bottom: collapsedInputBottom + 64,
+                left: 0,
+                right: 0,
+                top: collapsedHistoryTop,
+              }}
+            />
+          ) : null}
           <View
             style={[
               styles.collapsedSessionRow,
@@ -203,6 +219,14 @@ export function RoomSetupScreen({ onClose, onComplete }: RoomSetupScreenProps) {
             </View>
           </View>
         </Animated.View>
+      ) : null}
+      {!isExpanded ? (
+        <RoomSetupDock
+          bottomInset={bottom}
+          screenHeight={height}
+          screenWidth={width}
+          topInset={top}
+        />
       ) : null}
     </View>
   );
