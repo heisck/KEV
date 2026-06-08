@@ -16,79 +16,48 @@ function renderRoomSetupScreen() {
   );
 }
 
+function swipeCreateRoom(
+  getByLabelText: ReturnType<typeof renderRoomSetupScreen>['getByLabelText'],
+) {
+  const control = getByLabelText('Swipe to create room');
+  fireEvent(control, 'touchStart', { nativeEvent: { pageX: 40 } });
+  fireEvent(control, 'touchMove', { nativeEvent: { pageX: 190 } });
+  fireEvent(control, 'touchEnd', { nativeEvent: { pageX: 198 } });
+  act(() => jest.runOnlyPendingTimers());
+}
+
 describe('RoomSetupScreen', () => {
-  it('renders the collapsed session setup step', () => {
-    const { getByLabelText, getByPlaceholderText, getByText, queryByLabelText } =
-      renderRoomSetupScreen();
-
-    expect(getByText('Home')).toBeTruthy();
-    expect(getByLabelText('Open quick actions')).toBeTruthy();
-    expect(getByLabelText('Search sessions')).toBeTruthy();
-    expect(getByText('Session History')).toBeTruthy();
-    expect(queryByLabelText('Close room setup')).toBeNull();
-    expect(getByLabelText('KEV logo')).toBeTruthy();
-    expect(getByLabelText('Expand room dock')).toBeTruthy();
-    expect(getByPlaceholderText('Active Session Code')).toBeTruthy();
-    expect(getByText('Or')).toBeTruthy();
-    expect(getByText('Swipe to create a new room')).toBeTruthy();
-  });
-
-  it('toggles the session history strip', () => {
-    const { getByLabelText, getByText, queryByText } = renderRoomSetupScreen();
-
-    fireEvent.press(getByLabelText('Open quick actions'));
-    expect(getByText('Notifications')).toBeTruthy();
-    fireEvent.press(getByLabelText('Hide session history'));
-
-    expect(queryByText('Session History')).toBeNull();
-
-    fireEvent.press(getByLabelText('Open quick actions'));
-    fireEvent.press(getByLabelText('Show session history'));
-    expect(getByText('Session History')).toBeTruthy();
-  });
-
-  it('expands search into a session history input', () => {
+  beforeEach(() => {
     jest.useFakeTimers();
-    const { getByLabelText, getByPlaceholderText, getByText, queryByText } =
-      renderRoomSetupScreen();
-
-    try {
-      fireEvent.press(getByLabelText('Search sessions'));
-      act(() => jest.runOnlyPendingTimers());
-
-      expect(queryByText('Home')).toBeNull();
-      expect(getByText('Search')).toBeTruthy();
-      expect(getByPlaceholderText('session history')).toBeTruthy();
-      expect(getByLabelText('Open quick actions')).toBeTruthy();
-      expect(getByLabelText('Close session search')).toBeTruthy();
-      expect(getByLabelText('Submit session search')).toBeTruthy();
-
-      fireEvent.press(getByLabelText('Close session search'));
-      act(() => jest.runOnlyPendingTimers());
-      expect(getByText('Home')).toBeTruthy();
-    } finally {
-      jest.useRealTimers();
-    }
   });
 
-  it('expands the floating dock icons without opening extra panels', () => {
-    const { getByLabelText, queryByText } = renderRoomSetupScreen();
+  afterEach(() => {
+    jest.useRealTimers();
+  });
 
-    fireEvent.press(getByLabelText('Expand room dock'));
+  it('renders the collapsed session setup step', () => {
+    const { getByLabelText, getByText, queryByPlaceholderText, queryByText } =
+      renderRoomSetupScreen();
 
-    expect(getByLabelText('Open home dock')).toBeTruthy();
-    expect(getByLabelText('Open profile dock')).toBeTruthy();
-    expect(queryByText('Active Session')).toBeNull();
-    expect(queryByText('Contributors')).toBeNull();
+    expect(getByText('NEW')).toBeTruthy();
+    expect(getByText('ROOM')).toBeTruthy();
+    expect(getByText('SESSION')).toBeTruthy();
+    expect(getByText('Swipe to create room')).toBeTruthy();
+    expect(getByLabelText('Swipe to create room')).toBeTruthy();
+    expect(getByLabelText('Open reminder menu')).toBeTruthy();
+    expect(getByLabelText('Next reminder')).toBeTruthy();
+    expect(queryByPlaceholderText('Active Session Code')).toBeNull();
+    expect(queryByText('Swipe to create a new room')).toBeNull();
   });
 
   it('expands into new room setup', () => {
-    const { getByLabelText, getByPlaceholderText, getByText, queryByPlaceholderText } =
+    const { getByLabelText, getByPlaceholderText, getByText, queryByPlaceholderText, queryByText } =
       renderRoomSetupScreen();
 
-    fireEvent.press(getByLabelText('Swipe to create a new room'));
+    swipeCreateRoom(getByLabelText);
 
-    expect(getByText('New Room Setup')).toBeTruthy();
+    expect(getByLabelText('Collapse room setup')).toBeTruthy();
+    expect(queryByText('New Room Setup')).toBeNull();
     expect(queryByPlaceholderText('Active Session Code')).toBeNull();
     expect(getByPlaceholderText('Building or College')).toBeTruthy();
     expect(getByPlaceholderText('Room Number')).toBeTruthy();
@@ -102,7 +71,7 @@ describe('RoomSetupScreen', () => {
     const { getByLabelText, getByPlaceholderText, getByText, queryByDisplayValue } =
       renderRoomSetupScreen();
 
-    fireEvent.press(getByLabelText('Swipe to create a new room'));
+    swipeCreateRoom(getByLabelText);
     fireEvent.changeText(getByPlaceholderText('Index From'), '1001');
     fireEvent.changeText(getByPlaceholderText('Index To'), '1040');
     fireEvent.changeText(getByPlaceholderText('Course Code'), 'MATH 101');
@@ -118,7 +87,7 @@ describe('RoomSetupScreen', () => {
     const { getByLabelText, getByPlaceholderText, queryByDisplayValue, queryByText } =
       renderRoomSetupScreen();
 
-    fireEvent.press(getByLabelText('Swipe to create a new room'));
+    swipeCreateRoom(getByLabelText);
     fireEvent.changeText(getByPlaceholderText('Index From'), '1001');
     fireEvent.changeText(getByPlaceholderText('Index To'), '1040');
     fireEvent.changeText(getByPlaceholderText('Course Code'), 'MATH 101');

@@ -168,7 +168,13 @@ export const roomSetupStyles = StyleSheet.create({
     width: '100%',
   },
   swipeText: { color: '#6F879E', fontSize: 13, fontWeight: '700' },
-  expandedForm: { flex: 1, gap: 12, maxWidth: 360, width: '100%' },
+  expandedForm: {
+    alignSelf: 'center',
+    flex: 1,
+    gap: 9,
+    maxWidth: 360,
+    width: '100%',
+  },
   row: { alignItems: 'center', flexDirection: 'row', gap: 10 },
   formDivider: { backgroundColor: '#E2E8EE', height: 1, marginVertical: 2, width: '100%' },
   input: {
@@ -228,7 +234,7 @@ export const roomSetupStyles = StyleSheet.create({
     fontWeight: '700',
     paddingVertical: 2,
   },
-  actions: { gap: 10, marginTop: 'auto', width: '100%' },
+  actions: { gap: 8, marginTop: 'auto', width: '100%' },
   chipsRow: { flexDirection: 'row', gap: 6, width: '100%' },
   chip: {
     backgroundColor: 'rgba(92,158,8,0.08)',
