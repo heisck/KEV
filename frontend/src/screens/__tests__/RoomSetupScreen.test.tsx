@@ -50,6 +50,21 @@ describe('RoomSetupScreen', () => {
     expect(queryByText('Swipe to create a new room')).toBeNull();
   });
 
+  it('toggles the bottom control between new room and active session modes', () => {
+    const { getByDisplayValue, getByLabelText, getByPlaceholderText, getByText, queryByText } =
+      renderRoomSetupScreen();
+
+    fireEvent.press(getByLabelText('Use active room mode'));
+    fireEvent.changeText(getByPlaceholderText('Active room session'), '482913');
+
+    expect(getByDisplayValue('482913')).toBeTruthy();
+    expect(getByLabelText('Send active room session')).toBeTruthy();
+    expect(queryByText('Swipe to create room')).toBeNull();
+
+    fireEvent.press(getByLabelText('Use new room mode'));
+    expect(getByText('Swipe to create room')).toBeTruthy();
+  });
+
   it('expands into new room setup', () => {
     const { getByLabelText, getByPlaceholderText, getByText, queryByPlaceholderText, queryByText } =
       renderRoomSetupScreen();
