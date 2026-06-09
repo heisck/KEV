@@ -5,6 +5,7 @@ import {
   type KeyboardTypeOptions,
   type StyleProp,
   type TextStyle,
+  type ViewStyle,
 } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 
@@ -118,8 +119,9 @@ export function RoundAction({
   icon,
   label,
   onPress,
+  style,
   tone = 'primary',
-}: ButtonProps & { tone?: 'muted' | 'primary' }) {
+}: ButtonProps & { style?: StyleProp<ViewStyle>; tone?: 'muted' | 'primary' }) {
   const color = tone === 'muted' ? '#344054' : '#FFFFFF';
 
   return (
@@ -127,7 +129,7 @@ export function RoundAction({
       accessibilityLabel={label}
       accessibilityRole="button"
       onPress={onPress}
-      style={[styles.roundAction, tone === 'muted' && styles.mutedAction]}
+      style={[styles.roundAction, tone === 'muted' && styles.mutedAction, style]}
     >
       <RoomIcon color={color} name={icon} size={24} strokeWidth={2.4} />
     </Pressable>
