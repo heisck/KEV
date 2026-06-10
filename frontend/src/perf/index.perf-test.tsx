@@ -1,6 +1,7 @@
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { measureRenders } from 'reassure';
-import Index from './index';
+
+import Index from '@/app/index';
 
 // Reassure perf regression test. Run with `npm run perf` (not part of the jest suite).
 if (typeof test === 'function') {
