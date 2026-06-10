@@ -2,17 +2,22 @@ import { type ReactNode } from 'react';
 import { Image, ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { AppLogoMark, getAppLogoMarkSize, getCenteredHeroLogoTop } from '@/components/AppLogoMark';
+import {
+  AppLogoMark,
+  HERO_LOGO_CAPTION_GAP,
+  HERO_LOGO_COLOR,
+  getAppLogoMarkSize,
+  getCenteredHeroLogoTop,
+  getFloatingHeroLogoTop,
+} from '@/components/AppLogoMark';
 import { SystemStatusBar } from '@/components/SystemStatusBar';
 import {
   AUTH_HERO_IMAGE_URL,
+  AUTH_OVERLAY_VERTICAL_PADDING,
   getAuthSheetHeight,
   getAuthSheetWidth,
   isTabletWidth,
 } from '@/screens/authConfig';
-
-const HERO_CAPTION_HEIGHT = 42;
-const HERO_CAPTION_GAP = 18;
 
 type AuthScaffoldProps = {
   children: ReactNode;
@@ -33,13 +38,10 @@ export function AuthScaffold({
   const minHeightRatio = isTablet ? Math.min(heightRatio, 0.34) : heightRatio;
   const sheetHeight = getAuthSheetHeight(height, minHeightRatio);
   const logoSize = getAppLogoMarkSize();
-  const centeredLogoTop = Math.round(
-    (height - logoSize.height - HERO_CAPTION_GAP - (heroCaption ? HERO_CAPTION_HEIGHT : 0)) / 2,
-  );
   const logoTop = withPanel
     ? getCenteredHeroLogoTop(height, sheetHeight, top)
-    : Math.max(top + 112, centeredLogoTop);
-  const captionTop = logoTop + logoSize.height + HERO_CAPTION_GAP;
+    : getFloatingHeroLogoTop(height, top, Boolean(heroCaption));
+  const captionTop = logoTop + logoSize.height + HERO_LOGO_CAPTION_GAP;
 
   return (
     <View style={styles.screen}>
@@ -51,7 +53,7 @@ export function AuthScaffold({
         style={styles.hero}
       />
       <View pointerEvents="none" style={[styles.logoAnchor, { top: logoTop }]}>
-        <AppLogoMark />
+        <AppLogoMark color={HERO_LOGO_COLOR} />
       </View>
       {heroCaption ? (
         <View pointerEvents="none" style={[styles.heroCaption, { top: captionTop }]}>
@@ -60,11 +62,16 @@ export function AuthScaffold({
       ) : null}
       <ScrollView
         automaticallyAdjustKeyboardInsets
+        bounces={false}
         contentContainerStyle={[
           withPanel ? styles.content : styles.overlayContent,
-          !withPanel && { paddingBottom: bottom + 28, paddingTop: top + 28 },
+          !withPanel && {
+            paddingBottom: bottom + AUTH_OVERLAY_VERTICAL_PADDING,
+            paddingTop: top + AUTH_OVERLAY_VERTICAL_PADDING,
+          },
         ]}
         keyboardShouldPersistTaps="handled"
+        overScrollMode="never"
         showsVerticalScrollIndicator={false}
         style={styles.scroll}
       >

@@ -1,7 +1,6 @@
 import {
   Pressable,
   TextInput,
-  View,
   type KeyboardTypeOptions,
   type StyleProp,
   type TextStyle,
@@ -133,13 +132,5 @@ export function RoundAction({
     >
       <RoomIcon color={color} name={icon} size={24} strokeWidth={2.4} />
     </Pressable>
-  );
-}
-
-export function SendBadgeIcon() {
-  return (
-    <View style={styles.saveIcon}>
-      <RoomIcon color="#FFFFFF" name="send" size={18} strokeWidth={2.1} />
-    </View>
   );
 }

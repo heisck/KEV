@@ -1,6 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Animated, Easing } from 'react-native';
 
+const DRAWER_CLOSE_DURATION_MS = 200;
+const DRAWER_OPEN_DURATION_MS = 260;
+const MOSAIC_CLOSE_DURATION_MS = 620;
+const MOSAIC_OPEN_DURATION_MS = 760;
+
 export function useDropDownPanel(expandedHeight: number) {
   const [isVisible, setIsVisible] = useState(false);
   const [height] = useState(() => new Animated.Value(0));
@@ -17,6 +22,8 @@ export function useDropDownPanel(expandedHeight: number) {
     (progress: number) => {
       const nextProgress = Math.max(0, Math.min(1, progress));
       progressRef.current = nextProgress;
+      height.stopAnimation();
+      animatedProgress.stopAnimation();
       if (nextProgress > 0 && !isVisibleRef.current) updateVisible(true);
       animatedProgress.setValue(nextProgress);
       height.setValue(expandedHeight * nextProgress);
@@ -28,22 +35,22 @@ export function useDropDownPanel(expandedHeight: number) {
     (shouldOpen: boolean) => {
       progressRef.current = shouldOpen ? 1 : 0;
       if (shouldOpen && !isVisibleRef.current) updateVisible(true);
-      Animated.parallel([
-        Animated.timing(height, {
-          duration: shouldOpen ? 260 : 200,
-          easing: shouldOpen ? Easing.out(Easing.cubic) : Easing.in(Easing.cubic),
-          toValue: shouldOpen ? expandedHeight : 0,
-          useNativeDriver: false,
-        }),
-        Animated.timing(animatedProgress, {
-          duration: shouldOpen ? 260 : 200,
-          easing: shouldOpen ? Easing.out(Easing.cubic) : Easing.in(Easing.cubic),
-          toValue: shouldOpen ? 1 : 0,
-          useNativeDriver: false,
-        }),
-      ]).start(({ finished }) => {
+      height.stopAnimation();
+      animatedProgress.stopAnimation();
+      Animated.timing(height, {
+        duration: shouldOpen ? DRAWER_OPEN_DURATION_MS : DRAWER_CLOSE_DURATION_MS,
+        easing: shouldOpen ? Easing.out(Easing.cubic) : Easing.in(Easing.cubic),
+        toValue: shouldOpen ? expandedHeight : 0,
+        useNativeDriver: false,
+      }).start(({ finished }) => {
         if (finished && !shouldOpen) updateVisible(false);
       });
+      Animated.timing(animatedProgress, {
+        duration: shouldOpen ? MOSAIC_OPEN_DURATION_MS : MOSAIC_CLOSE_DURATION_MS,
+        easing: Easing.inOut(Easing.cubic),
+        toValue: shouldOpen ? 1 : 0,
+        useNativeDriver: false,
+      }).start();
     },
     [animatedProgress, expandedHeight, height, updateVisible],
   );

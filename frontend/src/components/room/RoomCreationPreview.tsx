@@ -11,17 +11,15 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 
+import { RoomImageMosaic } from '@/components/room/RoomImageMosaic';
 import { RoomIcon, type RoomIconName } from '@/components/room/RoomSetupControls';
 import { roomCreationPreviewStyles as styles } from '@/components/room/roomCreationPreviewStyles';
-import {
-  ROOM_CREATION_IMAGE_HEIGHT_RATIO,
-  ROOM_CREATION_INNER_STEP_RATIO,
-  ROOM_CREATION_OUTER_STEP_RATIO,
-} from '@/screens/roomSetupConfig';
+import { getRoomCreationLayout } from '@/screens/roomSetupConfig';
 
 type RoomCreationPreviewProps = {
   children?: ReactNode;
-  collapsedImageUri: string;
+  collapsedImageUris: string[];
+  drawerHeight: Animated.Value;
   expandedImageUri: string;
   imageProgress: Animated.Value;
   isCreateOpen: boolean;
@@ -61,7 +59,8 @@ function getStairPath(width: number, outerHeight: number, innerHeight: number) {
 
 export function RoomCreationPreview({
   children,
-  collapsedImageUri,
+  collapsedImageUris,
+  drawerHeight,
   expandedImageUri,
   imageProgress,
   isCreateOpen,
@@ -77,22 +76,17 @@ export function RoomCreationPreview({
   const [swipeX] = useState(() => new Animated.Value(0));
   const resetTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const swipeStartX = useRef<number | null>(null);
-  const controlsWidth = Math.min(width - 20, 430);
-  const maxSwipeX = Math.max(92, controlsWidth - 164);
-  const controlsBottom = Math.max(bottom, 16);
-  const imageHeight = height * ROOM_CREATION_IMAGE_HEIGHT_RATIO;
-  const imageRevealHeight = Animated.multiply(imageProgress, imageHeight);
-  const outerStepHeight = height * ROOM_CREATION_OUTER_STEP_RATIO;
-  const innerStepHeight = height * ROOM_CREATION_INNER_STEP_RATIO;
-  const stairPath = getStairPath(width, outerStepHeight, innerStepHeight);
-  const copyBottomPadding = controlsBottom + height * 0.18;
-  const copyGap = height * 0.028;
-  const copyStackWidth = Math.min(width * 0.9, height * 0.46);
-  const copyLaneWidth = copyStackWidth * 0.42;
-  const copyFontSize = Math.max(26, Math.min(34, copyLaneWidth / 4.55));
-  const copyLineHeight = copyFontSize * 1.06;
-  const copyTextStyle = { fontSize: copyFontSize, lineHeight: copyLineHeight };
-  const swipeTraceWidth = Animated.add(swipeX, 38);
+  const layout = getRoomCreationLayout(width, height, bottom);
+  const drawerTop = layout.imageHeight - layout.outerStepHeight;
+  const drawerBodyTop = Math.max(0, layout.outerStepHeight - layout.innerStepHeight * 0.36);
+  const drawerUnderlayHeight = drawerHeight.interpolate({
+    extrapolate: 'clamp',
+    inputRange: [0, drawerBodyTop, height],
+    outputRange: [0, 0, height],
+  });
+  const stairPath = getStairPath(width, layout.outerStepHeight, layout.innerStepHeight);
+  const copyTextStyle = { fontSize: layout.copyFontSize, lineHeight: layout.copyLineHeight };
+  const swipeTraceWidth = Animated.add(swipeX, layout.controlSize / 2);
   const chevronColor = isCreateOpen ? '#3A3D40' : '#6D6D6D';
   const controlIconColor = isCreateOpen ? '#25282B' : '#858585';
   const copyTextProps = {
@@ -101,7 +95,12 @@ export function RoomCreationPreview({
     minimumFontScale: 0.86,
     numberOfLines: 1,
   } as const;
-  const selectedCopyStyle = { transform: [{ scale: 1.14 }] };
+  const selectedCopyStyle = { transform: [{ scale: 1.1 }] };
+  const controlShapeStyle = {
+    borderRadius: layout.controlSize / 2,
+    height: layout.controlSize,
+    width: layout.controlSize,
+  };
   const swipeTraceOpacity = swipeX.interpolate({
     extrapolate: 'clamp',
     inputRange: [0, 1],
@@ -153,7 +152,7 @@ export function RoomCreationPreview({
     }
     Animated.timing(swipeX, {
       duration: 260,
-      toValue: maxSwipeX,
+      toValue: layout.maxSwipeX,
       useNativeDriver: false,
     }).start();
   };
@@ -161,40 +160,47 @@ export function RoomCreationPreview({
   return (
     <View style={styles.stage}>
       <View style={styles.screen}>
-        <View style={[styles.imageWrap, { height: imageHeight }]}>
+        <View style={[styles.imageWrap, { height: layout.imageHeight }]}>
           <Image
             accessibilityIgnoresInvertColors
             resizeMode="cover"
-            source={{ uri: collapsedImageUri }}
+            source={{ uri: expandedImageUri }}
             style={styles.image}
           />
-          <Animated.View style={[styles.imageReveal, { height: imageRevealHeight }]}>
-            <Image
-              accessibilityIgnoresInvertColors
-              resizeMode="cover"
-              source={{ uri: expandedImageUri }}
-              style={[styles.image, styles.imageRevealImage, { height: imageHeight }]}
-            />
-          </Animated.View>
+          <RoomImageMosaic
+            height={layout.imageHeight}
+            imageUris={collapsedImageUris}
+            revealProgress={imageProgress}
+            width={width}
+          />
           <Svg
-            height={outerStepHeight}
+            height={layout.outerStepHeight}
             pointerEvents="none"
-            style={styles.imageCutoutShape}
-            viewBox={`0 0 ${width} ${outerStepHeight}`}
+            style={[styles.imageCutoutShape, isCreateOpen && styles.hidden]}
+            viewBox={`0 0 ${width} ${layout.outerStepHeight}`}
             width={width}
           >
             <Path d={stairPath} fill="#101111" />
           </Svg>
+          <View
+            pointerEvents="none"
+            style={[styles.imageSeamCover, isCreateOpen && styles.hidden]}
+          />
         </View>
-        <View style={[styles.copyWrap, { paddingBottom: copyBottomPadding }]}>
-          <View style={[styles.copyStack, { gap: copyGap, width: copyStackWidth }]}>
+        <View
+          style={[
+            styles.copyWrap,
+            { paddingBottom: layout.copyBottomPadding, paddingTop: layout.copyTopPadding },
+          ]}
+        >
+          <View style={[styles.copyStack, { gap: layout.copyGap, width: layout.copyStackWidth }]}>
             <View style={styles.copyRow}>
               <Pressable
                 accessibilityLabel="Use new room mode"
                 accessibilityRole="button"
                 hitSlop={12}
                 onPress={() => selectActionMode('create')}
-                style={[styles.copyModeButton, { width: copyLaneWidth }]}
+                style={[styles.copyModeButton, { width: layout.copyLaneWidth }]}
               >
                 <Text
                   {...copyTextProps}
@@ -209,7 +215,7 @@ export function RoomCreationPreview({
                 accessibilityRole="button"
                 hitSlop={12}
                 onPress={() => selectActionMode('active')}
-                style={[styles.copyModeButton, { width: copyLaneWidth }]}
+                style={[styles.copyModeButton, { width: layout.copyLaneWidth }]}
               >
                 <Text
                   {...copyTextProps}
@@ -231,24 +237,41 @@ export function RoomCreationPreview({
             <View style={styles.copyRow}>
               <Text
                 {...copyTextProps}
-                style={[styles.copy, copyTextStyle, { width: copyLaneWidth }]}
+                style={[styles.copy, copyTextStyle, { width: layout.copyLaneWidth }]}
               >
                 CODE
               </Text>
               <Text
                 {...copyTextProps}
-                style={[styles.copy, copyTextStyle, styles.copyRight, { width: copyLaneWidth }]}
+                style={[
+                  styles.copy,
+                  copyTextStyle,
+                  styles.copyRight,
+                  { width: layout.copyLaneWidth },
+                ]}
               >
                 SESSION
               </Text>
             </View>
           </View>
         </View>
+        <Animated.View
+          pointerEvents="none"
+          style={[
+            styles.drawerUnderlay,
+            { height: drawerUnderlayHeight, top: drawerTop + drawerBodyTop },
+          ]}
+        />
         {children}
         <View
           style={[
             styles.controls,
-            { bottom: controlsBottom, left: (width - controlsWidth) / 2, width: controlsWidth },
+            {
+              bottom: layout.controlsBottom,
+              gap: layout.controlsGap,
+              left: (width - layout.controlsWidth) / 2,
+              width: layout.controlsWidth,
+            },
           ]}
         >
           <View style={styles.menuSlot}>
@@ -273,15 +296,26 @@ export function RoomCreationPreview({
             <Pressable
               accessibilityLabel="Open reminder menu"
               onPress={() => setIsMenuOpen((current) => !current)}
-              style={[styles.secondaryControl, isCreateOpen && styles.secondaryControlLight]}
+              style={[
+                styles.secondaryControl,
+                controlShapeStyle,
+                isCreateOpen && styles.secondaryControlLight,
+              ]}
             >
               <RoomIcon color={controlIconColor} name={menuIcon} size={24} strokeWidth={2.2} />
             </Pressable>
           </View>
-          <View style={[styles.actionPill, isCreateOpen && styles.actionPillLight]}>
+          <View
+            style={[
+              styles.actionPill,
+              { borderRadius: layout.controlSize / 2, height: layout.controlSize },
+              isCreateOpen && styles.actionPillLight,
+            ]}
+          >
             <Animated.View
               style={[
                 styles.swipeTrace,
+                { height: layout.controlSize },
                 isCreateOpen && styles.swipeTraceLight,
                 {
                   opacity: isActiveSessionMode ? 0 : swipeTraceOpacity,
@@ -292,6 +326,7 @@ export function RoomCreationPreview({
             <Animated.View
               style={[
                 styles.primaryControl,
+                controlShapeStyle,
                 isCreateOpen && styles.primaryControlLight,
                 isActiveSessionMode ? null : { transform: [{ translateX: swipeX }] },
               ]}
@@ -306,7 +341,10 @@ export function RoomCreationPreview({
                   if (isActiveSessionMode) return;
                   const startX = swipeStartX.current;
                   swipeStartX.current = null;
-                  if (startX !== null && event.nativeEvent.pageX - startX > maxSwipeX * 0.6) {
+                  if (
+                    startX !== null &&
+                    event.nativeEvent.pageX - startX > layout.maxSwipeX * 0.6
+                  ) {
                     settleSwipe(true);
                     return;
                   }
@@ -318,9 +356,9 @@ export function RoomCreationPreview({
                   if (startX === null) return;
                   const distance = Math.max(
                     0,
-                    Math.min(maxSwipeX, event.nativeEvent.pageX - startX),
+                    Math.min(layout.maxSwipeX, event.nativeEvent.pageX - startX),
                   );
-                  onCreateProgress(distance / maxSwipeX);
+                  onCreateProgress(distance / layout.maxSwipeX);
                   swipeX.setValue(distance);
                 }}
                 onTouchStart={(event) => {
@@ -340,9 +378,10 @@ export function RoomCreationPreview({
             <View
               style={[
                 styles.participate,
+                { height: layout.controlSize },
                 isActiveSessionMode && styles.activeSessionField,
                 isCreateOpen && styles.participateOpen,
-                isCreateOpen && { width: maxSwipeX },
+                isCreateOpen && { width: layout.maxSwipeX },
               ]}
             >
               {isActiveSessionMode ? (
@@ -367,7 +406,11 @@ export function RoomCreationPreview({
                   maxFontSizeMultiplier={1}
                   minimumFontScale={0.78}
                   numberOfLines={1}
-                  style={[styles.participateText, isCreateOpen && styles.participateTextLight]}
+                  style={[
+                    styles.participateText,
+                    { fontSize: layout.actionTextFontSize },
+                    isCreateOpen && styles.participateTextLight,
+                  ]}
                 >
                   {isCreateOpen ? 'Save and continue' : 'Swipe to create room'}
                 </Text>
@@ -377,7 +420,10 @@ export function RoomCreationPreview({
               <Pressable
                 accessibilityLabel="Next reminder"
                 onPress={() => settleSwipe(true)}
-                style={styles.nextControl}
+                style={[
+                  styles.nextControl,
+                  { height: layout.controlSize, width: layout.nextControlWidth },
+                ]}
               >
                 <RoomIcon color={chevronColor} name="chevronsRight" size={24} strokeWidth={1.8} />
               </Pressable>

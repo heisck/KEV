@@ -19,12 +19,10 @@ import { roomSetupDrawerStyles as drawerStyles } from '@/components/room/roomSet
 import { useDropDownPanel } from '@/hooks/useDropDownPanel';
 import {
   DEFAULT_ROOM_SETUP_FLOOR_INDEX,
-  ROOM_CREATION_IMAGE_HEIGHT_RATIO,
-  ROOM_CREATION_INNER_STEP_RATIO,
-  ROOM_CREATION_OUTER_STEP_RATIO,
   ROOM_SETUP_FLOORS,
   ROOM_SETUP_SKY_IMAGE_URL,
-  ROOM_SETUP_STUDENTS_IMAGE_URL,
+  ROOM_SETUP_STUDENT_IMAGE_URLS,
+  getRoomCreationLayout,
 } from '@/screens/roomSetupConfig';
 import { roomSetupStyles as styles } from '@/screens/roomSetupStyles';
 
@@ -54,12 +52,11 @@ export function RoomSetupScreen(_props: RoomSetupScreenProps) {
   const [indexTo, setIndexTo] = useState('');
   const [courses, setCourses] = useState<CourseRange[]>([]);
   const nextCourseId = useRef(0);
-  const outerStepHeight = height * ROOM_CREATION_OUTER_STEP_RATIO;
-  const innerStepHeight = height * ROOM_CREATION_INNER_STEP_RATIO;
-  const drawerTop = height * ROOM_CREATION_IMAGE_HEIGHT_RATIO - outerStepHeight;
-  const drawerBodyTop = Math.max(0, outerStepHeight - innerStepHeight * 0.36);
+  const roomLayout = getRoomCreationLayout(width, height, bottom);
+  const drawerTop = roomLayout.imageHeight - roomLayout.outerStepHeight;
+  const drawerBodyTop = Math.max(0, roomLayout.outerStepHeight - roomLayout.innerStepHeight * 0.36);
   const drawer = useDropDownPanel(height - drawerTop);
-  const controlsClearance = Math.max(bottom, 16) + 88;
+  const controlsClearance = roomLayout.controlsBottom + roomLayout.controlSize + 12;
   const drawerPadding = clamp(width * 0.04, 12, 18);
   const formWidth = Math.min(360, width - drawerPadding * 2);
   const inputHeight = clamp(height * 0.059, 44, 50);
@@ -119,7 +116,8 @@ export function RoomSetupScreen(_props: RoomSetupScreenProps) {
     <View style={[styles.screen, webViewportLock]}>
       <SystemStatusBar backgroundColor="transparent" barStyle="light-content" translucent />
       <RoomCreationPreview
-        collapsedImageUri={ROOM_SETUP_STUDENTS_IMAGE_URL}
+        collapsedImageUris={ROOM_SETUP_STUDENT_IMAGE_URLS}
+        drawerHeight={drawer.height}
         expandedImageUri={ROOM_SETUP_SKY_IMAGE_URL}
         imageProgress={drawer.progress}
         isCreateOpen={drawer.isVisible}
@@ -131,21 +129,34 @@ export function RoomSetupScreen(_props: RoomSetupScreenProps) {
             pointerEvents="box-none"
             style={[drawerStyles.container, { height: drawer.height, top: drawerTop }]}
           >
-            <View style={[drawerStyles.stepLeft, { height: outerStepHeight, top: 0 }]} />
+            <View style={[drawerStyles.stepLeft, { height: roomLayout.outerStepHeight, top: 0 }]} />
             <View
               style={[
                 drawerStyles.stepLeftInner,
-                { height: innerStepHeight, top: outerStepHeight - innerStepHeight },
+                {
+                  height: roomLayout.innerStepHeight,
+                  top: roomLayout.outerStepHeight - roomLayout.innerStepHeight,
+                },
               ]}
             />
-            <View style={[drawerStyles.stepRight, { height: outerStepHeight, top: 0 }]} />
+            <View
+              style={[drawerStyles.stepRight, { height: roomLayout.outerStepHeight, top: 0 }]}
+            />
             <View
               style={[
                 drawerStyles.stepRightInner,
-                { height: innerStepHeight, top: outerStepHeight - innerStepHeight },
+                {
+                  height: roomLayout.innerStepHeight,
+                  top: roomLayout.outerStepHeight - roomLayout.innerStepHeight,
+                },
               ]}
             />
-            <View style={[drawerStyles.backButton, { top: Math.max(4, outerStepHeight - 42) }]}>
+            <View
+              style={[
+                drawerStyles.backButton,
+                { top: Math.max(4, roomLayout.outerStepHeight - 42) },
+              ]}
+            >
               <CircleButton icon="back" label="Collapse room setup" onPress={drawer.hide} />
             </View>
             <Animated.View

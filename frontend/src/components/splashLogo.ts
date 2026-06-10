@@ -7,9 +7,9 @@ export type LineSpec = {
   col: number;
 };
 
-export const BG = '#5C9E08';
-export const INK = '#FFFFFF';
-export const LINE = '#FFFFFF';
+export const BG = '#FFFFFF';
+export const INK = '#000000';
+export const LINE = '#000000';
 export const CELL = 32;
 export const COLS = 5;
 export const ROWS = 4;
