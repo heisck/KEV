@@ -1,9 +1,10 @@
 import { useCallback, useState, type ReactNode } from 'react';
-import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Pressable, StyleSheet, Text, TextInput, useWindowDimensions, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AppleIcon, EmailIcon, GoogleIcon } from '@/components/auth/AuthIcons';
 import { AuthScaffold } from '@/screens/AuthScaffold';
-import { LIMEADE } from '@/screens/authConfig';
+import { AUTH_OVERLAY_VERTICAL_PADDING, LIMEADE } from '@/screens/authConfig';
 
 type AuthScreenProps = {
   onApplePress?: () => void;
@@ -14,11 +15,14 @@ type AuthScreenProps = {
 export function AuthScreen({ onApplePress, onGooglePress, onSendCode }: AuthScreenProps) {
   const [email, setEmail] = useState('');
   const [isEmailFocused, setIsEmailFocused] = useState(false);
+  const { height } = useWindowDimensions();
+  const { bottom, top } = useSafeAreaInsets();
+  const layoutMinHeight = Math.max(height - top - bottom - AUTH_OVERLAY_VERTICAL_PADDING * 2, 0);
   const handleSendCode = useCallback(() => onSendCode?.(email.trim()), [email, onSendCode]);
 
   return (
     <AuthScaffold heightRatio={0.58} withPanel={false}>
-      <View style={styles.layout}>
+      <View style={[styles.layout, { minHeight: layoutMinHeight }]}>
         <View style={styles.titleGroup}>
           <Text accessibilityLabel="Verify Account" style={styles.verifyTitle}>
             Verify <Text style={styles.accountTitle}>Account</Text>
@@ -101,7 +105,7 @@ function SocialButton({
 }
 
 const styles = StyleSheet.create({
-  layout: { flex: 1, justifyContent: 'space-between', minHeight: 680 },
+  layout: { flex: 1, justifyContent: 'space-between' },
   bottomGroup: { alignSelf: 'center', gap: 14, maxWidth: 318, width: '100%' },
   titleGroup: { alignItems: 'center' },
   verifyTitle: {

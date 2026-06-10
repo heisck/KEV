@@ -1,7 +1,15 @@
 import { useEffect, useState } from 'react';
-import { Animated, Easing, StyleSheet, View } from 'react-native';
+import { Animated, Easing, StyleSheet, useWindowDimensions, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 
+import {
+  AppLogoMark,
+  HERO_LOGO_COLOR,
+  HERO_LOGO_SCALE,
+  getAppLogoMarkSize,
+  getFloatingHeroLogoTop,
+} from '@/components/AppLogoMark';
 import { SystemStatusBar } from '@/components/SystemStatusBar';
 import {
   BG,
@@ -30,19 +38,29 @@ import {
 type AppSplashProps = { isActive?: boolean; onFinish: () => void };
 
 type SplashAnimation = {
+  backgroundOpacity: Animated.Value;
   commaOpacity: Animated.Value;
   commaScale: Animated.Value;
+  handoffLogoOpacity: Animated.Value;
+  handoffLogoScale: Animated.Value;
+  handoffLogoTranslateY: Animated.Value;
   lineOpacity: Animated.Value[];
   overlayOpacity: Animated.Value;
+  stageOpacity: Animated.Value;
   stageTranslateX: Animated.Value;
 };
 
 function createSplashAnimation(): SplashAnimation {
   return {
+    backgroundOpacity: new Animated.Value(1),
     commaOpacity: new Animated.Value(0),
     commaScale: new Animated.Value(0.94),
+    handoffLogoOpacity: new Animated.Value(0),
+    handoffLogoScale: new Animated.Value(1),
+    handoffLogoTranslateY: new Animated.Value(0),
     lineOpacity: lineSpecs.map(() => new Animated.Value(1)),
     overlayOpacity: new Animated.Value(1),
+    stageOpacity: new Animated.Value(1),
     stageTranslateX: new Animated.Value(GRID_CENTER_OFFSET),
   };
 }
@@ -80,7 +98,46 @@ function revealLogo({ commaOpacity, commaScale, stageTranslateX }: SplashAnimati
   ]).start();
 }
 
-function scheduleSplash(animation: SplashAnimation, onFinish: () => void) {
+function handoffLogo(animation: SplashAnimation, targetTranslateY: number) {
+  Animated.parallel([
+    Animated.timing(animation.stageOpacity, {
+      toValue: 0,
+      duration: 160,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: true,
+    }),
+    Animated.timing(animation.handoffLogoOpacity, {
+      toValue: 1,
+      duration: 140,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: true,
+    }),
+    Animated.timing(animation.backgroundOpacity, {
+      toValue: 0,
+      duration: 340,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: true,
+    }),
+    Animated.timing(animation.handoffLogoScale, {
+      toValue: HERO_LOGO_SCALE,
+      duration: 460,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: true,
+    }),
+    Animated.timing(animation.handoffLogoTranslateY, {
+      toValue: targetTranslateY,
+      duration: 460,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: true,
+    }),
+  ]).start();
+}
+
+function scheduleSplash(
+  animation: SplashAnimation,
+  onFinish: () => void,
+  targetTranslateY: number,
+) {
   const removed = new Set<number>();
   const hidden = new Set<string>();
   const hideAnimatedLine = (key: string) => {
@@ -102,8 +159,9 @@ function scheduleSplash(animation: SplashAnimation, onFinish: () => void) {
 
   timers.push(
     setTimeout(() => revealLogo(animation), 1220),
-    setTimeout(() => fadeValue(animation.overlayOpacity, 0, 260), 1820),
-    setTimeout(onFinish, 2100),
+    setTimeout(() => handoffLogo(animation, targetTranslateY), 1720),
+    setTimeout(() => fadeValue(animation.overlayOpacity, 0, 140), 2360),
+    setTimeout(onFinish, 2520),
   );
 
   return () => {
@@ -111,18 +169,23 @@ function scheduleSplash(animation: SplashAnimation, onFinish: () => void) {
     for (const opacity of animation.lineOpacity) opacity.stopAnimation();
     animation.commaOpacity.stopAnimation();
     animation.commaScale.stopAnimation();
+    animation.backgroundOpacity.stopAnimation();
+    animation.handoffLogoOpacity.stopAnimation();
+    animation.handoffLogoScale.stopAnimation();
+    animation.handoffLogoTranslateY.stopAnimation();
     animation.overlayOpacity.stopAnimation();
+    animation.stageOpacity.stopAnimation();
     animation.stageTranslateX.stopAnimation();
   };
 }
 
-function useSplashAnimation(isActive: boolean, onFinish: () => void) {
+function useSplashAnimation(isActive: boolean, onFinish: () => void, targetTranslateY: number) {
   const [animation] = useState(createSplashAnimation);
 
   useEffect(() => {
     if (!isActive) return undefined;
-    return scheduleSplash(animation, onFinish);
-  }, [animation, isActive, onFinish]);
+    return scheduleSplash(animation, onFinish, targetTranslateY);
+  }, [animation, isActive, onFinish, targetTranslateY]);
 
   return animation;
 }
@@ -173,22 +236,48 @@ function CommaMark({
 }
 
 export function AppSplash({ isActive = true, onFinish }: AppSplashProps) {
-  const animation = useSplashAnimation(isActive, onFinish);
+  const { height } = useWindowDimensions();
+  const { top } = useSafeAreaInsets();
+  const targetLogoTop = getFloatingHeroLogoTop(height, top);
+  const targetLogoHeight = getAppLogoMarkSize().height;
+  const targetTranslateY = targetLogoTop + targetLogoHeight / 2 - height / 2;
+  const animation = useSplashAnimation(isActive, onFinish, targetTranslateY);
 
   return (
     <>
-      <SystemStatusBar backgroundColor={BG} barStyle="light-content" translucent={false} />
+      <SystemStatusBar backgroundColor={BG} barStyle="dark-content" translucent={false} />
       <Animated.View
         accessibilityElementsHidden
         importantForAccessibility="no-hide-descendants"
         pointerEvents="none"
         style={[styles.screen, styles.overlay, { opacity: animation.overlayOpacity }]}
       >
+        <Animated.View style={[styles.background, { opacity: animation.backgroundOpacity }]} />
         <Animated.View
-          style={[styles.stage, { transform: [{ translateX: animation.stageTranslateX }] }]}
+          style={[
+            styles.stage,
+            {
+              opacity: animation.stageOpacity,
+              transform: [{ translateX: animation.stageTranslateX }],
+            },
+          ]}
         >
           <GridLines opacities={animation.lineOpacity} />
           <CommaMark opacity={animation.commaOpacity} scale={animation.commaScale} />
+        </Animated.View>
+        <Animated.View
+          style={[
+            styles.handoffLogo,
+            {
+              opacity: animation.handoffLogoOpacity,
+              transform: [
+                { translateY: animation.handoffLogoTranslateY },
+                { scale: animation.handoffLogoScale },
+              ],
+            },
+          ]}
+        >
+          <AppLogoMark color={HERO_LOGO_COLOR} scale={1} />
         </Animated.View>
       </Animated.View>
     </>
@@ -197,7 +286,7 @@ export function AppSplash({ isActive = true, onFinish }: AppSplashProps) {
 
 export function AppSplashFinalState() {
   return (
-    <View style={styles.screen}>
+    <View style={[styles.screen, styles.finalScreen]}>
       <View style={styles.stage}>
         <GridLines />
         <CommaMark />
@@ -207,8 +296,11 @@ export function AppSplashFinalState() {
 }
 
 const styles = StyleSheet.create({
-  screen: { alignItems: 'center', backgroundColor: BG, flex: 1, justifyContent: 'center' },
+  background: { backgroundColor: BG, bottom: 0, left: 0, position: 'absolute', right: 0, top: 0 },
+  screen: { alignItems: 'center', flex: 1, justifyContent: 'center' },
+  finalScreen: { backgroundColor: BG },
   overlay: { bottom: 0, left: 0, position: 'absolute', right: 0, top: 0, zIndex: 100 },
+  handoffLogo: { height: LOGO_HEIGHT, position: 'absolute', width: LOGO_WIDTH },
   stage: { height: LOGO_HEIGHT, width: LOGO_WIDTH },
   grid: { height: LOGO_HEIGHT, left: 0, position: 'absolute', top: 0, width: GRID_WIDTH },
   line: { backgroundColor: LINE, position: 'absolute' },
