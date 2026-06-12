@@ -8,7 +8,7 @@ dependencies = [
     "fastapi>=0.115",
     "uvicorn[standard]>=0.34",
     "pydantic-settings>=2.6",
-    "huggingface-hub>=0.27",
+    "huggingface-hub>=1.19.0",
     "sentry-sdk[fastapi]>=2.20",
 ]
 
