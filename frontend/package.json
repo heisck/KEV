@@ -19,7 +19,7 @@
     "reset-project": "node ./scripts/reset-project.js"
   },
   "dependencies": {
-    "@expo/ui": "~56.0.16",
+    "@expo/ui": "~56.0.17",
     "@hookform/resolvers": "^5.4.0",
     "@kev/api-types": "*",
     "@react-native-google-signin/google-signin": "^16.1.2",
