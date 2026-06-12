@@ -9,7 +9,7 @@ dependencies = [
     "uvicorn[standard]>=0.34",
     "pydantic-settings>=2.6",
     "huggingface-hub>=0.27",
-    "sentry-sdk[fastapi]>=2.20",
+    "sentry-sdk[fastapi]>=2.62.0",
 ]
 
 # NOTE: transformers/torch (multi-GB) are intentionally NOT hard dependencies so
