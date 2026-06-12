@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Image, Pressable, Text, View } from 'react-native';
+import { Image, Pressable, ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { VerifiedBadgeIcon } from '@/components/nfc/NfcIcons';
@@ -67,7 +67,15 @@ export function StudentVerificationResultScreen({
         </Pressable>
       </View>
 
-      <View style={[styles.content, { paddingBottom: bottom + 28, paddingTop: top + 78 }]}>
+      <ScrollView
+        bounces={false}
+        contentContainerStyle={[
+          styles.content,
+          { paddingBottom: bottom + 28, paddingTop: top + 78 },
+        ]}
+        showsVerticalScrollIndicator={false}
+        style={styles.scroll}
+      >
         <View style={styles.statusGroup}>
           <Text style={styles.statusLabel}>Student verified</Text>
           <Text style={styles.statusText}>Identity match confirmed</Text>
@@ -106,7 +114,7 @@ export function StudentVerificationResultScreen({
             <Text style={styles.closeText}>Close</Text>
           </Pressable>
         </View>
-      </View>
+      </ScrollView>
     </View>
   );
 }

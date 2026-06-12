@@ -5,7 +5,6 @@ import {
   Pressable,
   ScrollView,
   Text,
-  useWindowDimensions,
   View,
   type ViewStyle,
 } from 'react-native';
@@ -17,6 +16,7 @@ import { RoomCreationPreview } from '@/components/room/RoomCreationPreview';
 import { CircleButton, Field, RoomIcon, RoundAction } from '@/components/room/RoomSetupControls';
 import { roomSetupDrawerStyles as drawerStyles } from '@/components/room/roomSetupDrawerStyles';
 import { useDropDownPanel } from '@/hooks/useDropDownPanel';
+import { useStableScreenSize } from '@/hooks/useStableScreenSize';
 import {
   DEFAULT_ROOM_SETUP_FLOOR_INDEX,
   ROOM_SETUP_FLOORS,
@@ -41,8 +41,8 @@ function clamp(value: number, min: number, max: number) {
   return Math.min(max, Math.max(min, value));
 }
 
-export function RoomSetupScreen(_props: RoomSetupScreenProps) {
-  const { height, width } = useWindowDimensions();
+export function RoomSetupScreen({ onComplete }: RoomSetupScreenProps) {
+  const { height, width } = useStableScreenSize();
   const { bottom } = useSafeAreaInsets();
   const [floorIndex, setFloorIndex] = useState(DEFAULT_ROOM_SETUP_FLOOR_INDEX);
   const [building, setBuilding] = useState('');
@@ -82,9 +82,9 @@ export function RoomSetupScreen(_props: RoomSetupScreenProps) {
     Platform.OS === 'web'
       ? ({
           bottom: 0,
-          height: '100dvh',
+          height: '100vh',
           left: 0,
-          maxHeight: '100dvh',
+          maxHeight: '100vh',
           overflow: 'hidden',
           position: 'fixed',
           right: 0,
@@ -121,7 +121,7 @@ export function RoomSetupScreen(_props: RoomSetupScreenProps) {
         expandedImageUri={ROOM_SETUP_SKY_IMAGE_URL}
         imageProgress={drawer.progress}
         isCreateOpen={drawer.isVisible}
-        onCreateProgress={drawer.setProgress}
+        onComplete={onComplete}
         onCreateSettle={drawer.settle}
       >
         {drawer.isVisible ? (
