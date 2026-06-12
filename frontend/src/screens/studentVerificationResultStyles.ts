@@ -15,9 +15,10 @@ export const studentVerificationResultStyles = StyleSheet.create({
     justifyContent: 'center',
     width: 40,
   },
+  scroll: { flex: 1, width: '100%' },
   content: {
     alignItems: 'center',
-    flex: 1,
+    flexGrow: 1,
     justifyContent: 'space-between',
     paddingHorizontal: 24,
   },
