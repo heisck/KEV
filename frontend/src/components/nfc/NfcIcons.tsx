@@ -1,28 +1,33 @@
-import Svg, { Circle, Path } from 'react-native-svg';
+import Svg, { Circle, Path, Rect } from 'react-native-svg';
 
 type NfcIconProps = {
   color?: string;
   size?: number;
 };
 
+// Framed NFC tag with nested contactless waves — deliberately distinct from the
+// open Wi‑Fi fan: a bounded card emitting a directional field.
 export function ContactlessIcon({ color = '#3A6700', size = 68 }: NfcIconProps) {
   return (
     <Svg height={size} viewBox="0 0 64 64" width={size}>
-      <Path
-        d="M18 24c4 4.8 4 11.2 0 16M28 18c7 8.2 7 19.8 0 28M38 12c10 12 10 28 0 40"
+      <Rect
         fill="none"
+        height={48}
+        rx={15}
         stroke={color}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth={4}
+        strokeWidth={3.4}
+        width={48}
+        x={8}
+        y={8}
       />
+      <Circle cx={22} cy={32} fill={color} r={2.6} />
       <Path
-        d="M10 18h8M10 46h8M8 22v20"
+        d="M28 24c5.4 4.6 5.4 11.4 0 16M35 19.5c9 7.2 9 17.8 0 25M42 15c12.6 9.8 12.6 24.2 0 34"
         fill="none"
         stroke={color}
         strokeLinecap="round"
         strokeLinejoin="round"
-        strokeWidth={4}
+        strokeWidth={3.4}
       />
     </Svg>
   );

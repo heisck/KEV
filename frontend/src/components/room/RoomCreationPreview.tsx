@@ -1,19 +1,13 @@
-import { type ReactNode, useEffect, useRef, useState } from 'react';
-import {
-  Animated,
-  Image,
-  Pressable,
-  Text,
-  TextInput,
-  useWindowDimensions,
-  View,
-} from 'react-native';
+import { type ReactNode, useCallback, useEffect, useRef, useState } from 'react';
+import { Animated, Image, Pressable, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 
 import { RoomImageMosaic } from '@/components/room/RoomImageMosaic';
+import { RoomActionWordPattern } from '@/components/room/RoomActionWordPattern';
 import { RoomIcon, type RoomIconName } from '@/components/room/RoomSetupControls';
 import { roomCreationPreviewStyles as styles } from '@/components/room/roomCreationPreviewStyles';
+import { useStableScreenSize } from '@/hooks/useStableScreenSize';
 import { getRoomCreationLayout } from '@/screens/roomSetupConfig';
 
 type RoomCreationPreviewProps = {
@@ -23,7 +17,7 @@ type RoomCreationPreviewProps = {
   expandedImageUri: string;
   imageProgress: Animated.Value;
   isCreateOpen: boolean;
-  onCreateProgress: (progress: number) => void;
+  onComplete?: () => void;
   onCreateSettle: (shouldOpen: boolean) => void;
 };
 type RoomActionMode = 'active' | 'create';
@@ -64,19 +58,19 @@ export function RoomCreationPreview({
   expandedImageUri,
   imageProgress,
   isCreateOpen,
-  onCreateProgress,
+  onComplete,
   onCreateSettle,
 }: RoomCreationPreviewProps) {
   const { bottom } = useSafeAreaInsets();
-  const { height, width } = useWindowDimensions();
+  const { height, width } = useStableScreenSize();
   const [actionMode, setActionMode] = useState<RoomActionMode>('create');
   const [activeSessionCode, setActiveSessionCode] = useState('');
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [menuIcon, setMenuIcon] = useState<RoomIconName>('menu');
   const [swipeX] = useState(() => new Animated.Value(0));
   const resetTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const swipeStartX = useRef<number | null>(null);
   const layout = getRoomCreationLayout(width, height, bottom);
+  const maxSwipeX = layout.maxSwipeX;
   const drawerTop = layout.imageHeight - layout.outerStepHeight;
   const drawerBodyTop = Math.max(0, layout.outerStepHeight - layout.innerStepHeight * 0.36);
   const drawerUnderlayHeight = drawerHeight.interpolate({
@@ -106,7 +100,24 @@ export function RoomCreationPreview({
     inputRange: [0, 1],
     outputRange: [0, 1],
   });
+  // Circle + trace dissolve over the last leg so the settled pill matches the
+  // flat "Save and continue" final state instead of leaving the puck behind.
+  const swipeFade = swipeX.interpolate({
+    extrapolate: 'clamp',
+    inputRange: [0, maxSwipeX * 0.6, maxSwipeX],
+    outputRange: [1, 1, 0],
+  });
   const isActiveSessionMode = actionMode === 'active' && !isCreateOpen;
+  const actionTextStyle = {
+    fontSize: layout.actionTextFontSize,
+    lineHeight: layout.actionTextFontSize * 1.18,
+  };
+  const actionTrackStyle = isCreateOpen
+    ? { left: 0, width: maxSwipeX }
+    : {
+        left: layout.controlSize + 6,
+        right: isActiveSessionMode ? 12 : layout.nextControlWidth + 6,
+      };
 
   useEffect(
     () => () => {
@@ -126,14 +137,14 @@ export function RoomCreationPreview({
     resetTimer.current = setTimeout(() => setMenuIcon('menu'), 5000);
   };
 
-  const resetSwipe = () => {
+  const resetSwipe = useCallback(() => {
     Animated.spring(swipeX, {
       damping: 18,
       stiffness: 180,
       toValue: 0,
       useNativeDriver: false,
     }).start();
-  };
+  }, [swipeX]);
 
   const selectActionMode = (mode: RoomActionMode) => {
     setActionMode(mode);
@@ -142,20 +153,28 @@ export function RoomCreationPreview({
 
   const submitActiveSession = () => {
     setActiveSessionCode((value) => value.trim());
+    onComplete?.();
   };
 
-  const settleSwipe = (shouldOpen: boolean) => {
-    onCreateSettle(shouldOpen);
-    if (!shouldOpen) {
-      resetSwipe();
-      return;
-    }
-    Animated.timing(swipeX, {
-      duration: 260,
-      toValue: layout.maxSwipeX,
-      useNativeDriver: false,
-    }).start();
-  };
+  const settleSwipe = useCallback(
+    (shouldOpen: boolean) => {
+      onCreateSettle(shouldOpen);
+      if (!shouldOpen) {
+        resetSwipe();
+        return;
+      }
+      Animated.timing(swipeX, {
+        duration: 260,
+        toValue: maxSwipeX,
+        useNativeDriver: false,
+      }).start();
+    },
+    [maxSwipeX, onCreateSettle, resetSwipe, swipeX],
+  );
+
+  // Click-to-create: the press plays the same settle animation the chevron uses
+  // (puck glides to the end + drawer drops in) — no manual drag tracking.
+  const openCreateRoom = useCallback(() => settleSwipe(true), [settleSwipe]);
 
   return (
     <View style={styles.stage}>
@@ -186,6 +205,19 @@ export function RoomCreationPreview({
             pointerEvents="none"
             style={[styles.imageSeamCover, isCreateOpen && styles.hidden]}
           />
+          <View
+            pointerEvents="none"
+            style={[
+              styles.imagePatternLayer,
+              { height: layout.outerStepHeight + 12 },
+              isCreateOpen && styles.hidden,
+            ]}
+          >
+            <RoomActionWordPattern
+              density="edge"
+              word={actionMode === 'active' ? 'ACTIVE' : 'NEW'}
+            />
+          </View>
         </View>
         <View
           style={[
@@ -193,6 +225,7 @@ export function RoomCreationPreview({
             { paddingBottom: layout.copyBottomPadding, paddingTop: layout.copyTopPadding },
           ]}
         >
+          <RoomActionWordPattern word={actionMode === 'active' ? 'ACTIVE' : 'NEW'} />
           <View style={[styles.copyStack, { gap: layout.copyGap, width: layout.copyStackWidth }]}>
             <View style={styles.copyRow}>
               <Pressable
@@ -318,53 +351,40 @@ export function RoomCreationPreview({
                 { height: layout.controlSize },
                 isCreateOpen && styles.swipeTraceLight,
                 {
-                  opacity: isActiveSessionMode ? 0 : swipeTraceOpacity,
+                  opacity: isActiveSessionMode
+                    ? 0
+                    : Animated.multiply(swipeTraceOpacity, swipeFade),
                   width: isActiveSessionMode ? 0 : swipeTraceWidth,
                 },
               ]}
             />
             <Animated.View
+              pointerEvents={isCreateOpen ? 'none' : 'auto'}
               style={[
                 styles.primaryControl,
                 controlShapeStyle,
                 isCreateOpen && styles.primaryControlLight,
-                isActiveSessionMode ? null : { transform: [{ translateX: swipeX }] },
+                isActiveSessionMode
+                  ? null
+                  : { opacity: swipeFade, transform: [{ translateX: swipeX }] },
               ]}
             >
               <Pressable
                 accessibilityLabel={
-                  isActiveSessionMode ? 'Send active room session' : 'Swipe to create room'
+                  isActiveSessionMode
+                    ? 'Send active room session'
+                    : isCreateOpen
+                      ? undefined
+                      : 'Tap to create room'
                 }
                 accessibilityRole="button"
-                onPress={isActiveSessionMode ? submitActiveSession : undefined}
-                onTouchEnd={(event) => {
-                  if (isActiveSessionMode) return;
-                  const startX = swipeStartX.current;
-                  swipeStartX.current = null;
-                  if (
-                    startX !== null &&
-                    event.nativeEvent.pageX - startX > layout.maxSwipeX * 0.6
-                  ) {
-                    settleSwipe(true);
-                    return;
-                  }
-                  settleSwipe(false);
-                }}
-                onTouchMove={(event) => {
-                  if (isActiveSessionMode) return;
-                  const startX = swipeStartX.current;
-                  if (startX === null) return;
-                  const distance = Math.max(
-                    0,
-                    Math.min(layout.maxSwipeX, event.nativeEvent.pageX - startX),
-                  );
-                  onCreateProgress(distance / layout.maxSwipeX);
-                  swipeX.setValue(distance);
-                }}
-                onTouchStart={(event) => {
-                  if (isActiveSessionMode) return;
-                  swipeStartX.current = event.nativeEvent.pageX;
-                }}
+                onPress={
+                  isActiveSessionMode
+                    ? submitActiveSession
+                    : isCreateOpen
+                      ? onComplete
+                      : openCreateRoom
+                }
                 style={styles.primaryControlHitArea}
               >
                 <RoomIcon
@@ -375,15 +395,7 @@ export function RoomCreationPreview({
                 />
               </Pressable>
             </Animated.View>
-            <View
-              style={[
-                styles.participate,
-                { height: layout.controlSize },
-                isActiveSessionMode && styles.activeSessionField,
-                isCreateOpen && styles.participateOpen,
-                isCreateOpen && { width: layout.maxSwipeX },
-              ]}
-            >
+            <View style={[styles.participate, { height: layout.controlSize }, actionTrackStyle]}>
               {isActiveSessionMode ? (
                 <TextInput
                   autoCapitalize="none"
@@ -401,25 +413,33 @@ export function RoomCreationPreview({
                   value={activeSessionCode}
                 />
               ) : (
-                <Text
-                  adjustsFontSizeToFit
-                  maxFontSizeMultiplier={1}
-                  minimumFontScale={0.78}
-                  numberOfLines={1}
-                  style={[
-                    styles.participateText,
-                    { fontSize: layout.actionTextFontSize },
-                    isCreateOpen && styles.participateTextLight,
-                  ]}
+                <Pressable
+                  accessibilityLabel={isCreateOpen ? 'Save and continue' : undefined}
+                  accessibilityRole={isCreateOpen ? 'button' : undefined}
+                  disabled={!isCreateOpen}
+                  onPress={isCreateOpen ? onComplete : undefined}
+                  style={styles.participatePressable}
                 >
-                  {isCreateOpen ? 'Save and continue' : 'Swipe to create room'}
-                </Text>
+                  <Text
+                    adjustsFontSizeToFit
+                    maxFontSizeMultiplier={1}
+                    minimumFontScale={0.78}
+                    numberOfLines={1}
+                    style={[
+                      styles.participateText,
+                      actionTextStyle,
+                      isCreateOpen && styles.participateTextLight,
+                    ]}
+                  >
+                    {isCreateOpen ? 'Save and continue' : 'Tap to create room'}
+                  </Text>
+                </Pressable>
               )}
             </View>
             {isActiveSessionMode ? null : (
               <Pressable
                 accessibilityLabel="Next reminder"
-                onPress={() => settleSwipe(true)}
+                onPress={isCreateOpen ? onComplete : openCreateRoom}
                 style={[
                   styles.nextControl,
                   { height: layout.controlSize, width: layout.nextControlWidth },

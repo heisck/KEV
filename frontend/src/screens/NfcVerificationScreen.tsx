@@ -1,11 +1,11 @@
 import { useState } from 'react';
-import { Pressable, Text, View } from 'react-native';
+import { Pressable, ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { FaceRecognitionPreview } from '@/components/nfc/FaceRecognitionPreview';
-import { InfoIcon } from '@/components/nfc/NfcIcons';
 import { NfcScanVisual } from '@/components/nfc/NfcScanVisual';
 import { ManualEntryDrawer } from '@/components/nfc/ManualEntryDrawer';
+import { RoomActionWordPattern } from '@/components/room/RoomActionWordPattern';
 import { RoomIcon } from '@/components/room/RoomSetupControls';
 import { SystemStatusBar } from '@/components/SystemStatusBar';
 import { nfcVerificationStyles as styles } from '@/screens/nfcVerificationStyles';
@@ -38,6 +38,7 @@ export function NfcVerificationScreen({
   return (
     <View style={styles.screen}>
       <SystemStatusBar backgroundColor="#F2F3FF" barStyle="dark-content" />
+      <RoomActionWordPattern color="rgba(19,27,46,0.05)" word="TAP" />
       <View style={[styles.nav, { paddingTop: Math.max(top, 14) }]}>
         <Pressable
           accessibilityLabel="Close NFC verification"
@@ -51,9 +52,16 @@ export function NfcVerificationScreen({
         <View style={styles.navSpacer} />
       </View>
 
-      <View style={[styles.content, { paddingBottom: bottom + 28, paddingTop: top + 82 }]}>
+      <ScrollView
+        bounces={false}
+        contentContainerStyle={[
+          styles.content,
+          { paddingBottom: bottom + 28, paddingTop: top + 82 },
+        ]}
+        showsVerticalScrollIndicator={false}
+        style={styles.scroll}
+      >
         <View style={styles.header}>
-          <Text style={styles.subtitle}>Secure identification using your KNUST ID card.</Text>
           <View style={styles.roomCodeCard}>
             <Text style={styles.roomCodeLabel}>Created room ID</Text>
             <Text selectable style={styles.roomCodeText}>
@@ -65,10 +73,6 @@ export function NfcVerificationScreen({
         <NfcScanVisual onScanComplete={onNfcScan} />
 
         <View style={styles.footer}>
-          <View style={styles.infoRow}>
-            <InfoIcon color="#8A9382" />
-            <Text style={styles.infoText}>Keep card still until scan is complete</Text>
-          </View>
           <View style={styles.actionRow}>
             <Pressable
               accessibilityLabel="Manual entry"
@@ -87,9 +91,8 @@ export function NfcVerificationScreen({
               <Text style={styles.faceText}>FACE RECOGNITION</Text>
             </Pressable>
           </View>
-          <Text style={styles.poweredText}>Powered by KEV Academic Identity Services</Text>
         </View>
-      </View>
+      </ScrollView>
       {manualDrawer.isVisible ? (
         <ManualEntryDrawer
           bottomInset={bottom}

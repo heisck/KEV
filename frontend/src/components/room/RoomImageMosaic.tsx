@@ -108,6 +108,10 @@ function getImageStyle(tile: MosaicTile, isActive: boolean): ImageStyle {
   return { transform: [{ scale: tile.scale + (isActive ? 0.06 : 0) }] };
 }
 
+function getPlaceholderStyle(index: number) {
+  return index % 2 === 0 ? styles.darkPlaceholder : styles.lightPlaceholder;
+}
+
 function getGutterOpacity(revealProgress: Animated.Value) {
   return revealProgress.interpolate({
     extrapolate: 'clamp',
@@ -159,6 +163,7 @@ export function RoomImageMosaic({
             <Animated.View
               style={[
                 styles.imageShell,
+                getPlaceholderStyle(index),
                 { opacity: getTileOpacity(revealProgress, tile, tiles.length) },
               ]}
             >
@@ -194,6 +199,8 @@ const styles = StyleSheet.create({
     right: 0.8,
     top: 0.8,
   },
+  darkPlaceholder: { backgroundColor: '#050505' },
+  lightPlaceholder: { backgroundColor: '#F7F7F4' },
   tile: {
     backgroundColor: 'transparent',
     overflow: 'hidden',

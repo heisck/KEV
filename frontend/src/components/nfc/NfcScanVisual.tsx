@@ -60,7 +60,6 @@ export function NfcScanVisual({ onScanComplete }: { onScanComplete?: () => void 
         </View>
         <View style={styles.scanCopy}>
           <Text style={styles.scanTitle}>Ready to Tap</Text>
-          <Text style={styles.scanText}>Tap your ID card against the back of the phone.</Text>
         </View>
       </View>
     </Pressable>
