@@ -108,7 +108,8 @@ const styles = StyleSheet.create({
     right: 32,
     zIndex: 1,
   },
-  scroll: { flex: 1 },
+  // Above the hero logo overlay (zIndex 1) so inputs are never obscured.
+  scroll: { flex: 1, zIndex: 2 },
   content: { flexGrow: 1, justifyContent: 'flex-end' },
   overlayContent: { flexGrow: 1, paddingHorizontal: 24 },
   panel: {
