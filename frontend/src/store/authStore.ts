@@ -65,7 +65,29 @@ export const useAuthStore = create<AuthState>((set, get) => {
     },
     async hydrate() {
       const access = await tokenStore.getAccess();
-      set({ status: access ? 'authenticated' : 'unauthenticated' });
+      if (!access) {
+        set({ status: 'unauthenticated' });
+        return;
+      }
+      set({ status: 'authenticated' });
+      // Restore the profile (role/plan drive tab visibility). Best-effort:
+      // offline keeps the token-based session; the 401-refresh path in the
+      // api client handles expiry on the next request.
+      try {
+        const me = await authApi.me();
+        set({
+          user: {
+            id: me.id,
+            email: me.email,
+            displayName: me.displayName,
+            pictureUrl: me.pictureUrl,
+            role: me.role,
+            plan: me.plan,
+          },
+        });
+      } catch {
+        // keep session; profile loads on next successful request
+      }
     },
   };
 });
