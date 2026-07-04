@@ -101,6 +101,9 @@ kev:
     google:
       # Comma-separated accepted Google OAuth client IDs (aud claim).
       client-ids: ${GOOGLE_CLIENT_IDS:}
+    apple:
+      # Accepted Apple audiences: the app bundle ID (+ Expo Go's in development).
+      client-ids: ${APPLE_CLIENT_IDS:com.kev.app,host.exp.Exponent}
   cors:
     allowed-origins: ${APP_CORS_ALLOWED_ORIGINS:http://localhost:8081,http://localhost:19006}
   directory:

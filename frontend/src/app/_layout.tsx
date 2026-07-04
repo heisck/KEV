@@ -1,7 +1,12 @@
-import { QueryClientProvider } from '@tanstack/react-query';
-import * as SplashScreen from 'expo-splash-screen';
+import {
+  Fraunces_600SemiBold,
+  Fraunces_600SemiBold_Italic,
+  useFonts,
+} from '@expo-google-fonts/fraunces';
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
+import { QueryClientProvider } from '@tanstack/react-query';
 import { Stack } from 'expo-router';
+import * as SplashScreen from 'expo-splash-screen';
 import { useCallback, useEffect, useState } from 'react';
 import { useColorScheme } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -19,15 +24,20 @@ void SplashScreen.preventAutoHideAsync();
 function RootLayout() {
   const colorScheme = useColorScheme();
   const hydrate = useAuthStore((s) => s.hydrate);
-  const [isReady, setIsReady] = useState(false);
+  const [fontsLoaded, fontError] = useFonts({
+    Fraunces_600SemiBold,
+    Fraunces_600SemiBold_Italic,
+  });
+  const [isHydrated, setIsHydrated] = useState(false);
   const [isRootLaidOut, setIsRootLaidOut] = useState(false);
   const [isNativeSplashHidden, setIsNativeSplashHidden] = useState(false);
   const [showSplash, setShowSplash] = useState(true);
+  const isReady = isHydrated && (fontsLoaded || Boolean(fontError));
 
   useEffect(() => {
     hydrate()
       .catch((error: unknown) => logger.warn('Failed to hydrate auth state', { error }))
-      .finally(() => setIsReady(true));
+      .finally(() => setIsHydrated(true));
   }, [hydrate]);
 
   useEffect(() => {
@@ -47,7 +57,13 @@ function RootLayout() {
       <SafeAreaProvider>
         <QueryClientProvider client={queryClient}>
           <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-            <Stack screenOptions={{ headerShown: false }} />
+            <Stack screenOptions={{ headerShown: false }}>
+              <Stack.Screen name="(auth)" />
+              <Stack.Screen name="(tabs)" />
+              <Stack.Screen name="room-setup" options={{ presentation: 'modal' }} />
+              <Stack.Screen name="student-result" options={{ presentation: 'modal' }} />
+              <Stack.Screen name="upgrade" options={{ presentation: 'modal' }} />
+            </Stack>
             {showSplash ? (
               <AppSplash isActive={isNativeSplashHidden} onFinish={handleSplashFinish} />
             ) : null}

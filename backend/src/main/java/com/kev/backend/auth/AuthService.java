@@ -17,6 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class AuthService {
 
     private final GoogleTokenVerifier google;
+    private final AppleTokenVerifier apple;
     private final UserRepository users;
     private final JwtService jwt;
     private final JwtDecoder jwtDecoder;
@@ -24,11 +25,13 @@ public class AuthService {
 
     public AuthService(
             GoogleTokenVerifier google,
+            AppleTokenVerifier apple,
             UserRepository users,
             JwtService jwt,
             JwtDecoder jwtDecoder,
             PasswordEncoder passwordEncoder) {
         this.google = google;
+        this.apple = apple;
         this.users = users;
         this.jwt = jwt;
         this.jwtDecoder = jwtDecoder;
@@ -60,23 +63,35 @@ public class AuthService {
         return new AuthResponse(jwt.issueAccessToken(saved), jwt.issueRefreshToken(saved), UserDto.from(saved));
     }
 
-    /** Create an email/password account. Role is always USER; admins are provisioned via seed. */
+    /** Verify the Apple identity token and sign in, linking by Apple sub or email. */
     @Transactional
-    public AuthResponse registerWithPassword(String email, String name, String password) {
-        String normalized = email.trim().toLowerCase();
-        if (users.findByEmail(normalized).isPresent()) {
-            throw new ApiException(HttpStatus.CONFLICT, "An account with this email already exists");
+    public AuthResponse loginWithApple(String identityToken, String fullName) {
+        AppleTokenVerifier.AppleUser a = apple.verify(identityToken);
+        User user = users.findByAppleSub(a.sub())
+                .or(() -> a.email() != null ? users.findByEmail(a.email().toLowerCase()) : java.util.Optional.empty())
+                .map(existing -> {
+                    existing.setAppleSub(a.sub());
+                    return existing;
+                })
+                .orElseGet(() -> {
+                    if (a.email() == null) {
+                        throw new ApiException(HttpStatus.UNAUTHORIZED, "Apple token carries no email");
+                    }
+                    User u = new User();
+                    u.setEmail(a.email().toLowerCase());
+                    u.setAppleSub(a.sub());
+                    u.setDisplayName(fullName);
+                    u.setRole(Role.USER);
+                    return u;
+                });
+        if (user.getDisplayName() == null && fullName != null) {
+            user.setDisplayName(fullName);
         }
-        User user = new User();
-        user.setEmail(normalized);
-        user.setDisplayName(name.trim());
-        user.setRole(Role.USER);
-        user.setPasswordHash(passwordEncoder.encode(password));
         User saved = users.save(user);
         return new AuthResponse(jwt.issueAccessToken(saved), jwt.issueRefreshToken(saved), UserDto.from(saved));
     }
 
-    /** Email/password sign-in for accounts with a password set (e.g. the seeded admin). */
+    /** Email/password sign-in for pre-provisioned accounts (seeded admin/lecturers). */
     @Transactional(readOnly = true)
     public AuthResponse loginWithPassword(String email, String password) {
         User user = users.findByEmail(email.trim().toLowerCase())
