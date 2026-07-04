@@ -18,7 +18,7 @@ const config: ExpoConfig = {
   orientation: 'portrait',
   icon: './assets/images/icon.png',
   scheme: 'kev',
-  userInterfaceStyle: 'automatic',
+  userInterfaceStyle: 'light',
   ios: {
     icon: './assets/images/icon.png',
     bundleIdentifier: 'com.kev.app',
