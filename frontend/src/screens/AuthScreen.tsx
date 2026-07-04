@@ -1,24 +1,38 @@
 import { useCallback, useState, type ReactNode } from 'react';
-import { Pressable, StyleSheet, Text, TextInput, useWindowDimensions, View } from 'react-native';
+import { Pressable, Text, TextInput, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { AppleIcon, EmailIcon, GoogleIcon } from '@/components/auth/AuthIcons';
+import { AppleIcon, EmailIcon, GoogleIcon, LockIcon } from '@/components/auth/AuthIcons';
 import { AuthScaffold } from '@/screens/AuthScaffold';
-import { AUTH_OVERLAY_VERTICAL_PADDING, LIMEADE } from '@/screens/authConfig';
+import { AUTH_OVERLAY_VERTICAL_PADDING } from '@/screens/authConfig';
+import { authScreenStyles as styles } from '@/screens/authScreenStyles';
 
 type AuthScreenProps = {
   onApplePress?: () => void;
   onGooglePress?: () => void;
-  onSendCode?: (email: string) => void;
+  /** Email + password sign-in from this screen — accounts are pre-provisioned. */
+  onEmailSignIn?: (email: string, password: string) => void;
+  errorMessage?: string | null;
+  isSubmitting?: boolean;
 };
 
-export function AuthScreen({ onApplePress, onGooglePress, onSendCode }: AuthScreenProps) {
+export function AuthScreen({
+  onApplePress,
+  onGooglePress,
+  onEmailSignIn,
+  errorMessage,
+  isSubmitting = false,
+}: AuthScreenProps) {
   const [email, setEmail] = useState('');
-  const [isEmailFocused, setIsEmailFocused] = useState(false);
+  const [password, setPassword] = useState('');
+  const [focusedField, setFocusedField] = useState<'email' | 'password' | null>(null);
   const { height } = useWindowDimensions();
   const { bottom, top } = useSafeAreaInsets();
   const layoutMinHeight = Math.max(height - top - bottom - AUTH_OVERLAY_VERTICAL_PADDING * 2, 0);
-  const handleSendCode = useCallback(() => onSendCode?.(email.trim()), [email, onSendCode]);
+  const handleSignIn = useCallback(
+    () => onEmailSignIn?.(email.trim(), password),
+    [email, onEmailSignIn, password],
+  );
 
   return (
     <AuthScaffold heightRatio={0.58} withPanel={false}>
@@ -30,6 +44,12 @@ export function AuthScreen({ onApplePress, onGooglePress, onSendCode }: AuthScre
         </View>
 
         <View style={styles.bottomGroup}>
+          {errorMessage ? (
+            <View style={styles.errorPill}>
+              <Text style={styles.errorText}>{errorMessage}</Text>
+            </View>
+          ) : null}
+
           <View style={styles.inputShell}>
             <View pointerEvents="none" style={styles.inputIcon}>
               <EmailIcon />
@@ -40,16 +60,39 @@ export function AuthScreen({ onApplePress, onGooglePress, onSendCode }: AuthScre
               autoCorrect={false}
               disableFullscreenUI
               keyboardType="email-address"
-              onBlur={() => setIsEmailFocused(false)}
+              onBlur={() => setFocusedField(null)}
               onChangeText={setEmail}
-              onFocus={() => setIsEmailFocused(true)}
+              onFocus={() => setFocusedField('email')}
               placeholder="Write your gmail"
               placeholderTextColor="#9CA3AF"
               selectionColor="#091426"
-              style={[styles.input, isEmailFocused && styles.inputFocused]}
+              style={[styles.input, focusedField === 'email' && styles.inputFocused]}
               textContentType="emailAddress"
               underlineColorAndroid="transparent"
               value={email}
+            />
+          </View>
+
+          <View style={styles.inputShell}>
+            <View pointerEvents="none" style={styles.inputIcon}>
+              <LockIcon />
+            </View>
+            <TextInput
+              autoCapitalize="none"
+              autoComplete="password"
+              autoCorrect={false}
+              disableFullscreenUI
+              onBlur={() => setFocusedField(null)}
+              onChangeText={setPassword}
+              onFocus={() => setFocusedField('password')}
+              placeholder="Your password"
+              placeholderTextColor="#9CA3AF"
+              secureTextEntry
+              selectionColor="#091426"
+              style={[styles.input, focusedField === 'password' && styles.inputFocused]}
+              textContentType="password"
+              underlineColorAndroid="transparent"
+              value={password}
             />
           </View>
 
@@ -57,10 +100,17 @@ export function AuthScreen({ onApplePress, onGooglePress, onSendCode }: AuthScre
             <SocialButton icon={<GoogleIcon size={22} />} label="Google" onPress={onGooglePress} />
             <Pressable
               accessibilityRole="button"
-              onPress={handleSendCode}
-              style={({ pressed }) => [styles.primaryButton, pressed && styles.pressed]}
+              disabled={isSubmitting}
+              onPress={handleSignIn}
+              style={({ pressed }) => [
+                styles.primaryButton,
+                pressed && styles.pressed,
+                isSubmitting && styles.disabled,
+              ]}
             >
-              <Text style={styles.primaryButtonText}>Send Code</Text>
+              <Text style={styles.primaryButtonText}>
+                {isSubmitting ? 'Signing in…' : 'Sign In'}
+              </Text>
             </Pressable>
             <SocialButton
               icon={<AppleIcon size={20} />}
@@ -103,76 +153,3 @@ function SocialButton({
     </Pressable>
   );
 }
-
-const styles = StyleSheet.create({
-  layout: { flex: 1, justifyContent: 'space-between' },
-  bottomGroup: { alignSelf: 'center', gap: 14, maxWidth: 318, width: '100%' },
-  titleGroup: { alignItems: 'center' },
-  verifyTitle: {
-    color: '#FFFFFF',
-    fontSize: 42,
-    fontWeight: '100',
-    lineHeight: 48,
-    textAlign: 'center',
-    textShadowColor: 'rgba(0,0,0,0.22)',
-    textShadowOffset: { height: 1, width: 0 },
-    textShadowRadius: 5,
-  },
-  accountTitle: { fontSize: 34, fontWeight: '600', lineHeight: 40 },
-  inputShell: { width: '100%' },
-  inputIcon: { height: 50, justifyContent: 'center', left: 20, position: 'absolute', zIndex: 1 },
-  input: {
-    backgroundColor: '#FFFFFF',
-    borderColor: '#F3F4F6',
-    borderRadius: 29,
-    borderWidth: 1,
-    color: '#1B1B1D',
-    elevation: 2,
-    fontSize: 16,
-    height: 50,
-    outlineColor: 'transparent',
-    outlineWidth: 0,
-    paddingLeft: 54,
-    paddingRight: 24,
-    shadowColor: '#111111',
-    shadowOffset: { height: 3, width: 0 },
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-  },
-  inputFocused: { borderColor: LIMEADE },
-  primaryButton: {
-    alignItems: 'center',
-    backgroundColor: LIMEADE,
-    borderRadius: 29,
-    elevation: 4,
-    flex: 1,
-    height: 52,
-    justifyContent: 'center',
-    maxWidth: 190,
-    shadowColor: LIMEADE,
-    shadowOffset: { height: 6, width: 0 },
-    shadowOpacity: 0.25,
-    shadowRadius: 12,
-  },
-  primaryButtonText: { color: '#FFFFFF', fontSize: 16, fontWeight: '700' },
-  pressed: { opacity: 0.84, transform: [{ scale: 0.98 }] },
-  actionRow: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    gap: 12,
-    justifyContent: 'center',
-    width: '100%',
-  },
-  socialButton: {
-    alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    borderColor: '#F3F4F6',
-    borderRadius: 26,
-    borderWidth: 1,
-    elevation: 2,
-    height: 52,
-    justifyContent: 'center',
-    width: 52,
-  },
-  darkSocialButton: { backgroundColor: '#000000', borderColor: '#000000' },
-});

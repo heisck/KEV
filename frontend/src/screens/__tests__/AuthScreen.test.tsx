@@ -3,7 +3,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { AuthScreen } from '@/screens/AuthScreen';
 
-function renderAuthScreen(onSendCode = jest.fn()) {
+function renderAuthScreen(onEmailSignIn = jest.fn(), errorMessage: string | null = null) {
   return render(
     <SafeAreaProvider
       initialMetrics={{
@@ -11,29 +11,37 @@ function renderAuthScreen(onSendCode = jest.fn()) {
         insets: { bottom: 0, left: 0, right: 0, top: 0 },
       }}
     >
-      <AuthScreen onSendCode={onSendCode} />
+      <AuthScreen onEmailSignIn={onEmailSignIn} errorMessage={errorMessage} />
     </SafeAreaProvider>,
   );
 }
 
 describe('AuthScreen', () => {
-  it('renders the email and social auth actions', () => {
+  it('renders the email, password and social auth actions', () => {
     const { getByLabelText, getByPlaceholderText, getByText } = renderAuthScreen();
 
     expect(getByLabelText('Verify Account')).toBeTruthy();
     expect(getByPlaceholderText('Write your gmail')).toBeTruthy();
-    expect(getByText('Send Code')).toBeTruthy();
+    expect(getByPlaceholderText('Your password')).toBeTruthy();
+    expect(getByText('Sign In')).toBeTruthy();
     expect(getByLabelText('Google')).toBeTruthy();
     expect(getByLabelText('Apple')).toBeTruthy();
   });
 
-  it('submits the trimmed email address', () => {
-    const onSendCode = jest.fn();
-    const { getByPlaceholderText, getByText } = renderAuthScreen(onSendCode);
+  it('submits the trimmed email and password', () => {
+    const onEmailSignIn = jest.fn();
+    const { getByPlaceholderText, getByText } = renderAuthScreen(onEmailSignIn);
 
-    fireEvent.changeText(getByPlaceholderText('Write your gmail'), ' user@gmail.com ');
-    fireEvent.press(getByText('Send Code'));
+    fireEvent.changeText(getByPlaceholderText('Write your gmail'), ' lecturer@kev.app ');
+    fireEvent.changeText(getByPlaceholderText('Your password'), 'Lecturer@1234');
+    fireEvent.press(getByText('Sign In'));
 
-    expect(onSendCode).toHaveBeenCalledWith('user@gmail.com');
+    expect(onEmailSignIn).toHaveBeenCalledWith('lecturer@kev.app', 'Lecturer@1234');
+  });
+
+  it('shows the error pill when a message is passed', () => {
+    const { getByText } = renderAuthScreen(jest.fn(), 'Invalid email or password');
+
+    expect(getByText('Invalid email or password')).toBeTruthy();
   });
 });
