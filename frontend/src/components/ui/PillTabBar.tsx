@@ -20,6 +20,9 @@ export function PillTabBar({ state, descriptors, navigation }: BottomTabBarProps
         <View style={styles.row}>
           {state.routes.map((route, index) => {
             const { options } = descriptors[route.key];
+            // Routes hidden via expo-router's `href: null` stay in state — skip them
+            // so they don't occupy an empty slot and skew the pill's centering.
+            if ((options as { href?: string | null }).href === null) return null;
             const isFocused = state.index === index;
             const icon = options.tabBarIcon?.({
               focused: isFocused,
