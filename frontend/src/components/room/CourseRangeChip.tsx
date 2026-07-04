@@ -1,3 +1,4 @@
+import { colors } from '@/theme';
 import { Pressable, Text, View } from 'react-native';
 
 import { RoomIcon } from '@/components/room/RoomSetupControls';
@@ -21,7 +22,7 @@ export function CourseRangeChip({ label, onRemove }: CourseRangeChipProps) {
         onPress={onRemove}
         style={styles.chipEditButton}
       >
-        <RoomIcon color="#5C9E08" name="close" size={10} strokeWidth={2.8} />
+        <RoomIcon color={colors.primary} name="close" size={10} strokeWidth={2.8} />
       </Pressable>
     </View>
   );

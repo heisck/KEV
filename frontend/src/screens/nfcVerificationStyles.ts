@@ -1,3 +1,4 @@
+import { colors } from '@/theme';
 import { StyleSheet } from 'react-native';
 
 export const nfcVerificationStyles = StyleSheet.create({
@@ -200,7 +201,7 @@ export const nfcVerificationStyles = StyleSheet.create({
   },
   drawerSubmit: {
     alignItems: 'center',
-    backgroundColor: '#5C9E08',
+    backgroundColor: colors.primary,
     borderRadius: 25,
     height: 50,
     justifyContent: 'center',
@@ -246,7 +247,7 @@ export const nfcVerificationStyles = StyleSheet.create({
   },
   cameraSendButton: {
     alignItems: 'center',
-    backgroundColor: '#5C9E08',
+    backgroundColor: colors.primary,
     borderRadius: 35,
     height: 70,
     justifyContent: 'center',

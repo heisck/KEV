@@ -27,7 +27,7 @@ const config: ExpoConfig = {
   android: {
     package: 'com.kev.app',
     adaptiveIcon: {
-      backgroundColor: '#5C9E08',
+      backgroundColor: '#3E97B0',
       foregroundImage: './assets/images/android-icon-foreground.png',
       backgroundImage: './assets/images/android-icon-background.png',
       monochromeImage: './assets/images/android-icon-monochrome.png',

@@ -1,3 +1,4 @@
+import { colors } from '@/theme';
 import { StyleSheet } from 'react-native';
 
 export const studentVerificationResultStyles = StyleSheet.create({
@@ -62,7 +63,7 @@ export const studentVerificationResultStyles = StyleSheet.create({
   },
   studentMeta: { color: '#414938', fontSize: 15, lineHeight: 21, textAlign: 'center' },
   classState: {
-    color: '#5C9E08',
+    color: colors.primary,
     fontSize: 13,
     fontWeight: '800',
     lineHeight: 18,
@@ -73,7 +74,7 @@ export const studentVerificationResultStyles = StyleSheet.create({
   actions: { gap: 14, maxWidth: 320, width: '100%' },
   classButton: {
     alignItems: 'center',
-    backgroundColor: '#5C9E08',
+    backgroundColor: colors.primary,
     borderRadius: 28,
     height: 56,
     justifyContent: 'center',
