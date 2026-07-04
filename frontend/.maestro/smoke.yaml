@@ -4,3 +4,7 @@ appId: com.kev.app
 ---
 - launchApp
 - assertVisible: 'KEV'
+# Splash hands off to the sign-in surface (lecturers sign in; no registration).
+- extendedWaitUntil:
+    visible: 'Google'
+    timeout: 15000
