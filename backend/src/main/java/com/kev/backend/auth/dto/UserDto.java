@@ -3,7 +3,7 @@ package com.kev.backend.auth.dto;
 import com.kev.backend.auth.User;
 import java.util.UUID;
 
-public record UserDto(UUID id, String email, String displayName, String pictureUrl, String role) {
+public record UserDto(UUID id, String email, String displayName, String pictureUrl, String role, String plan) {
 
     public static UserDto from(User u) {
         return new UserDto(
@@ -11,6 +11,7 @@ public record UserDto(UUID id, String email, String displayName, String pictureU
                 u.getEmail(),
                 u.getDisplayName(),
                 u.getPictureUrl(),
-                u.getRole().name());
+                u.getRole().name(),
+                u.getPlan().name());
     }
 }

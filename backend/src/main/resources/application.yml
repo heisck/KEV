@@ -103,3 +103,7 @@ kev:
       client-ids: ${GOOGLE_CLIENT_IDS:}
   cors:
     allowed-origins: ${APP_CORS_ALLOWED_ORIGINS:http://localhost:8081,http://localhost:19006}
+  directory:
+    provider: ${KEV_DIRECTORY_PROVIDER:mock}
+  ml:
+    base-url: ${ML_BASE_URL:http://localhost:8000}
