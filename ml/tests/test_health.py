@@ -18,6 +18,6 @@ def test_health_sets_correlation_id() -> None:
     assert response.headers.get("X-Correlation-Id")
 
 
-def test_embed_face_is_stubbed_when_unconfigured() -> None:
-    response = client.post("/embed-face", json={"image_base64": "deadbeef"})
-    assert response.status_code == 501
+def test_embed_face_requires_image_file() -> None:
+    response = client.post("/embed-face")
+    assert response.status_code == 422
