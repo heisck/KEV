@@ -42,11 +42,9 @@ function AdminSessionCard({
 
 /** Admin console: session reports and invigilator assignment (plan-gated). */
 export function AdminScreen() {
-  const { top } = useSafeAreaInsets();
   const user = useAuthStore((s) => s.user);
-  const { data: sessions } = useAdminSessions();
-  const [sheet, setSheet] = useState<Sheet>(null);
 
+  // Guard BEFORE any admin query runs — non-admins must never hit /api/admin/*.
   if (user?.role !== 'ADMIN') {
     return (
       <EmptyState
@@ -57,6 +55,14 @@ export function AdminScreen() {
     );
   }
 
+  return <AdminContent plan={user.plan} />;
+}
+
+function AdminContent({ plan }: { plan: 'FREE' | 'PREMIUM' }) {
+  const { top } = useSafeAreaInsets();
+  const { data: sessions } = useAdminSessions();
+  const [sheet, setSheet] = useState<Sheet>(null);
+
   return (
     <>
       <ScrollView
@@ -65,7 +71,7 @@ export function AdminScreen() {
       >
         <View style={styles.headerRow}>
           <Text style={styles.title}>Admin</Text>
-          <Chip label={user.plan} active={user.plan === 'PREMIUM'} />
+          <Chip label={plan} active={plan === 'PREMIUM'} />
         </View>
 
         <Text style={styles.sectionLabel}>Sessions</Text>
