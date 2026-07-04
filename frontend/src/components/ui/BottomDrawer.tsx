@@ -9,6 +9,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { GlassSurface } from '@/components/ui/GlassSurface';
 import { colors, durations, radii, spacing, springs } from '@/theme';
 
 type BottomDrawerProps = {
@@ -53,12 +54,14 @@ export function BottomDrawer({ visible, onClose, title, children, testID }: Bott
         <Animated.View style={[styles.backdrop, backdropStyle]}>
           <Pressable accessibilityRole="button" style={StyleSheet.absoluteFill} onPress={onClose} />
         </Animated.View>
-        <Animated.View
-          style={[styles.sheet, { paddingBottom: insets.bottom + spacing.xl }, sheetStyle]}
-        >
-          <View style={styles.grabber} />
-          {title ? <Text style={styles.title}>{title}</Text> : null}
-          {children}
+        <Animated.View style={[styles.sheetClip, sheetStyle]}>
+          <GlassSurface intensity={70} style={styles.sheetGlass}>
+            <View style={[styles.sheet, { paddingBottom: insets.bottom + spacing.xl }]}>
+              <View style={styles.grabber} />
+              {title ? <Text style={styles.title}>{title}</Text> : null}
+              {children}
+            </View>
+          </GlassSurface>
         </Animated.View>
       </View>
     </Modal>
@@ -71,10 +74,15 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFillObject,
     backgroundColor: 'rgba(14, 27, 30, 0.45)',
   },
-  sheet: {
-    backgroundColor: colors.surface,
+  sheetClip: {
     borderTopLeftRadius: radii.xl,
     borderTopRightRadius: radii.xl,
+    overflow: 'hidden',
+  },
+  sheetGlass: {
+    backgroundColor: 'rgba(255, 255, 255, 0.72)',
+  },
+  sheet: {
     gap: spacing.lg,
     paddingHorizontal: spacing.xxl,
     paddingTop: spacing.md,

@@ -57,7 +57,24 @@ ml service. Combined with Sentry in all three services, a single user action is 
 | ML         | Separate FastAPI service    | HF models live naturally in Python; isolated from the API    |
 | Migrations | Flyway (Hibernate validate) | Explicit, versioned schema; never mutate released migrations |
 
-## Not yet built (by request)
+## Domain (build phase — implemented)
 
-Feature UI (Room Setup and beyond), the production face model, and domain tables beyond `users`. The
-HTML mockups in `ui-mockup-html/` are design reference only and are not wired into the app.
+- **Directory (UITS mock)**: pluggable `UniversityDirectory` interface; the seeded mock
+  (`directory_students`, Redis-cached) simulates the university database and reports
+  photo, enrollment and fees status per index number. Swap the implementation via
+  `KEV_DIRECTORY_PROVIDER` when a real UITS integration lands.
+- **Sessions & attendance**: exam sessions created via Room Setup (join by `KEV-XXXX`
+  code); one live attendance row per (session, student) with check-in / remove / restore
+  and per-method stats (NFC | QR | MANUAL | FACE).
+- **Auth**: sign-in only — accounts are pre-provisioned (seeded admin + lecturer) or
+  linked on first Google/Apple sign-in. Email+password, Google ID token, and Apple
+  identity token all mint the same app JWTs. Admin assignment of invigilators is
+  plan-gated (FREE caps at 5; PREMIUM unlimited → 403 `plan-limit` ProblemDetail).
+- **Face verification**: `ml/` runs InsightFace buffalo_sc on onnxruntime (CPU);
+  backend proxies `POST /api/verify/face` (probe image + index number) to it.
+- **Frontend**: Expo SDK 54 (Expo Go-capable), expo-router tabs, theme tokens
+  (#3E97B0 / #416363 / #EDFFF8), liquid-glass surfaces with blur/solid fallbacks,
+  NFC scan state machine gated by runtime capabilities (camera QR + manual entry in
+  Expo Go).
+
+The HTML mockups in `ui-mockup-html/` remain design reference only.
