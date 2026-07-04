@@ -1,3 +1,4 @@
+import { colors } from '@/theme';
 import Svg, { Circle, Path, Rect } from 'react-native-svg';
 
 type NfcIconProps = {
@@ -48,7 +49,7 @@ export function InfoIcon({ color = '#414938', size = 16 }: NfcIconProps) {
   );
 }
 
-export function VerifiedBadgeIcon({ color = '#5C9E08', size = 46 }: NfcIconProps) {
+export function VerifiedBadgeIcon({ color = colors.primary, size = 46 }: NfcIconProps) {
   return (
     <Svg height={size} viewBox="0 0 48 48" width={size}>
       <Circle cx={24} cy={24} fill={color} r={22} />
