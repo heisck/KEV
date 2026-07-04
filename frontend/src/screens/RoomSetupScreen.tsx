@@ -26,9 +26,18 @@ import {
 } from '@/screens/roomSetupConfig';
 import { roomSetupStyles as styles } from '@/screens/roomSetupStyles';
 
+export type RoomSetupValues = {
+  building: string;
+  floor: string;
+  room: string;
+  courses: { course: string; indexFrom: string; indexTo: string }[];
+};
+
 type RoomSetupScreenProps = {
   onClose?: () => void;
   onComplete?: () => void;
+  /** Fires alongside onComplete with the raw form values (building/floor/room/course ranges). */
+  onSubmit?: (values: RoomSetupValues) => void;
   roomCode?: string;
 };
 type CourseRange = { course: string; id: string; indexFrom: string; indexTo: string };
@@ -41,7 +50,7 @@ function clamp(value: number, min: number, max: number) {
   return Math.min(max, Math.max(min, value));
 }
 
-export function RoomSetupScreen({ onComplete }: RoomSetupScreenProps) {
+export function RoomSetupScreen({ onComplete, onSubmit }: RoomSetupScreenProps) {
   const { height, width } = useStableScreenSize();
   const { bottom } = useSafeAreaInsets();
   const [floorIndex, setFloorIndex] = useState(DEFAULT_ROOM_SETUP_FLOOR_INDEX);
@@ -112,6 +121,27 @@ export function RoomSetupScreen({ onComplete }: RoomSetupScreenProps) {
     setCourses((current) => current.filter((courseItem) => courseItem.id !== id));
   }, []);
 
+  const handleComplete = useCallback(() => {
+    const pending =
+      course.trim() || indexFrom.trim() || indexTo.trim()
+        ? [{ course: course.trim(), indexFrom: indexFrom.trim(), indexTo: indexTo.trim() }]
+        : [];
+    onSubmit?.({
+      building: building.trim(),
+      floor: ROOM_SETUP_FLOORS[floorIndex],
+      room: roomNumber.trim(),
+      courses: [
+        ...courses.map(({ course: c, indexFrom: from, indexTo: to }) => ({
+          course: c,
+          indexFrom: from,
+          indexTo: to,
+        })),
+        ...pending,
+      ],
+    });
+    onComplete?.();
+  }, [building, course, courses, floorIndex, indexFrom, indexTo, onComplete, onSubmit, roomNumber]);
+
   return (
     <View style={[styles.screen, webViewportLock]}>
       <SystemStatusBar backgroundColor="transparent" barStyle="light-content" translucent />
@@ -121,7 +151,7 @@ export function RoomSetupScreen({ onComplete }: RoomSetupScreenProps) {
         expandedImageUri={ROOM_SETUP_SKY_IMAGE_URL}
         imageProgress={drawer.progress}
         isCreateOpen={drawer.isVisible}
-        onComplete={onComplete}
+        onComplete={handleComplete}
         onCreateSettle={drawer.settle}
       >
         {drawer.isVisible ? (

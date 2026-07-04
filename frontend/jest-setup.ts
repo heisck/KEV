@@ -17,6 +17,8 @@ jest.mock('react-native-nfc-manager', () => ({
   default: {
     start: jest.fn(async () => undefined),
     isSupported: jest.fn(async () => true),
+    isEnabled: jest.fn(async () => true),
+    goToNfcSetting: jest.fn(async () => undefined),
     requestTechnology: jest.fn(async () => undefined),
     getTag: jest.fn(async () => ({ id: 'mock-tag' })),
     cancelTechnologyRequest: jest.fn(async () => undefined),

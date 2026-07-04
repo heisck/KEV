@@ -42,7 +42,8 @@ public final class JwtTestSupport {
         return new AppProperties(
                 new AppProperties.Auth(
                         new AppProperties.Jwt(SECRET, "kev-test", Duration.ofMinutes(15), Duration.ofDays(30)),
-                        new AppProperties.Google(List.of("test-client"))),
+                        new AppProperties.Google(List.of("test-client")),
+                        new AppProperties.Apple(List.of("com.kev.app"))),
                 new AppProperties.Cors(List.of("http://localhost")));
     }
 

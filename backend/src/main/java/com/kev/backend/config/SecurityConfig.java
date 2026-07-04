@@ -49,7 +49,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth.requestMatchers(
                                 "/api/health",
                                 "/api/auth/google",
-                                "/api/auth/register",
+                                "/api/auth/apple",
                                 "/api/auth/login",
                                 "/api/auth/refresh",
                                 "/actuator/health/**",

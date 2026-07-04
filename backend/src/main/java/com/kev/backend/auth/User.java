@@ -31,6 +31,9 @@ public class User {
     @Column(name = "google_sub", unique = true)
     private String googleSub;
 
+    @Column(name = "apple_sub", unique = true)
+    private String appleSub;
+
     @Column(name = "display_name")
     private String displayName;
 

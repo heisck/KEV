@@ -1,13 +1,22 @@
 import { create } from 'zustand';
+import * as authApi from '@/api/auth';
+import type { AuthResponse } from '@/api/schemas';
 import { tokenStore } from '@/lib/secureStore';
+
+export type AuthRole = 'USER' | 'LECTURER' | 'ADMIN';
+export type AuthPlan = 'FREE' | 'PREMIUM';
 
 export type AuthUser = {
   id: string;
   email: string;
   displayName?: string | null;
   pictureUrl?: string | null;
-  role: string;
+  role: AuthRole;
+  plan: AuthPlan;
 };
+
+/** Input to setSession — role/plan default to 'USER'/'FREE' when absent. */
+type AuthUserInput = Omit<AuthUser, 'role' | 'plan'> & Partial<Pick<AuthUser, 'role' | 'plan'>>;
 
 export type AuthStatus = 'idle' | 'authenticated' | 'unauthenticated';
 
@@ -16,27 +25,47 @@ type AuthState = {
   status: AuthStatus;
   /** Persist tokens and mark the session authenticated (call after Google login). */
   setSession: (
-    user: AuthUser,
+    user: AuthUserInput,
     tokens: { accessToken: string; refreshToken: string },
   ) => Promise<void>;
+  signInWithPassword: (email: string, password: string) => Promise<void>;
+  signInWithGoogleIdToken: (idToken: string) => Promise<void>;
+  signInWithAppleIdToken: (identityToken: string, fullName?: string | null) => Promise<void>;
   signOut: () => Promise<void>;
   /** Restore auth status from secure storage on app start. */
   hydrate: () => Promise<void>;
 };
 
-export const useAuthStore = create<AuthState>((set) => ({
-  user: null,
-  status: 'idle',
-  async setSession(user, tokens) {
-    await tokenStore.setTokens(tokens.accessToken, tokens.refreshToken);
-    set({ user, status: 'authenticated' });
-  },
-  async signOut() {
-    await tokenStore.clear();
-    set({ user: null, status: 'unauthenticated' });
-  },
-  async hydrate() {
-    const access = await tokenStore.getAccess();
-    set({ status: access ? 'authenticated' : 'unauthenticated' });
-  },
-}));
+export const useAuthStore = create<AuthState>((set, get) => {
+  const applyAuth = ({ user, accessToken, refreshToken }: AuthResponse) =>
+    get().setSession(user, { accessToken, refreshToken });
+
+  return {
+    user: null,
+    status: 'idle',
+    async setSession(user, tokens) {
+      await tokenStore.setTokens(tokens.accessToken, tokens.refreshToken);
+      set({
+        user: { ...user, role: user.role ?? 'USER', plan: user.plan ?? 'FREE' },
+        status: 'authenticated',
+      });
+    },
+    async signInWithPassword(email, password) {
+      await applyAuth(await authApi.login(email, password));
+    },
+    async signInWithGoogleIdToken(idToken) {
+      await applyAuth(await authApi.loginWithGoogle(idToken));
+    },
+    async signInWithAppleIdToken(identityToken, fullName) {
+      await applyAuth(await authApi.loginWithApple(identityToken, fullName));
+    },
+    async signOut() {
+      await tokenStore.clear();
+      set({ user: null, status: 'unauthenticated' });
+    },
+    async hydrate() {
+      const access = await tokenStore.getAccess();
+      set({ status: access ? 'authenticated' : 'unauthenticated' });
+    },
+  };
+});
