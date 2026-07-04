@@ -8,19 +8,18 @@ import type { CheckInMethod } from '@/api/schemas';
 import { DoodleEmpty } from '@/components/doodles/DoodleEmpty';
 import { ManualEntryCard } from '@/components/scan/ManualEntryCard';
 import { NfcScanPanel } from '@/components/scan/NfcScanPanel';
-import { QrScanner } from '@/components/scan/QrScanner';
 import { AppButton, Card, ChipRow, EmptyState } from '@/components/ui';
 import { getScanCapabilities } from '@/lib/scanCapabilities';
 import { colors, spacing, typography } from '@/theme';
 
-type ScanMode = 'NFC' | 'QR' | 'Manual';
-const METHOD_BY_MODE: Record<ScanMode, CheckInMethod> = { NFC: 'NFC', QR: 'QR', Manual: 'MANUAL' };
+type ScanMode = 'NFC' | 'Manual';
+const METHOD_BY_MODE: Record<ScanMode, CheckInMethod> = { NFC: 'NFC', Manual: 'MANUAL' };
 
-/** Flagship check-in screen: capability-aware NFC / QR / Manual modes over a session picker. */
+/** Check-in screen: NFC card taps with manual index entry as the fallback. */
 export function ScanScreen() {
   const { top } = useSafeAreaInsets();
   const { data: sessions } = useSessions();
-  const [capabilities, setCapabilities] = useState<{ nfc: boolean; camera: boolean } | null>(null);
+  const [hasNfc, setHasNfc] = useState<boolean | null>(null);
   const [mode, setMode] = useState<ScanMode>('Manual');
   const [sessionId, setSessionId] = useState<number | null>(null);
 
@@ -28,8 +27,8 @@ export function ScanScreen() {
     let mounted = true;
     void getScanCapabilities().then((caps) => {
       if (!mounted) return;
-      setCapabilities(caps);
-      setMode(caps.nfc ? 'NFC' : caps.camera ? 'QR' : 'Manual');
+      setHasNfc(caps.nfc);
+      setMode(caps.nfc ? 'NFC' : 'Manual');
     });
     return () => {
       mounted = false;
@@ -43,14 +42,7 @@ export function ScanScreen() {
   const selectedSession =
     activeSessions.find((s) => s.id === sessionId) ?? activeSessions[0] ?? null;
 
-  const modes = useMemo<ScanMode[]>(() => {
-    if (!capabilities) return [];
-    const list: ScanMode[] = [];
-    if (capabilities.nfc) list.push('NFC');
-    if (capabilities.camera) list.push('QR');
-    list.push('Manual');
-    return list;
-  }, [capabilities]);
+  const modes = useMemo<ScanMode[]>(() => (hasNfc ? ['NFC', 'Manual'] : ['Manual']), [hasNfc]);
 
   const handleIndexNumber = useCallback(
     (indexNumber: string) => {
@@ -101,29 +93,30 @@ export function ScanScreen() {
         />
       </View>
 
-      <View style={styles.section}>
-        <Text style={styles.sectionLabel}>Method</Text>
-        <ChipRow
-          labels={modes}
-          activeLabel={mode}
-          onSelect={(label) => {
-            if (label === 'NFC' || label === 'QR' || label === 'Manual') setMode(label);
-          }}
-          scrollable={false}
-        />
-      </View>
+      {hasNfc ? (
+        <View style={styles.section}>
+          <Text style={styles.sectionLabel}>Method</Text>
+          <ChipRow
+            labels={modes}
+            activeLabel={mode}
+            onSelect={(label) => {
+              if (label === 'NFC' || label === 'Manual') setMode(label);
+            }}
+            scrollable={false}
+          />
+        </View>
+      ) : null}
 
-      {capabilities && !capabilities.nfc ? (
+      {hasNfc === false ? (
         <Card variant="mint" style={styles.nfcNote}>
           <DoodleEmpty size={64} />
           <Text style={styles.nfcNoteText}>
-            NFC needs the dev build — card taps are unavailable here.
+            NFC needs the dev build — enter the index number below instead.
           </Text>
         </Card>
       ) : null}
 
       {mode === 'NFC' ? <NfcScanPanel onIndexNumber={handleIndexNumber} /> : null}
-      {mode === 'QR' ? <QrScanner onCode={handleIndexNumber} /> : null}
       {mode === 'Manual' ? <ManualEntryCard onSubmit={handleIndexNumber} /> : null}
     </ScrollView>
   );
