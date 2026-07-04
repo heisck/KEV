@@ -25,8 +25,8 @@ let nativeConfigured = false;
 async function nativeSignIn(): Promise<string | null> {
   try {
     // Absent in Expo Go — must never be required at module scope.
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
     const { GoogleSignin } =
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
       require('@react-native-google-signin/google-signin') as GoogleSignInModule;
     if (!nativeConfigured) {
       GoogleSignin.configure({ webClientId: env.googleWebClientId });

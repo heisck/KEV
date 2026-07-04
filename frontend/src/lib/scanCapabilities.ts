@@ -9,10 +9,9 @@ export async function getScanCapabilities(): Promise<{ nfc: boolean; camera: boo
 async function hasNfc(): Promise<boolean> {
   if (isExpoGo()) return false;
   try {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const NfcManager = (
-      require('react-native-nfc-manager') as { default: { isSupported: () => Promise<boolean> } }
-    ).default;
+    const NfcManager = // eslint-disable-next-line @typescript-eslint/no-require-imports
+    (require('react-native-nfc-manager') as { default: { isSupported: () => Promise<boolean> } })
+      .default;
     return await NfcManager.isSupported();
   } catch (error) {
     logger.debug('NFC unavailable', { error: String(error) });
