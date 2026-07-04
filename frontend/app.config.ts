@@ -57,10 +57,17 @@ const config: ExpoConfig = {
         includeNdefEntitlement: true,
       },
     ],
+    [
+      'expo-camera',
+      {
+        cameraPermission: 'KEV uses the camera to scan student ID barcodes and verify faces.',
+      },
+    ],
   ],
   experiments: {
     typedRoutes: true,
-    reactCompiler: true,
+    // React Compiler is off for the SDK 54 (Expo Go) build; re-evaluate on upgrade.
+    reactCompiler: false,
   },
   extra: {
     apiUrl: process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:8080',

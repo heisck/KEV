@@ -7,7 +7,9 @@ import Index from '@/app/index';
 if (typeof test === 'function') {
   test('Index render performance', async () => {
     await measureRenders(<Index />, {
-      wrapper: ({ children }) => <SafeAreaProvider>{children}</SafeAreaProvider>,
+      wrapper: ({ children }: { children: React.ReactNode }) => (
+        <SafeAreaProvider>{children}</SafeAreaProvider>
+      ),
     });
   });
 }
