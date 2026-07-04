@@ -3,7 +3,9 @@ package com.kev.backend.auth.web;
 import com.kev.backend.auth.AuthService;
 import com.kev.backend.auth.dto.AuthResponse;
 import com.kev.backend.auth.dto.GoogleLoginRequest;
+import com.kev.backend.auth.dto.PasswordLoginRequest;
 import com.kev.backend.auth.dto.RefreshRequest;
+import com.kev.backend.auth.dto.RegisterRequest;
 import com.kev.backend.auth.dto.TokenResponse;
 import com.kev.backend.auth.dto.UserDto;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -31,6 +33,16 @@ public class AuthController {
     @PostMapping("/google")
     public AuthResponse google(@Valid @RequestBody GoogleLoginRequest request) {
         return auth.loginWithGoogle(request.idToken());
+    }
+
+    @PostMapping("/register")
+    public AuthResponse register(@Valid @RequestBody RegisterRequest request) {
+        return auth.registerWithPassword(request.email(), request.name(), request.password());
+    }
+
+    @PostMapping("/login")
+    public AuthResponse login(@Valid @RequestBody PasswordLoginRequest request) {
+        return auth.loginWithPassword(request.email(), request.password());
     }
 
     @PostMapping("/refresh")

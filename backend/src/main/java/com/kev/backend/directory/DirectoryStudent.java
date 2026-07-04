@@ -1,4 +1,4 @@
-package com.kev.backend.auth;
+package com.kev.backend.directory;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -10,44 +10,41 @@ import jakarta.persistence.Id;
 import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
 import java.time.Instant;
-import java.util.UUID;
 import lombok.Getter;
 import lombok.Setter;
 
-/** Authenticated user, provisioned on first Google sign-in. */
+/** Row in the simulated university directory (UITS mock). */
 @Entity
-@Table(name = "users")
+@Table(name = "directory_students")
 @Getter
 @Setter
-public class User {
+public class DirectoryStudent {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
-    private UUID id;
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
 
-    @Column(nullable = false, unique = true)
-    private String email;
+    @Column(name = "index_number", nullable = false, unique = true)
+    private String indexNumber;
 
-    @Column(name = "google_sub", unique = true)
-    private String googleSub;
+    @Column(name = "full_name", nullable = false)
+    private String fullName;
 
-    @Column(name = "display_name")
-    private String displayName;
+    @Column(nullable = false)
+    private String programme;
 
-    @Column(name = "picture_url")
-    private String pictureUrl;
+    @Column(nullable = false)
+    private int level;
+
+    @Column(name = "photo_url", nullable = false)
+    private String photoUrl;
+
+    @Column(nullable = false)
+    private boolean enrolled = true;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    private Role role = Role.USER;
-
-    /** BCrypt hash; null for Google-only accounts. */
-    @Column(name = "password_hash")
-    private String passwordHash;
-
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    private Plan plan = Plan.FREE;
+    @Column(name = "fees_status", nullable = false)
+    private FeesStatus feesStatus;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt = Instant.now();

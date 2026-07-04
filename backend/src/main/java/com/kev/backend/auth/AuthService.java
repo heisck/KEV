@@ -6,6 +6,7 @@ import com.kev.backend.auth.dto.UserDto;
 import com.kev.backend.common.ApiException;
 import java.util.UUID;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.jwt.JwtException;
@@ -19,12 +20,19 @@ public class AuthService {
     private final UserRepository users;
     private final JwtService jwt;
     private final JwtDecoder jwtDecoder;
+    private final PasswordEncoder passwordEncoder;
 
-    public AuthService(GoogleTokenVerifier google, UserRepository users, JwtService jwt, JwtDecoder jwtDecoder) {
+    public AuthService(
+            GoogleTokenVerifier google,
+            UserRepository users,
+            JwtService jwt,
+            JwtDecoder jwtDecoder,
+            PasswordEncoder passwordEncoder) {
         this.google = google;
         this.users = users;
         this.jwt = jwt;
         this.jwtDecoder = jwtDecoder;
+        this.passwordEncoder = passwordEncoder;
     }
 
     /** Verify the Google ID token, upsert the user, and mint our access + refresh tokens. */
@@ -50,6 +58,31 @@ public class AuthService {
                 });
         User saved = users.save(user);
         return new AuthResponse(jwt.issueAccessToken(saved), jwt.issueRefreshToken(saved), UserDto.from(saved));
+    }
+
+    /** Create an email/password account. Role is always USER; admins are provisioned via seed. */
+    @Transactional
+    public AuthResponse registerWithPassword(String email, String name, String password) {
+        String normalized = email.trim().toLowerCase();
+        if (users.findByEmail(normalized).isPresent()) {
+            throw new ApiException(HttpStatus.CONFLICT, "An account with this email already exists");
+        }
+        User user = new User();
+        user.setEmail(normalized);
+        user.setDisplayName(name.trim());
+        user.setRole(Role.USER);
+        user.setPasswordHash(passwordEncoder.encode(password));
+        User saved = users.save(user);
+        return new AuthResponse(jwt.issueAccessToken(saved), jwt.issueRefreshToken(saved), UserDto.from(saved));
+    }
+
+    /** Email/password sign-in for accounts with a password set (e.g. the seeded admin). */
+    @Transactional(readOnly = true)
+    public AuthResponse loginWithPassword(String email, String password) {
+        User user = users.findByEmail(email.trim().toLowerCase())
+                .filter(u -> u.getPasswordHash() != null && passwordEncoder.matches(password, u.getPasswordHash()))
+                .orElseThrow(() -> new ApiException(HttpStatus.UNAUTHORIZED, "Invalid email or password"));
+        return new AuthResponse(jwt.issueAccessToken(user), jwt.issueRefreshToken(user), UserDto.from(user));
     }
 
     /** Exchange a valid refresh token for a fresh access token. */
