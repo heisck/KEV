@@ -1,0 +1,70 @@
+import { Pressable, StyleSheet, Text, View } from 'react-native';
+import Animated, { FadeInUp, FadeOutUp, LinearTransition } from 'react-native-reanimated';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
+import { GlassSurface } from '@/components/ui/GlassSurface';
+import { useToastStore, type ToastTone } from '@/lib/toast';
+import { colors, radii, shadows, spacing } from '@/theme';
+
+const toneDots: Record<ToastTone, string> = {
+  success: colors.success,
+  error: colors.error,
+  info: colors.primary,
+};
+
+/** Floating glass toast stack. Mount once at the app root, above navigation. */
+export function ToastHost() {
+  const toasts = useToastStore((s) => s.toasts);
+  const dismiss = useToastStore((s) => s.dismiss);
+  const { top } = useSafeAreaInsets();
+
+  if (toasts.length === 0) return null;
+
+  return (
+    <View pointerEvents="box-none" style={[styles.host, { top: top + spacing.md }]}>
+      {toasts.map((item) => (
+        <Animated.View
+          key={item.id}
+          entering={FadeInUp.springify().damping(18)}
+          exiting={FadeOutUp}
+          layout={LinearTransition}
+        >
+          <Pressable accessibilityRole="alert" onPress={() => dismiss(item.id)}>
+            <GlassSurface intensity={60} style={styles.pill}>
+              <View style={styles.row}>
+                <View style={[styles.dot, { backgroundColor: toneDots[item.tone] }]} />
+                <Text numberOfLines={2} style={styles.message}>
+                  {item.message}
+                </Text>
+              </View>
+            </GlassSurface>
+          </Pressable>
+        </Animated.View>
+      ))}
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  host: {
+    alignItems: 'center',
+    gap: spacing.sm,
+    left: spacing.xl,
+    position: 'absolute',
+    right: spacing.xl,
+    zIndex: 1000,
+  },
+  pill: {
+    borderRadius: radii.pill,
+    ...shadows.floating,
+  },
+  row: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: spacing.sm,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+  },
+  dot: { borderRadius: 4, height: 8, width: 8 },
+  message: { color: colors.ink, flexShrink: 1, fontSize: 14, fontWeight: '600' },
+});

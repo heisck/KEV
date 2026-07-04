@@ -33,8 +33,9 @@ public class DirectoryStudent {
     @Column(nullable = false)
     private String programme;
 
+    /** smallint in the schema (100..700). */
     @Column(nullable = false)
-    private int level;
+    private short level;
 
     @Column(name = "photo_url", nullable = false)
     private String photoUrl;

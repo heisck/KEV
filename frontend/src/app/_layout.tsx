@@ -14,6 +14,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { queryClient } from '@/api/queryClient';
 import { AppSplash } from '@/components/AppSplash';
+import { ToastHost } from '@/components/ui/ToastHost';
 import { logger } from '@/lib/logger';
 import { initSentry, Sentry } from '@/lib/sentry';
 import { useAuthStore } from '@/store/authStore';
@@ -64,6 +65,7 @@ function RootLayout() {
               <Stack.Screen name="student-result" options={{ presentation: 'modal' }} />
               <Stack.Screen name="upgrade" options={{ presentation: 'modal' }} />
             </Stack>
+            <ToastHost />
             {showSplash ? (
               <AppSplash isActive={isNativeSplashHidden} onFinish={handleSplashFinish} />
             ) : null}

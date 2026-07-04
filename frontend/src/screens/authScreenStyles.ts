@@ -17,14 +17,19 @@ export const authScreenStyles = StyleSheet.create({
     textShadowRadius: 5,
   },
   accountTitle: { fontSize: 34, fontWeight: '600', lineHeight: 40 },
-  errorPill: {
-    backgroundColor: 'rgba(217, 83, 79, 0.92)',
-    borderRadius: 16,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
+  // zIndex keeps the fields above the hero logo overlay so nothing sits over them.
+  inputShell: { width: '100%', zIndex: 2 },
+  passwordInput: { paddingRight: 54 },
+  eyeToggle: {
+    alignItems: 'center',
+    height: 50,
+    justifyContent: 'center',
+    position: 'absolute',
+    right: 8,
+    top: 0,
+    width: 44,
+    zIndex: 3,
   },
-  errorText: { color: '#FFFFFF', fontSize: 13, fontWeight: '600', textAlign: 'center' },
-  inputShell: { width: '100%' },
   inputIcon: { height: 50, justifyContent: 'center', left: 20, position: 'absolute', zIndex: 1 },
   input: {
     backgroundColor: '#FFFFFF',

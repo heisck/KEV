@@ -3,7 +3,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { AuthScreen } from '@/screens/AuthScreen';
 
-function renderAuthScreen(onEmailSignIn = jest.fn(), errorMessage: string | null = null) {
+function renderAuthScreen(onEmailSignIn = jest.fn()) {
   return render(
     <SafeAreaProvider
       initialMetrics={{
@@ -11,7 +11,7 @@ function renderAuthScreen(onEmailSignIn = jest.fn(), errorMessage: string | null
         insets: { bottom: 0, left: 0, right: 0, top: 0 },
       }}
     >
-      <AuthScreen onEmailSignIn={onEmailSignIn} errorMessage={errorMessage} />
+      <AuthScreen onEmailSignIn={onEmailSignIn} />
     </SafeAreaProvider>,
   );
 }
@@ -39,9 +39,14 @@ describe('AuthScreen', () => {
     expect(onEmailSignIn).toHaveBeenCalledWith('lecturer@kev.app', 'Lecturer@1234');
   });
 
-  it('shows the error pill when a message is passed', () => {
-    const { getByText } = renderAuthScreen(jest.fn(), 'Invalid email or password');
+  it('toggles password visibility with the eye button', () => {
+    const { getByLabelText, getByPlaceholderText } = renderAuthScreen();
+    const passwordInput = getByPlaceholderText('Your password');
 
-    expect(getByText('Invalid email or password')).toBeTruthy();
+    expect(passwordInput.props.secureTextEntry).toBe(true);
+    fireEvent.press(getByLabelText('Show password'));
+    expect(passwordInput.props.secureTextEntry).toBe(false);
+    fireEvent.press(getByLabelText('Hide password'));
+    expect(passwordInput.props.secureTextEntry).toBe(true);
   });
 });
