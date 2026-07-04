@@ -24,6 +24,17 @@ export function EmailIcon({ size = 20 }: IconProps) {
   );
 }
 
+export function LockIcon({ size = 20 }: IconProps) {
+  return (
+    <Svg height={size} viewBox="0 0 24 24" width={size}>
+      <Path
+        d="M12 3a4.5 4.5 0 0 0-4.5 4.5V10H7a2.5 2.5 0 0 0-2.5 2.5v6A2.5 2.5 0 0 0 7 21h10a2.5 2.5 0 0 0 2.5-2.5v-6A2.5 2.5 0 0 0 17 10h-.5V7.5A4.5 4.5 0 0 0 12 3Zm3 7V7.5a3 3 0 1 0-6 0V10h6Zm-8 1.5h10c.55 0 1 .45 1 1v6c0 .55-.45 1-1 1H7c-.55 0-1-.45-1-1v-6c0-.55.45-1 1-1Zm5 2.25a1.25 1.25 0 0 0-.75 2.25v1.25a.75.75 0 0 0 1.5 0V16a1.25 1.25 0 0 0-.75-2.25Z"
+        fill="#9CA3AF"
+      />
+    </Svg>
+  );
+}
+
 export function GoogleIcon({ size = 20 }: IconProps) {
   return (
     <Svg height={size} viewBox="0 0 24 24" width={size}>

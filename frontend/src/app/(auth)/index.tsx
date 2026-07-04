@@ -1,6 +1,6 @@
-import { router } from 'expo-router';
-import { useCallback } from 'react';
+import { useCallback, useState } from 'react';
 
+import { getProblemDetail } from '@/api/schemas';
 import { signInWithApple } from '@/lib/appleAuth';
 import { useGoogleSignIn } from '@/lib/googleAuth';
 import { logger } from '@/lib/logger';
@@ -8,17 +8,41 @@ import { AuthScreen } from '@/screens/AuthScreen';
 import { useAuthStore } from '@/store/authStore';
 
 /**
- * "Verify your account" — the single sign-in surface. Lecturers are
- * pre-provisioned; there is no self-registration anywhere in the app.
+ * "Verify Account" — the single sign-in surface (email/password, Google, Apple).
+ * Lecturers are pre-provisioned; there is no self-registration anywhere.
  */
 export default function Welcome() {
+  const signInWithPassword = useAuthStore((s) => s.signInWithPassword);
   const signInWithGoogleIdToken = useAuthStore((s) => s.signInWithGoogleIdToken);
   const signInWithAppleIdToken = useAuthStore((s) => s.signInWithAppleIdToken);
   const { signIn, isConfigured } = useGoogleSignIn();
+  const [problem, setProblem] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleEmailSignIn = useCallback(
+    async (email: string, password: string) => {
+      if (!email || !password) {
+        setProblem('Enter your email and password');
+        return;
+      }
+      setProblem(null);
+      setIsSubmitting(true);
+      try {
+        await signInWithPassword(email, password);
+        // Success flips authStore status; the (auth) layout redirects to the tabs.
+      } catch (error: unknown) {
+        const detail = getProblemDetail(error);
+        setProblem(detail?.detail ?? detail?.title ?? 'Could not sign in. Try again.');
+      } finally {
+        setIsSubmitting(false);
+      }
+    },
+    [signInWithPassword],
+  );
 
   const handleGoogle = useCallback(async () => {
     if (!isConfigured) {
-      logger.warn('Google sign-in is not configured for this build');
+      setProblem('Google sign-in is not configured for this build');
       return;
     }
     try {
@@ -26,6 +50,7 @@ export default function Welcome() {
       if (idToken) await signInWithGoogleIdToken(idToken);
     } catch (error: unknown) {
       logger.warn('Google sign-in failed', { error });
+      setProblem('Google sign-in failed. Try again.');
     }
   }, [isConfigured, signIn, signInWithGoogleIdToken]);
 
@@ -35,6 +60,7 @@ export default function Welcome() {
       if (credential) await signInWithAppleIdToken(credential.identityToken, credential.fullName);
     } catch (error: unknown) {
       logger.warn('Apple sign-in failed', { error });
+      setProblem('Apple sign-in failed. Try again.');
     }
   }, [signInWithAppleIdToken]);
 
@@ -42,7 +68,9 @@ export default function Welcome() {
     <AuthScreen
       onGooglePress={() => void handleGoogle()}
       onApplePress={() => void handleApple()}
-      onSendCode={(email) => router.push({ pathname: '/(auth)/login', params: { email } })}
+      onEmailSignIn={(email, password) => void handleEmailSignIn(email, password)}
+      errorMessage={problem}
+      isSubmitting={isSubmitting}
     />
   );
 }
