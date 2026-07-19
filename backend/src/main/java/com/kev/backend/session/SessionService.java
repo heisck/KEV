@@ -46,27 +46,40 @@ public class SessionService {
     public SessionDto create(UUID userId, CreateSessionRequest req) {
         ExamSession session = new ExamSession();
         session.setSessionCode(uniqueCode());
-        session.setCourseCodes(String.join(",", req.courseCodes()));
+        session.setSessionPassword(uniquePassword());
+        session.setTitle(req.title() != null && !req.title().isBlank() ? req.title().trim() : (req.building() + " " + (req.room() != null ? req.room() : "")).trim());
+        session.setCourseCodes(req.courseCodes() != null ? String.join(",", req.courseCodes()) : "");
         session.setBuilding(req.building());
         session.setFloor(req.floor());
         session.setRoom(req.room());
         session.setIndexRangeStart(req.indexRangeStart());
         session.setIndexRangeEnd(req.indexRangeEnd());
+        session.setExamDate(req.examDate());
+        session.setStartTime(req.startTime());
+        session.setEndTime(req.endTime());
+        if (req.verificationMethods() != null && !req.verificationMethods().isEmpty()) {
+            session.setVerificationMethods(String.join(",", req.verificationMethods()));
+        } else {
+            session.setVerificationMethods("FACE,QR,MANUAL");
+        }
         session.setCreatedBy(userId);
         ExamSession saved = sessions.save(session);
-        addMember(saved.getId(), userId, null);
+        addMember(saved.getId(), userId, null, "CREATOR");
         return toDto(saved);
     }
 
     @Transactional
-    public SessionDto join(UUID userId, String sessionCode) {
-        ExamSession session = sessions.findBySessionCode(sessionCode.trim().toUpperCase())
-                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "No session with that code"));
-        if (session.getStatus() != SessionStatus.ACTIVE) {
-            throw new ApiException(HttpStatus.CONFLICT, "Session has ended");
+    public SessionDto join(UUID userId, String sessionCodeOrPassword) {
+        String query = sessionCodeOrPassword != null ? sessionCodeOrPassword.trim().toUpperCase() : "";
+        ExamSession session = sessions.findBySessionCodeOrSessionPassword(query, query)
+                .or(() -> sessions.findBySessionCode(query))
+                .or(() -> sessions.findBySessionPassword(query))
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "No session matches that code or password"));
+        if (session.getStatus() == SessionStatus.ENDED || session.getStatus() == SessionStatus.CANCELLED) {
+            throw new ApiException(HttpStatus.CONFLICT, "Session is ended or cancelled");
         }
         if (!invigilators.existsBySessionIdAndUserId(session.getId(), userId)) {
-            addMember(session.getId(), userId, null);
+            addMember(session.getId(), userId, null, "INVIGILATOR");
         }
         return toDto(session);
     }
@@ -126,12 +139,17 @@ public class SessionService {
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Session not found"));
     }
 
-    void addMember(Long sessionId, UUID userId, UUID assignedBy) {
+    void addMember(Long sessionId, UUID userId, UUID assignedBy, String role) {
         SessionInvigilator membership = new SessionInvigilator();
         membership.setSessionId(sessionId);
         membership.setUserId(userId);
         membership.setAssignedBy(assignedBy);
+        membership.setRole(role != null ? role : "INVIGILATOR");
         invigilators.save(membership);
+    }
+
+    void addMember(Long sessionId, UUID userId, UUID assignedBy) {
+        addMember(sessionId, userId, assignedBy, "INVIGILATOR");
     }
 
     public SessionDto toDto(ExamSession session) {
@@ -148,7 +166,16 @@ public class SessionService {
                 user != null ? user.getEmail() : null,
                 user != null ? user.getPictureUrl() : null,
                 membership.getJoinedAt(),
-                membership.getAssignedBy() != null);
+                membership.getAssignedBy() != null,
+                membership.getRole());
+    }
+
+    private String uniquePassword() {
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < 6; i++) {
+            sb.append(CODE_ALPHABET.charAt(RANDOM.nextInt(CODE_ALPHABET.length())));
+        }
+        return sb.toString();
     }
 
     private String uniqueCode() {

@@ -3,26 +3,26 @@ import { useState } from 'react';
 import { ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { useInvigilators } from '@/api/hooks';
+import type { UserDto } from '@/api/schemas';
 import { ScreenTopBar } from '@/components/kev/chrome';
 import { ChevronRightIcon, SearchIcon, StepsIcon } from '@/components/kev/icons';
-import { Avatar, type PersonKey } from '@/components/kev/people';
+import { Avatar } from '@/components/kev/people';
 import { AppButton } from '@/components/ui/AppButton';
 import { BottomDrawer } from '@/components/ui/BottomDrawer';
 import { HapticPressable } from '@/components/ui/HapticPressable';
-import { INVIGILATORS } from '@/data/exams';
 import { colors, radii, spacing } from '@/theme';
-
-type Invigilator = (typeof INVIGILATORS)[number];
 
 /** Explore invigilators — searchable list; tap a row for join details. */
 export function InvigilatorsScreen() {
   const router = useRouter();
   const { top } = useSafeAreaInsets();
   const [query, setQuery] = useState('');
-  const [selected, setSelected] = useState<Invigilator | null>(null);
+  const [selected, setSelected] = useState<UserDto | null>(null);
 
-  const results = INVIGILATORS.filter((i) =>
-    i.name.toLowerCase().includes(query.trim().toLowerCase()),
+  const { data: invigilatorsList } = useInvigilators();
+  const results = (invigilatorsList ?? []).filter((i) =>
+    (i.displayName || i.email).toLowerCase().includes(query.trim().toLowerCase()),
   );
 
   return (
@@ -51,12 +51,10 @@ export function InvigilatorsScreen() {
             style={styles.row}
             testID={`invigilator-${i.id}`}
           >
-            <Avatar person={i.person as PersonKey} size={44} verified />
+            <Avatar person="freja" size={44} verified />
             <View style={styles.rowText}>
-              <Text style={styles.rowName}>{i.name}</Text>
-              <Text style={styles.rowSub}>
-                Joined {i.joined} · {i.hall}
-              </Text>
+              <Text style={styles.rowName}>{i.displayName || i.email}</Text>
+              <Text style={styles.rowSub}>{i.role} · Active Staff</Text>
             </View>
             <ChevronRightIcon color={colors.muted} size={15} />
           </HapticPressable>
@@ -67,17 +65,17 @@ export function InvigilatorsScreen() {
       <BottomDrawer
         visible={selected !== null}
         onClose={() => setSelected(null)}
-        title={selected?.name ?? ''}
+        title={selected?.displayName ?? selected?.email ?? ''}
         testID="invigilator-details"
       >
         {selected ? (
           <View style={styles.details}>
-            <Avatar person={selected.person as PersonKey} size={72} verified />
+            <Avatar person="freja" size={72} verified />
             <View style={styles.detailRow}>
               <StepsIcon color={colors.inkSoft} size={13} />
-              <Text style={styles.detailText}>Assigned to {selected.hall}</Text>
+              <Text style={styles.detailText}>{selected.role}</Text>
             </View>
-            <Text style={styles.detailSub}>Joined the session {selected.joined}</Text>
+            <Text style={styles.detailSub}>{selected.email}</Text>
             <AppButton
               label="Message in chat"
               onPress={() => {
@@ -92,7 +90,7 @@ export function InvigilatorsScreen() {
               variant="ghost"
               onPress={() => {
                 setSelected(null);
-                router.push({ pathname: '/group-session', params: { exam: 'ma204' } });
+                router.push({ pathname: '/group-session', params: { exam: '1' } });
               }}
               style={styles.detailCta}
             />

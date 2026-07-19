@@ -38,6 +38,9 @@ public class AttendanceRecord {
     @Column(nullable = false)
     private AttendanceStatus status = AttendanceStatus.CHECKED_IN;
 
+    @Column(name = "verification_status", nullable = false)
+    private String verificationStatus = "VERIFIED";
+
     @Column(name = "checked_in_by", nullable = false)
     private UUID checkedInBy;
 

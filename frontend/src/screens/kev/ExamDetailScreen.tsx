@@ -2,6 +2,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { useSessionDetail, useSessions } from '@/api/hooks';
 import { SceneArt } from '@/components/kev/art';
 import { BlueChip, CircleButton, ScreenTopBar } from '@/components/kev/chrome';
 import {
@@ -15,7 +16,6 @@ import {
   StudentsIcon,
 } from '@/components/kev/icons';
 import { HapticPressable } from '@/components/ui/HapticPressable';
-import { SESSION } from '@/data/exams';
 import { colors, radii, spacing } from '@/theme';
 
 const METHODS = [
@@ -29,7 +29,25 @@ export function ExamDetailScreen() {
   const router = useRouter();
   const { top } = useSafeAreaInsets();
   const { id } = useLocalSearchParams<{ id?: string }>();
-  const examId = id ?? 'cs101';
+  const examId = id ?? '1';
+
+  const { data: detail } = useSessionDetail(Number(examId) || 1);
+  const { data: allSessions } = useSessions();
+  const session = detail?.session ?? allSessions?.find((s) => String(s.id) === examId);
+
+  const isUpcoming = session?.status === 'UPCOMING';
+  const hall = session?.title ?? session?.building ?? 'Main Exam Hall';
+  const verified = detail?.attendance?.length ?? Number(session?.checkedInCount ?? 0);
+  const studentsCount = isUpcoming ? 'Unknown' : verified + 10;
+  const score = isUpcoming
+    ? 'N/A'
+    : studentsCount === 'Unknown' || studentsCount === 0
+      ? '0%'
+      : `${Math.min(100, Math.round((verified / Number(studentsCount)) * 100))}%`;
+  const starts = session?.startTime ?? '09:00';
+  const ends = session?.endTime ?? '12:00';
+  const dateStr =
+    session?.examDate ?? new Date(session?.startedAt ?? Date.now()).toLocaleDateString();
 
   const openScanHub = () => router.push({ pathname: '/verify/index', params: { exam: examId } });
 
@@ -39,9 +57,11 @@ export function ExamDetailScreen() {
         title="Session details"
         onBack={() => router.back()}
         trailing={
-          <CircleButton label="Scan" onPress={openScanHub}>
-            <ScanFrameIcon color={colors.ink} />
-          </CircleButton>
+          !isUpcoming ? (
+            <CircleButton label="Scan" onPress={openScanHub}>
+              <ScanFrameIcon color={colors.ink} />
+            </CircleButton>
+          ) : null
         }
       />
 
@@ -50,19 +70,25 @@ export function ExamDetailScreen() {
           <View style={styles.hero}>
             <SceneArt art="hall" />
           </View>
-          <View style={styles.ratingBadge}>
-            <Text style={styles.ratingBadgeText}>{SESSION.score}</Text>
-          </View>
+          {!isUpcoming ? (
+            <View style={styles.ratingBadge}>
+              <Text style={styles.ratingBadgeText}>{score}</Text>
+            </View>
+          ) : null}
 
           <View style={styles.cardBody}>
-            <Text style={styles.hotel}>{SESSION.hall}</Text>
+            <Text style={styles.hotel}>{hall}</Text>
             <View style={styles.ratingRow}>
-              <View style={styles.stars}>
-                {[1, 2, 3, 4, 5].map((i) => (
-                  <CheckCircleIcon key={i} color={colors.success} size={15} />
-                ))}
-                <Text style={styles.ratingText}>{SESSION.verified} verified</Text>
-              </View>
+              {!isUpcoming ? (
+                <View style={styles.stars}>
+                  {[1, 2, 3, 4, 5].map((i) => (
+                    <CheckCircleIcon key={i} color={colors.success} size={15} />
+                  ))}
+                  <Text style={styles.ratingText}>{verified} verified</Text>
+                </View>
+              ) : (
+                <Text style={styles.ratingText}>Upcoming Exam</Text>
+              )}
               <BlueChip
                 label="Open room map"
                 icon={<StepsIcon color={colors.blue} />}
@@ -73,11 +99,11 @@ export function ExamDetailScreen() {
             <View style={styles.datesRow}>
               <View style={styles.dateBox}>
                 <Text style={styles.dateLabel}>Starts</Text>
-                <Text style={styles.dateValue}>{SESSION.starts}</Text>
+                <Text style={styles.dateValue}>{starts}</Text>
               </View>
               <View style={styles.dateBox}>
                 <Text style={styles.dateLabel}>Ends</Text>
-                <Text style={styles.dateValue}>{SESSION.ends}</Text>
+                <Text style={styles.dateValue}>{ends}</Text>
               </View>
             </View>
 
@@ -85,21 +111,22 @@ export function ExamDetailScreen() {
             <View style={styles.metaRow}>
               <View style={styles.metaItem}>
                 <RemindersTabIcon color={colors.ink} size={18} />
-                <Text style={styles.metaText}>{SESSION.date}</Text>
+                <Text style={styles.metaText}>{String(dateStr)}</Text>
               </View>
               <View style={styles.metaItem}>
                 <StudentsIcon color={colors.ink} />
-                <Text style={styles.metaText}>{SESSION.students} students</Text>
+                <Text style={styles.metaText}>{studentsCount} students</Text>
               </View>
             </View>
           </View>
         </View>
 
         <Text style={styles.section}>Verification methods</Text>
-        <View style={styles.amenities}>
+        <View style={[styles.amenities, isUpcoming && { opacity: 0.5 }]}>
           {METHODS.map((m) => (
             <HapticPressable
               key={m.label}
+              disabled={isUpcoming}
               accessibilityRole="button"
               accessibilityLabel={`${m.label} verification`}
               onPress={() => router.push({ pathname: m.path, params: { exam: examId } })}
@@ -111,16 +138,20 @@ export function ExamDetailScreen() {
           ))}
         </View>
 
-        <View style={styles.priceRow}>
-          <Text style={styles.section}>Attendance</Text>
-          <Text style={styles.price}>
-            {SESSION.verified}/{SESSION.students}
-          </Text>
-        </View>
-        <View style={styles.priceRow}>
-          <Text style={styles.taxLabel}>Flagged</Text>
-          <Text style={styles.tax}>{SESSION.flagged}</Text>
-        </View>
+        {!isUpcoming ? (
+          <>
+            <View style={styles.priceRow}>
+              <Text style={styles.section}>Attendance</Text>
+              <Text style={styles.price}>
+                {verified}/{studentsCount}
+              </Text>
+            </View>
+            <View style={styles.priceRow}>
+              <Text style={styles.taxLabel}>Flagged</Text>
+              <Text style={styles.tax}>0</Text>
+            </View>
+          </>
+        ) : null}
       </ScrollView>
     </View>
   );
