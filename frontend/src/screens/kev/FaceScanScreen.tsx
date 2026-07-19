@@ -1,5 +1,6 @@
-import { CameraView, useCameraPermissions } from 'expo-camera';
+import { CameraView, useCameraPermissions, type CameraType } from 'expo-camera';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -12,13 +13,14 @@ import { colors, radii, spacing } from '@/theme';
 
 const FACE = 168;
 
-/** Face verification — the avatar's face is the live camera preview. */
+/** Face verification — the avatar's face is the live camera preview with front/back switch. */
 export function FaceScanScreen() {
   const router = useRouter();
   const { top } = useSafeAreaInsets();
   const { exam } = useLocalSearchParams<{ exam?: string }>();
-  const completeScan = useMockScan(exam ?? 'ma204');
+  const completeScan = useMockScan(exam ?? '1', 'FACE');
   const [permission, requestPermission] = useCameraPermissions();
+  const [facing, setFacing] = useState<CameraType>('front');
 
   return (
     <View style={[styles.screen, { paddingTop: top + spacing.md }]}>
@@ -27,7 +29,7 @@ export function FaceScanScreen() {
       <View style={styles.stage}>
         <View style={styles.face}>
           {permission?.granted ? (
-            <CameraView facing="front" style={StyleSheet.absoluteFill} />
+            <CameraView facing={facing} style={StyleSheet.absoluteFill} />
           ) : (
             <View style={styles.facePlaceholder}>
               <FaceIdIcon color={colors.muted} size={44} />
@@ -42,6 +44,15 @@ export function FaceScanScreen() {
 
         <Text style={styles.title}>Align the student&apos;s face</Text>
         <Text style={styles.sub}>Center the face in the circle, then capture.</Text>
+        {permission?.granted ? (
+          <HapticPressable
+            accessibilityRole="button"
+            onPress={() => setFacing((f) => (f === 'front' ? 'back' : 'front'))}
+            style={styles.switchBtn}
+          >
+            <Text style={styles.switchBtnText}>Switch Camera ({facing})</Text>
+          </HapticPressable>
+        ) : null}
       </View>
 
       {permission?.granted ? (
@@ -93,6 +104,14 @@ const styles = StyleSheet.create({
   body: { marginTop: -34 },
   title: { color: colors.ink, fontSize: 18, fontWeight: '800', marginTop: spacing.xl },
   sub: { color: colors.muted, fontSize: 13, fontWeight: '500', marginTop: 4 },
+  switchBtn: {
+    backgroundColor: colors.surfaceDim,
+    borderRadius: radii.pill,
+    marginTop: spacing.md,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
+  },
+  switchBtnText: { color: colors.ink, fontSize: 13, fontWeight: '700' },
   cta: {
     alignItems: 'center',
     backgroundColor: colors.primary,

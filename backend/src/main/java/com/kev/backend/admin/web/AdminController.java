@@ -1,7 +1,10 @@
 package com.kev.backend.admin.web;
 
 import com.kev.backend.admin.AdminService;
+import com.kev.backend.admin.dto.AdminDashboardDto;
 import com.kev.backend.admin.dto.AssignInvigilatorRequest;
+import com.kev.backend.admin.dto.CreateLecturerRequest;
+import com.kev.backend.admin.dto.UpdateLecturerRequest;
 import com.kev.backend.attendance.AttendanceService;
 import com.kev.backend.auth.dto.UserDto;
 import com.kev.backend.session.dto.InvigilatorDto;
@@ -19,6 +22,7 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
@@ -36,6 +40,33 @@ public class AdminController {
     public AdminController(AdminService admin, AttendanceService attendance) {
         this.admin = admin;
         this.attendance = attendance;
+    }
+
+    @GetMapping("/dashboard")
+    public AdminDashboardDto dashboard(@AuthenticationPrincipal Jwt principal) {
+        return admin.getDashboard(UUID.fromString(principal.getSubject()));
+    }
+
+    @GetMapping("/lecturers")
+    public List<UserDto> lecturers() {
+        return admin.listLecturers();
+    }
+
+    @PostMapping("/lecturers")
+    @ResponseStatus(HttpStatus.CREATED)
+    public UserDto createLecturer(@AuthenticationPrincipal Jwt principal, @Valid @RequestBody CreateLecturerRequest req) {
+        return admin.createLecturer(UUID.fromString(principal.getSubject()), req);
+    }
+
+    @PutMapping("/lecturers/{id}")
+    public UserDto updateLecturer(@AuthenticationPrincipal Jwt principal, @PathVariable UUID id, @Valid @RequestBody UpdateLecturerRequest req) {
+        return admin.updateLecturer(UUID.fromString(principal.getSubject()), id, req);
+    }
+
+    @DeleteMapping("/lecturers/{id}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void disableLecturer(@AuthenticationPrincipal Jwt principal, @PathVariable UUID id) {
+        admin.disableLecturer(UUID.fromString(principal.getSubject()), id);
     }
 
     @GetMapping("/invigilators")

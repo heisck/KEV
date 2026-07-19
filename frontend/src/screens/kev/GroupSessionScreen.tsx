@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { useJoinSession, useSessionDetail } from '@/api/hooks';
 import { SceneArt } from '@/components/kev/art';
 import { BlueChip, CircleButton, ScreenTopBar } from '@/components/kev/chrome';
 import {
@@ -16,19 +17,12 @@ import {
   SendIcon,
   StepsIcon,
 } from '@/components/kev/icons';
-import { Avatar, Flag, type FlagKey, type PersonKey } from '@/components/kev/people';
+import { Avatar } from '@/components/kev/people';
 import { BottomDrawer } from '@/components/ui/BottomDrawer';
 import { HapticPressable } from '@/components/ui/HapticPressable';
-import { SESSION, SESSION_STUDENTS } from '@/data/exams';
+import { studentRecordToScanned } from '@/data/exams';
 import { useSessionStore } from '@/store/sessionStore';
 import { colors, radii, spacing } from '@/theme';
-
-const LECTURERS: { person: PersonKey; flag: FlagKey }[] = [
-  { person: 'ben', flag: 'be' },
-  { person: 'freja', flag: 'dk' },
-  { person: 'kofi', flag: 'cz' },
-  { person: 'milan', flag: 'gb' },
-];
 
 const METHODS = [
   { label: 'Face', icon: <FaceIdIcon color={colors.pink} />, path: '/verify/face' as const },
@@ -41,12 +35,19 @@ export function GroupSessionScreen() {
   const router = useRouter();
   const { top } = useSafeAreaInsets();
   const { exam } = useLocalSearchParams<{ exam?: string }>();
-  const sessionId = exam ?? 'ma204';
+  const sessionId = exam ?? '1';
 
-  const joined = useSessionStore((s) => Boolean(s.joined[sessionId]));
+  const { data: detail } = useSessionDetail(Number(sessionId) || 1);
+  const joinMutation = useJoinSession();
+
+  const joined =
+    useSessionStore((s) => Boolean(s.joined[sessionId])) || (detail?.invigilators?.length ?? 0) > 0;
   const join = useSessionStore((s) => s.join);
   const scanned = useSessionStore((s) => s.roster[sessionId]);
-  const students = [...SESSION_STUDENTS, ...(scanned ?? [])];
+  const students = [
+    ...(detail?.attendance?.map((a) => studentRecordToScanned(a.student)) ?? []),
+    ...(scanned ?? []),
+  ];
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [code, setCode] = useState('');
   const [error, setError] = useState(false);
@@ -55,13 +56,15 @@ export function GroupSessionScreen() {
   const openMethod = (path: (typeof METHODS)[number]['path']) =>
     router.push({ pathname: path, params: { exam: sessionId } });
 
-  const submitCode = () => {
-    if (code.trim() === SESSION.code) {
+  const submitCode = async () => {
+    if (!code.trim()) return;
+    try {
+      await joinMutation.mutateAsync(code.trim());
       join(sessionId);
       setDrawerOpen(false);
       setCode('');
       setError(false);
-    } else {
+    } catch {
       setError(true);
     }
   };
@@ -98,20 +101,33 @@ export function GroupSessionScreen() {
                 <PlusIcon color={colors.ink} />
               </HapticPressable>
             )}
-            <Text style={styles.memberLabel}>{joined ? 'Added' : 'Add'}</Text>
+            <Text style={styles.memberLabel}>{joined ? 'Added' : '+ Join Session'}</Text>
           </View>
-          {LECTURERS.map((m) => (
-            <HapticPressable
-              key={m.person}
-              accessibilityRole="button"
-              accessibilityLabel="View invigilators"
-              onPress={() => router.push('/invigilators')}
-              style={styles.member}
-            >
-              <Avatar person={m.person} size={56} verified />
-              <Flag flag={m.flag} />
-            </HapticPressable>
-          ))}
+          {(detail?.invigilators ?? []).map((m) => {
+            const initials =
+              m.displayName
+                ?.split(' ')
+                .map((w) => w[0])
+                .join('')
+                .slice(0, 2)
+                .toUpperCase() || 'KW';
+            return (
+              <HapticPressable
+                key={m.userId}
+                accessibilityRole="button"
+                accessibilityLabel="View invigilators"
+                onPress={() => router.push('/invigilators')}
+                style={styles.member}
+              >
+                <View style={[styles.addTile, { backgroundColor: colors.primary12 }]}>
+                  <Text style={{ color: colors.primary, fontSize: 16, fontWeight: '800' }}>
+                    {initials}
+                  </Text>
+                </View>
+                <Text style={styles.memberLabel}>{initials}</Text>
+              </HapticPressable>
+            );
+          })}
         </View>
 
         {joined ? (
@@ -140,7 +156,7 @@ export function GroupSessionScreen() {
                   }
                   style={styles.student}
                 >
-                  <Avatar person={s.person as PersonKey} size={44} />
+                  <Avatar person="freja" size={44} />
                   <Text numberOfLines={1} style={styles.studentName}>
                     {s.name}
                   </Text>
@@ -184,7 +200,12 @@ export function GroupSessionScreen() {
               </View>
             </View>
             <View style={styles.country}>
-              <Flag flag="it" size={18} />
+              <View
+                style={[
+                  styles.addTile,
+                  { width: 18, height: 18, backgroundColor: colors.primary12 },
+                ]}
+              />
               <Text style={styles.countryText}>Hall A</Text>
             </View>
           </View>

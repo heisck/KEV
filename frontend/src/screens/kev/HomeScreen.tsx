@@ -1,14 +1,15 @@
 import { useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { useSessions } from '@/api/hooks';
 import { CircleButton } from '@/components/kev/chrome';
 import { BellIcon, SearchIcon } from '@/components/kev/icons';
 import { Avatar } from '@/components/kev/people';
 import { ExamCard } from '@/components/kev/ExamCard';
 import { HapticPressable } from '@/components/ui/HapticPressable';
-import { EXAMS, type ExamStatus } from '@/data/exams';
+import { sessionToExam, type ExamStatus } from '@/data/exams';
 import { useAuthStore } from '@/store/authStore';
 import { colors, radii, spacing } from '@/theme';
 
@@ -23,11 +24,15 @@ export function HomeScreen() {
   const [filter, setFilter] = useState<Filter>('All');
   const [query, setQuery] = useState('');
 
-  const exams = EXAMS.filter(
-    (e) =>
-      (filter === 'All' || e.status === (filter as ExamStatus)) &&
-      e.course.toLowerCase().includes(query.trim().toLowerCase()),
-  );
+  const { data: rawSessions } = useSessions();
+  const exams = useMemo(() => {
+    const list = rawSessions?.map(sessionToExam) ?? [];
+    return list.filter(
+      (e) =>
+        (filter === 'All' || e.status === (filter as ExamStatus)) &&
+        e.course.toLowerCase().includes(query.trim().toLowerCase()),
+    );
+  }, [rawSessions, filter, query]);
 
   return (
     <View style={[styles.screen, { paddingTop: top + spacing.md }]}>

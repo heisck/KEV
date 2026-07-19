@@ -10,27 +10,27 @@ type ChatState = {
   openThread: (lecturerId: string) => void;
   closeThread: () => void;
   send: (lecturerId: string, text: string) => void;
+  setThreadMessages: (lecturerId: string, messages: ChatMessage[]) => void;
 };
 
 const now = () => new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
-const SEED: Record<string, ChatMessage[]> = {
-  i1: [{ id: 'seed-i1', text: 'Hall A is set up, scanners tested.', mine: false, at: '08:45' }],
-  i2: [{ id: 'seed-i2', text: 'Roster synced for MA 204.', mine: false, at: '08:52' }],
-};
-
-/** In-app lecturer chat; local mock until the messaging API lands. */
-export const useChatStore = create<ChatState>((set, get) => ({
-  threads: SEED,
+/** In-app lecturer chat state connecting to the real messaging API. */
+export const useChatStore = create<ChatState>((set) => ({
+  threads: {},
   activeLecturerId: null,
   openThread: (lecturerId) => {
     set((s) => ({
       activeLecturerId: lecturerId,
-      // Ensure an empty thread exists so the UI leaves the inbox empty-state.
       threads: s.threads[lecturerId] ? s.threads : { ...s.threads, [lecturerId]: [] },
     }));
   },
   closeThread: () => set({ activeLecturerId: null }),
+  setThreadMessages: (lecturerId, messages) => {
+    set((s) => ({
+      threads: { ...s.threads, [lecturerId]: messages },
+    }));
+  },
   send: (lecturerId, text) => {
     const trimmed = text.trim();
     if (!trimmed) return;
@@ -38,16 +38,5 @@ export const useChatStore = create<ChatState>((set, get) => ({
     set((s) => ({
       threads: { ...s.threads, [lecturerId]: [...(s.threads[lecturerId] ?? []), mine] },
     }));
-    setTimeout(() => {
-      const reply: ChatMessage = {
-        id: `r-${Date.now()}`,
-        text: 'Got it — thanks.',
-        mine: false,
-        at: now(),
-      };
-      set((s) => ({
-        threads: { ...s.threads, [lecturerId]: [...(s.threads[lecturerId] ?? []), reply] },
-      }));
-    }, 900);
   },
 }));

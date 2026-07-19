@@ -3,15 +3,14 @@ import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import Animated, { useAnimatedStyle, withSpring } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { useSessionDetail } from '@/api/hooks';
 import { ScreenTopBar } from '@/components/kev/chrome';
 import { FaceIdIcon, KeypadIcon, NfcIcon } from '@/components/kev/icons';
 import { Avatar, type PersonKey } from '@/components/kev/people';
 import { HapticPressable } from '@/components/ui/HapticPressable';
-import { SESSION_STUDENTS } from '@/data/exams';
+import { studentRecordToScanned } from '@/data/exams';
 import { useSessionStore } from '@/store/sessionStore';
 import { colors, radii, shadows, spacing } from '@/theme';
-
-const LECTURERS: PersonKey[] = ['ben', 'freja', 'kofi', 'milan'];
 
 const TRACK_WIDTH = 52;
 const KNOB = 26;
@@ -40,12 +39,16 @@ export function SessionScanScreen() {
   const router = useRouter();
   const { top } = useSafeAreaInsets();
   const { exam } = useLocalSearchParams<{ exam?: string }>();
-  const sessionId = exam ?? 'ma204';
+  const sessionId = exam ?? '1';
 
+  const { data: detail } = useSessionDetail(Number(sessionId) || 1);
   const scanned = useSessionStore((s) => s.roster[sessionId]);
   const autoAdd = useSessionStore((s) => s.autoAdd);
   const setAutoAdd = useSessionStore((s) => s.setAutoAdd);
-  const students = [...SESSION_STUDENTS, ...(scanned ?? [])];
+  const students = [
+    ...(detail?.attendance?.map((a) => studentRecordToScanned(a.student)) ?? []),
+    ...(scanned ?? []),
+  ];
 
   const goTo = (method: '/verify/nfc' | '/verify/face' | '/verify/manual') =>
     router.push({ pathname: method, params: { exam: sessionId } });
@@ -57,9 +60,22 @@ export function SessionScanScreen() {
       <ScrollView contentContainerStyle={styles.body} showsVerticalScrollIndicator={false}>
         <Text style={styles.sectionTitle}>Lecturers</Text>
         <View style={styles.lecturers}>
-          {LECTURERS.map((p) => (
-            <Avatar key={p} person={p} size={56} verified />
-          ))}
+          {(detail?.invigilators ?? []).map((m) => {
+            const initials =
+              m.displayName
+                ?.split(' ')
+                .map((w) => w[0])
+                .join('')
+                .slice(0, 2)
+                .toUpperCase() || 'KW';
+            return (
+              <View key={m.userId} style={[styles.addTile, { backgroundColor: colors.primary12 }]}>
+                <Text style={{ color: colors.primary, fontSize: 16, fontWeight: '800' }}>
+                  {initials}
+                </Text>
+              </View>
+            );
+          })}
         </View>
 
         <View style={styles.rosterHeader}>
@@ -131,6 +147,13 @@ export function SessionScanScreen() {
 const styles = StyleSheet.create({
   screen: { backgroundColor: colors.white, flex: 1, paddingHorizontal: spacing.xl },
   body: { gap: spacing.lg, paddingBottom: spacing.xxxl, paddingTop: spacing.xl },
+  addTile: {
+    alignItems: 'center',
+    borderRadius: radii.pill,
+    height: 56,
+    justifyContent: 'center',
+    width: 56,
+  },
   sectionTitle: { color: colors.ink, fontSize: 16, fontWeight: '700' },
   lecturers: { flexDirection: 'row', gap: spacing.lg },
   rosterHeader: { alignItems: 'center', flexDirection: 'row', gap: spacing.sm },
