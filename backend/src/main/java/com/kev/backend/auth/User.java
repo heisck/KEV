@@ -14,7 +14,7 @@ import java.util.UUID;
 import lombok.Getter;
 import lombok.Setter;
 
-/** Authenticated user, provisioned on first Google sign-in. */
+/** Authenticated user (Admin or Lecturer). */
 @Entity
 @Table(name = "users")
 @Getter
@@ -42,15 +42,36 @@ public class User {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private Role role = Role.USER;
+    private Role role = Role.LECTURER;
 
-    /** BCrypt hash; null for Google-only accounts. */
+    /** BCrypt hash; null for Google/Apple-only accounts. */
     @Column(name = "password_hash")
     private String passwordHash;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private Plan plan = Plan.FREE;
+
+    @Column(name = "lecturer_id")
+    private String lecturerId;
+
+    @Column(name = "personal_email")
+    private String personalEmail;
+
+    @Column(name = "phone")
+    private String phone;
+
+    @Column(name = "status")
+    private String status = "ACTIVE";
+
+    @Column(name = "is_active")
+    private boolean active = true;
+
+    @Column(name = "created_by_admin")
+    private UUID createdByAdmin;
+
+    @Column(name = "last_login")
+    private Instant lastLogin;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt = Instant.now();

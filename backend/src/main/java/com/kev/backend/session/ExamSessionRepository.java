@@ -11,6 +11,10 @@ public interface ExamSessionRepository extends JpaRepository<ExamSession, Long> 
 
     Optional<ExamSession> findBySessionCode(String sessionCode);
 
+    Optional<ExamSession> findBySessionPassword(String sessionPassword);
+
+    Optional<ExamSession> findBySessionCodeOrSessionPassword(String sessionCode, String sessionPassword);
+
     boolean existsBySessionCode(String sessionCode);
 
     @Query("select s from ExamSession s where s.id in "

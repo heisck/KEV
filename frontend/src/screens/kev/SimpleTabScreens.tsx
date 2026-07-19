@@ -3,10 +3,11 @@ import { useRouter } from 'expo-router';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { useSessions } from '@/api/hooks';
 import { ExamCard } from '@/components/kev/ExamCard';
 import { RemindersTabIcon } from '@/components/kev/icons';
 import { AppButton } from '@/components/ui/AppButton';
-import { EXAMS } from '@/data/exams';
+import { sessionToExam } from '@/data/exams';
 import { useFavoritesStore } from '@/store/favoritesStore';
 import { useNotificationsStore } from '@/store/notificationsStore';
 import { colors, radii, spacing } from '@/theme';
@@ -48,13 +49,15 @@ function Empty({
 
 /** Exams tab — list for now; richer exam detail UI comes later. */
 export function ExamsScreen() {
+  const { data } = useSessions();
+  const exams = (data ?? []).map(sessionToExam);
   return (
     <TabScreen title="My exams">
       <Text style={styles.hint}>
         More exam detail views will land here later. For now, open a card to continue.
       </Text>
       <ScrollView contentContainerStyle={styles.list} showsVerticalScrollIndicator={false}>
-        {EXAMS.map((exam) => (
+        {exams.map((exam) => (
           <ExamCard key={exam.id} exam={exam} />
         ))}
       </ScrollView>
@@ -64,9 +67,11 @@ export function ExamsScreen() {
 
 export function RemindersScreen() {
   const router = useRouter();
+  const { data } = useSessions();
+  const exams = (data ?? []).map(sessionToExam);
   const favoriteIds = useFavoritesStore((s) => s.ids);
   const notifications = useNotificationsStore((s) => s.items);
-  const favorites = EXAMS.filter((e) => favoriteIds.has(e.id));
+  const favorites = exams.filter((e) => favoriteIds.has(e.id));
 
   const hasContent = favorites.length > 0 || notifications.length > 0;
 

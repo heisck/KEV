@@ -32,6 +32,9 @@ public class SessionInvigilator {
     @Column(name = "assigned_by")
     private UUID assignedBy;
 
+    @Column(name = "role", nullable = false)
+    private String role = "INVIGILATOR";
+
     @Column(name = "joined_at", nullable = false, updatable = false)
     private Instant joinedAt = Instant.now();
 }

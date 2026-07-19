@@ -3,10 +3,11 @@ import { useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { useSessionDetail } from '@/api/hooks';
 import { CheckCircleIcon, ClockIcon, CloseIcon } from '@/components/kev/icons';
 import { Avatar, type PersonKey } from '@/components/kev/people';
 import { HapticPressable } from '@/components/ui/HapticPressable';
-import { SCAN_POOL } from '@/data/exams';
+import { studentRecordToScanned, type ScannedStudent } from '@/data/exams';
 import { useSessionStore } from '@/store/sessionStore';
 import { colors, radii, spacing } from '@/theme';
 
@@ -27,10 +28,23 @@ export function ScanResultScreen() {
   const router = useRouter();
   const { top, bottom } = useSafeAreaInsets();
   const params = useLocalSearchParams<{ exam?: string; student?: string; status?: Status }>();
-  const sessionId = params.exam ?? 'ma204';
+  const sessionId = params.exam ?? '1';
   const addStudent = useSessionStore((s) => s.addStudent);
 
-  const student = SCAN_POOL.find((s) => s.id === params.student) ?? SCAN_POOL[0];
+  const { data: detail } = useSessionDetail(Number(sessionId) || 1);
+  const studentRec = detail?.attendance?.find(
+    (a) => String(a.student.id) === params.student,
+  )?.student;
+  const student: ScannedStudent = studentRec
+    ? studentRecordToScanned(studentRec)
+    : {
+        id: params.student ?? '1',
+        name: 'Ama Serwaa Boateng',
+        person: 'freja',
+        index: '10953001',
+        course: 'BSc Computer Science',
+      };
+
   const [status, setStatus] = useState<Status>(params.status ?? 'review');
   const banner = BANNERS[status];
 

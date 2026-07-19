@@ -1,13 +1,18 @@
 package com.kev.backend.session.dto;
 
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotEmpty;
+import java.time.LocalDate;
 import java.util.List;
 
 public record CreateSessionRequest(
+        String title,
         @NotBlank String building,
         String floor,
         String room,
-        @NotEmpty List<String> courseCodes,
+        List<String> courseCodes,
         String indexRangeStart,
-        String indexRangeEnd) {}
+        String indexRangeEnd,
+        LocalDate examDate,
+        String startTime,
+        String endTime,
+        List<String> verificationMethods) {}

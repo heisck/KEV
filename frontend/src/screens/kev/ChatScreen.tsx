@@ -12,11 +12,12 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { BackIcon } from '@/components/kev/icons';
+import { useInvigilators } from '@/api/hooks';
+import { api } from '@/api/client';
+import { BackIcon, SearchIcon } from '@/components/kev/icons';
 import { Avatar, type PersonKey } from '@/components/kev/people';
 import { HapticPressable } from '@/components/ui/HapticPressable';
-import { INVIGILATORS } from '@/data/exams';
-import { useChatStore } from '@/store/chatStore';
+import { useChatStore, type ChatMessage } from '@/store/chatStore';
 import { colors, radii, spacing } from '@/theme';
 
 /** Lecturer inbox + thread. Open via `/(tabs)/chat?with=<lecturerId>`. */
@@ -28,8 +29,12 @@ export function ChatScreen() {
   const openThread = useChatStore((s) => s.openThread);
   const closeThread = useChatStore((s) => s.closeThread);
   const send = useChatStore((s) => s.send);
+  const setThreadMessages = useChatStore((s) => s.setThreadMessages);
   const [draft, setDraft] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
   const listRef = useRef<FlatList>(null);
+
+  const { data: lecturers } = useInvigilators();
 
   // Deep-link from "Message in chat" / invigilators.
   useEffect(() => {
@@ -38,14 +43,56 @@ export function ChatScreen() {
     }
   }, [openThread, withId]);
 
-  const peer = useMemo(() => INVIGILATORS.find((i) => i.id === activeId) ?? null, [activeId]);
+  // Load real messages when thread opens
+  useEffect(() => {
+    if (activeId && activeId.length > 0) {
+      api
+        .get(`/api/chat/conversations/${activeId}/messages`)
+        .then((res) => {
+          if (Array.isArray(res.data)) {
+            const mapped: ChatMessage[] = res.data.map((m: any) => ({
+              id: String(m.id),
+              text: m.content,
+              mine: true,
+              at: new Date(m.createdAt).toLocaleTimeString([], {
+                hour: '2-digit',
+                minute: '2-digit',
+              }),
+            }));
+            setThreadMessages(activeId, mapped);
+          }
+        })
+        .catch(() => {
+          // Ignore offline fallback
+        });
+    }
+  }, [activeId, setThreadMessages]);
+
+  const peer = useMemo(() => {
+    const found = lecturers?.find((i) => i.id === activeId);
+    if (!found)
+      return { id: activeId || '0', name: 'Lecturer Staff', hall: 'Exam Hall', person: 'freja' };
+    return {
+      id: found.id,
+      name: found.displayName || found.email,
+      hall: found.role || 'Staff',
+      person: 'freja',
+    };
+  }, [activeId, lecturers]);
+
   const messages = activeId ? (threads[activeId] ?? []) : [];
 
-  const submit = () => {
+  const submit = async () => {
     if (!activeId || !draft.trim()) return;
-    send(activeId, draft);
+    const content = draft.trim();
+    send(activeId, content);
     setDraft('');
     requestAnimationFrame(() => listRef.current?.scrollToEnd({ animated: true }));
+    try {
+      await api.post(`/api/chat/conversations/${activeId}/messages`, { content });
+    } catch {
+      // Offline fallback already stored locally via send
+    }
   };
 
   if (activeId && peer) {
@@ -84,7 +131,7 @@ export function ChatScreen() {
           contentContainerStyle={styles.messages}
           onContentSizeChange={() => listRef.current?.scrollToEnd({ animated: false })}
           ListEmptyComponent={
-            <Text style={styles.threadEmpty}>Say hello — this is the start of your chat.</Text>
+            <Text style={styles.threadEmpty}>Say hello — start of your conversation.</Text>
           }
           renderItem={({ item }) => (
             <View style={[styles.bubble, item.mine ? styles.bubbleMine : styles.bubbleTheirs]}>
@@ -122,29 +169,48 @@ export function ChatScreen() {
     );
   }
 
-  // Inbox: every lecturer is messageable.
+  const filteredLecturers = (lecturers ?? []).filter((l) =>
+    (l.displayName || l.email).toLowerCase().includes(searchQuery.trim().toLowerCase()),
+  );
+
   return (
     <View style={[styles.screen, { paddingTop: top + spacing.md }]}>
-      <Text style={styles.title}>Chat</Text>
-      <Text style={styles.subtitle}>Message other lecturers on this session.</Text>
+      <Text style={styles.title}>Chat Directory</Text>
+      <Text style={styles.subtitle}>
+        List every lecturer in the database. Select one to open conversation.
+      </Text>
+
+      <View style={styles.search}>
+        <SearchIcon color={colors.muted} />
+        <TextInput
+          value={searchQuery}
+          onChangeText={setSearchQuery}
+          placeholder="Search lecturers..."
+          placeholderTextColor={colors.muted}
+          autoCapitalize="none"
+          style={styles.searchInput}
+          testID="chat-search"
+        />
+      </View>
+
       <ScrollView contentContainerStyle={styles.inbox} showsVerticalScrollIndicator={false}>
-        {INVIGILATORS.map((i) => {
+        {filteredLecturers.map((i) => {
           const last = threads[i.id]?.[threads[i.id].length - 1];
           return (
             <HapticPressable
               key={i.id}
               accessibilityRole="button"
-              accessibilityLabel={`Chat with ${i.name}`}
+              accessibilityLabel={`Chat with ${i.displayName || i.email}`}
               haptic="select"
               onPress={() => openThread(i.id)}
               style={styles.row}
               testID={`chat-row-${i.id}`}
             >
-              <Avatar person={i.person as PersonKey} size={48} verified />
+              <Avatar person="freja" size={48} verified />
               <View style={styles.rowText}>
-                <Text style={styles.rowName}>{i.name}</Text>
+                <Text style={styles.rowName}>{i.displayName || i.email}</Text>
                 <Text style={styles.rowPreview} numberOfLines={1}>
-                  {last?.text ?? 'No messages yet — tap to start'}
+                  {last?.text ?? 'Tap to start conversation'}
                 </Text>
               </View>
               {last ? <Text style={styles.rowTime}>{last.at}</Text> : null}
@@ -173,6 +239,17 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.xl,
   },
   inbox: { gap: spacing.sm, paddingBottom: spacing.xxxl, paddingHorizontal: spacing.xl },
+  search: {
+    alignItems: 'center',
+    backgroundColor: colors.surfaceDim,
+    borderRadius: radii.pill,
+    flexDirection: 'row',
+    gap: spacing.sm,
+    marginHorizontal: spacing.xl,
+    marginBottom: spacing.md,
+    paddingHorizontal: spacing.lg,
+  },
+  searchInput: { color: colors.ink, flex: 1, fontSize: 14, paddingVertical: spacing.md },
   row: {
     alignItems: 'center',
     backgroundColor: colors.surfaceDim,
