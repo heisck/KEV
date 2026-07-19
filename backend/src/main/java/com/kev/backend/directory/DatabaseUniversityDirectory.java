@@ -8,14 +8,14 @@ import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-/** UITS directory backed by the {@code directory_students} table in Postgres. */
+/** Real UITS directory backed by the {@code directory_students} database table. */
 @Service
-@ConditionalOnProperty(name = "kev.directory.provider", havingValue = "mock", matchIfMissing = true)
-public class MockUitsDirectory implements UniversityDirectory {
+@ConditionalOnProperty(name = "kev.directory.provider", havingValue = "db")
+public class DatabaseUniversityDirectory implements UniversityDirectory {
 
     private final DirectoryStudentRepository students;
 
-    public MockUitsDirectory(DirectoryStudentRepository students) {
+    public DatabaseUniversityDirectory(DirectoryStudentRepository students) {
         this.students = students;
     }
 

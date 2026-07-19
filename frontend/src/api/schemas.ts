@@ -29,6 +29,11 @@ export const UserDtoSchema = z.object({
   pictureUrl: z.string().nullable(),
   role: z.enum(['USER', 'LECTURER', 'ADMIN']),
   plan: z.enum(['FREE', 'PREMIUM']),
+  lecturerId: z.string().nullable().optional(),
+  personalEmail: z.string().nullable().optional(),
+  phone: z.string().nullable().optional(),
+  status: z.string().nullable().optional(),
+  active: z.boolean().nullable().optional(),
 });
 export type UserDto = z.infer<typeof UserDtoSchema>;
 
@@ -42,13 +47,19 @@ export type AuthResponse = z.infer<typeof AuthResponseSchema>;
 export const SessionDtoSchema = z.object({
   id: z.number(),
   sessionCode: z.string(),
+  sessionPassword: z.string().nullable().optional(),
+  title: z.string().nullable().optional(),
   building: z.string(),
   floor: z.string().nullable(),
   room: z.string().nullable(),
   courseCodes: z.array(z.string()),
   indexRangeStart: z.string().nullable(),
   indexRangeEnd: z.string().nullable(),
-  status: z.enum(['ACTIVE', 'ENDED']),
+  examDate: z.string().nullable().optional(),
+  startTime: z.string().nullable().optional(),
+  endTime: z.string().nullable().optional(),
+  verificationMethods: z.array(z.string()).nullable().optional(),
+  status: z.enum(['ACTIVE', 'ENDED', 'UPCOMING', 'ONGOING', 'COMPLETED', 'CANCELLED']),
   startedAt: z.string(),
   endedAt: z.string().nullable(),
   checkedInCount: z.number(),
@@ -63,6 +74,7 @@ export const InvigilatorDtoSchema = z.object({
   pictureUrl: z.string().nullable(),
   joinedAt: z.string(),
   assignedByAdmin: z.boolean(),
+  role: z.string().nullable().optional(),
 });
 export type InvigilatorDto = z.infer<typeof InvigilatorDtoSchema>;
 

@@ -3,9 +3,10 @@ import { useState } from 'react';
 import { StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { lookupStudent } from '@/api/directory';
 import { ScreenTopBar } from '@/components/kev/chrome';
 import { HapticPressable } from '@/components/ui/HapticPressable';
-import { SCAN_POOL } from '@/data/exams';
+import { studentRecordToScanned } from '@/data/exams';
 import { useMockScan } from '@/hooks/useMockScan';
 import { colors, radii, spacing } from '@/theme';
 
@@ -14,15 +15,20 @@ export function ManualEntryScreen() {
   const router = useRouter();
   const { top } = useSafeAreaInsets();
   const { exam } = useLocalSearchParams<{ exam?: string }>();
-  const completeScan = useMockScan(exam ?? 'ma204');
+  const completeScan = useMockScan(exam ?? '1', 'MANUAL');
 
   const [index, setIndex] = useState('');
   const [notFound, setNotFound] = useState(false);
 
-  const submit = () => {
-    const student = SCAN_POOL.find((s) => s.index === index.trim());
-    if (student) completeScan(student);
-    else setNotFound(true);
+  const submit = async () => {
+    if (!index.trim()) return;
+    try {
+      const student = await lookupStudent(index.trim());
+      await completeScan(studentRecordToScanned(student));
+    } catch {
+      // Fallback check-in direct by index if directory check misses or offline
+      await completeScan(index.trim());
+    }
   };
 
   return (

@@ -23,7 +23,7 @@ export function NfcScanScreen() {
   const router = useRouter();
   const { top } = useSafeAreaInsets();
   const { exam } = useLocalSearchParams<{ exam?: string }>();
-  const completeScan = useMockScan(exam ?? 'ma204');
+  const completeScan = useMockScan(exam ?? '1', 'NFC');
 
   const drift = useSharedValue(0);
 
