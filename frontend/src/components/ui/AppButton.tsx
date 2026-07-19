@@ -1,10 +1,7 @@
-import * as Haptics from 'expo-haptics';
-import { Pressable, StyleSheet, Text, type StyleProp, type ViewStyle } from 'react-native';
-import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
+import { StyleSheet, Text, type StyleProp, type ViewStyle } from 'react-native';
 
-import { colors, pressedScale, radii, spacing, springs } from '@/theme';
-
-const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
+import { GlassPressable } from '@/components/ui/GlassPressable';
+import { colors, radii, spacing } from '@/theme';
 
 type AppButtonProps = {
   label: string;
@@ -15,7 +12,18 @@ type AppButtonProps = {
   testID?: string;
 };
 
-/** Spring pressed-scale + haptic tap; the app's single button primitive. */
+/**
+ * App button using Liquid Glass that ships in this build (`ExpoGlassEffect`).
+ *
+ * Why not `@expo/ui` SwiftUI Button?
+ * That needs the native `ExpoUI` module (dev rebuild). This binary only
+ * exports `ExpoGlassEffect` / `GlassView`, so we use interactive GlassView
+ * for the glass path and solid pills elsewhere.
+ *
+ * - primary / ink / danger → regular interactive glass + soft tint
+ * - ghost → clear interactive glass
+ * - Light impact haptic on press (via GlassPressable)
+ */
 export function AppButton({
   label,
   onPress,
@@ -24,53 +32,40 @@ export function AppButton({
   style,
   testID,
 }: AppButtonProps) {
-  const scale = useSharedValue(1);
-  const animatedStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
+  const tint =
+    variant === 'primary'
+      ? colors.primary
+      : variant === 'ink'
+        ? colors.black
+        : variant === 'danger'
+          ? colors.error
+          : colors.primary12;
+
+  const labelColor = variant === 'ghost' ? colors.primaryDeep : colors.white;
 
   return (
-    <AnimatedPressable
-      accessibilityRole="button"
+    <GlassPressable
       disabled={disabled}
+      onPress={onPress}
+      style={style}
+      surfaceStyle={styles.surface}
+      tintColor={tint}
+      glassEffectStyle={variant === 'ghost' ? 'clear' : 'regular'}
       testID={testID}
-      onPressIn={() => {
-        scale.value = withSpring(pressedScale, springs.press);
-      }}
-      onPressOut={() => {
-        scale.value = withSpring(1, springs.press);
-      }}
-      onPress={() => {
-        void Haptics.selectionAsync();
-        onPress();
-      }}
-      style={[styles.base, variants[variant], disabled && styles.disabled, animatedStyle, style]}
     >
-      <Text style={[styles.label, labelVariants[variant]]}>{label}</Text>
-    </AnimatedPressable>
+      <Text style={[styles.label, { color: labelColor }]}>{label}</Text>
+    </GlassPressable>
   );
 }
 
 const styles = StyleSheet.create({
-  base: {
+  surface: {
     alignItems: 'center',
-    justifyContent: 'center',
     borderRadius: radii.pill,
-    paddingVertical: 14,
+    justifyContent: 'center',
+    overflow: 'hidden',
     paddingHorizontal: spacing.xxl,
+    paddingVertical: 14,
   },
-  label: { fontSize: 16, fontWeight: '700' },
-  disabled: { opacity: 0.45 },
-});
-
-const variants = StyleSheet.create({
-  primary: { backgroundColor: colors.primary },
-  ink: { backgroundColor: colors.black },
-  ghost: { backgroundColor: colors.primary12 },
-  danger: { backgroundColor: colors.error },
-});
-
-const labelVariants = StyleSheet.create({
-  primary: { color: colors.white },
-  ink: { color: colors.white },
-  ghost: { color: colors.primaryDeep },
-  danger: { color: colors.white },
+  label: { fontSize: 16, fontWeight: '700', textAlign: 'center' },
 });

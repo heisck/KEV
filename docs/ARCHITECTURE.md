@@ -5,7 +5,7 @@
 ```
 ┌──────────────┐   HTTPS + JWT + X-Correlation-Id   ┌──────────────────┐
 │  frontend    │ ─────────────────────────────────▶ │  backend         │
-│  Expo (RN)   │                                     │  Spring Boot 4   │
+│  Expo (RN)   │                                     │  Spring Boot 4.1 │
 │  Expo Router │ ◀───────────── JSON / Problem+JSON ─│  Java 21         │
 └──────┬───────┘                                     └───┬──────────┬───┘
        │ Google sign-in (idToken)                        │          │
@@ -20,15 +20,14 @@
 
 ## Services
 
-- **frontend/** — Expo SDK 56 app shell. Expo Router (file-based), React Query for server state,
+- **frontend/** — Expo SDK 54 app shell (RN 0.81). Expo Router (file-based), React Query for server state,
   Zustand for auth state, React Hook Form + Zod for forms, axios client with auth + correlation-id
   interceptors, `expo-secure-store` for tokens, `react-native-nfc-manager` for NFC tag reads, Sentry.
-- **backend/** — Spring Boot 4 REST API. JPA + Flyway against Neon, Spring Cache against Upstash,
-  Spring Security resource server for app JWTs, Google ID-token verification, Actuator + Prometheus,
-  springdoc OpenAPI, Sentry. RFC 7807 error bodies.
-- **ml/** — FastAPI service that will host Hugging Face face models (currently a stub).
-- **packages/api-types/** — TypeScript types generated from the backend OpenAPI document; consumed
-  by the frontend for an end-to-end typed contract.
+- **backend/** — Spring Boot **4.1** single deployable (`com.kev.backend.*` domain packages).
+  JPA + Flyway (Neon), Spring Cache (Upstash), JWT resource server, Google/Apple verify, Actuator,
+  springdoc OpenAPI, Sentry, RFC 7807 errors.
+- **ml/** — FastAPI face service; backend proxies verify calls over HTTP.
+- **packages/api-types/** — TypeScript types from backend OpenAPI; consumed by the frontend.
 
 ## Auth flow
 

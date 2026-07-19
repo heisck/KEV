@@ -1,5 +1,14 @@
 import { useEffect, useState } from 'react';
-import { Modal, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import {
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+  useWindowDimensions,
+} from 'react-native';
 import Animated, {
   runOnJS,
   useAnimatedStyle,
@@ -50,7 +59,10 @@ export function BottomDrawer({ visible, onClose, title, children, testID }: Bott
 
   return (
     <Modal transparent visible statusBarTranslucent onRequestClose={onClose} testID={testID}>
-      <View style={styles.root}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={styles.root}
+      >
         <Animated.View style={[styles.backdrop, backdropStyle]}>
           <Pressable accessibilityRole="button" style={StyleSheet.absoluteFill} onPress={onClose} />
         </Animated.View>
@@ -63,7 +75,7 @@ export function BottomDrawer({ visible, onClose, title, children, testID }: Bott
             </View>
           </GlassSurface>
         </Animated.View>
-      </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }

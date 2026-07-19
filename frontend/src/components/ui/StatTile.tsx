@@ -1,5 +1,6 @@
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 
+import { HapticPressable } from '@/components/ui/HapticPressable';
 import { colors, radii, spacing } from '@/theme';
 
 export type StatTileTone = 'neutral' | 'primary' | 'mint' | 'warn';
@@ -16,8 +17,10 @@ type StatTileProps = {
 /** Colored stat tile with a count badge — used in the 2×2 dashboard grid. */
 export function StatTile({ label, count, tone = 'neutral', icon, onPress, testID }: StatTileProps) {
   return (
-    <Pressable
+    <HapticPressable
       accessibilityRole={onPress ? 'button' : undefined}
+      disabled={!onPress}
+      haptic={onPress ? 'tap' : 'none'}
       onPress={onPress}
       style={[styles.tile, tones[tone]]}
       testID={testID}
@@ -29,7 +32,7 @@ export function StatTile({ label, count, tone = 'neutral', icon, onPress, testID
         </View>
       </View>
       <Text style={styles.label}>{label}</Text>
-    </Pressable>
+    </HapticPressable>
   );
 }
 

@@ -1,5 +1,4 @@
 import {
-  Pressable,
   TextInput,
   type KeyboardTypeOptions,
   type StyleProp,
@@ -8,6 +7,7 @@ import {
 } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 
+import { GlassPressable } from '@/components/ui/GlassPressable';
 import { roomSetupStyles as styles } from '@/screens/roomSetupStyles';
 
 export type RoomIconName =
@@ -73,15 +73,17 @@ export function RoomIcon({
 
 export function CircleButton({ hidden, icon, label, onPress }: ButtonProps & { hidden?: boolean }) {
   return (
-    <Pressable
+    <GlassPressable
       accessibilityLabel={label}
-      accessibilityRole="button"
       disabled={hidden}
       onPress={onPress}
-      style={[styles.circleButton, hidden && styles.hidden]}
+      style={hidden ? styles.hidden : undefined}
+      surfaceStyle={styles.circleButton}
+      tintColor="#FFFFFF"
+      glassEffectStyle="clear"
     >
       <RoomIcon name={icon} size={18} strokeWidth={2.2} />
-    </Pressable>
+    </GlassPressable>
   );
 }
 
@@ -124,13 +126,15 @@ export function RoundAction({
   const color = tone === 'muted' ? '#344054' : '#FFFFFF';
 
   return (
-    <Pressable
+    <GlassPressable
       accessibilityLabel={label}
-      accessibilityRole="button"
       onPress={onPress}
-      style={[styles.roundAction, tone === 'muted' && styles.mutedAction, style]}
+      style={style}
+      surfaceStyle={[styles.roundAction, tone === 'muted' && styles.mutedAction]}
+      tintColor={tone === 'muted' ? '#EEF2F5' : '#0C2A1C'}
+      glassEffectStyle={tone === 'muted' ? 'clear' : 'regular'}
     >
       <RoomIcon color={color} name={icon} size={24} strokeWidth={2.4} />
-    </Pressable>
+    </GlassPressable>
   );
 }

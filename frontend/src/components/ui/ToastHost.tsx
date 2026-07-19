@@ -1,5 +1,5 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import Animated, { FadeInUp, FadeOutUp, LinearTransition } from 'react-native-reanimated';
+import Animated, { Keyframe, LinearTransition } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { GlassSurface } from '@/components/ui/GlassSurface';
@@ -11,6 +11,19 @@ const toneDots: Record<ToastTone, string> = {
   error: colors.error,
   info: colors.primary,
 };
+
+// Translate/scale only, never opacity: GlassView (iOS 26) stops rendering while any
+// ancestor has opacity < 1, so fading would flicker the glass. The overshoot on the
+// enter keyframe gives the bounce without ever touching opacity.
+const enterToast = new Keyframe({
+  0: { transform: [{ translateY: -14 }, { scale: 0.96 }] },
+  55: { transform: [{ translateY: 3 }, { scale: 1.02 }] },
+  100: { transform: [{ translateY: 0 }, { scale: 1 }] },
+}).duration(360);
+const exitToast = new Keyframe({
+  0: { transform: [{ translateY: 0 }, { scale: 1 }] },
+  100: { transform: [{ translateY: -12 }, { scale: 0.98 }] },
+}).duration(160);
 
 /** Floating glass toast stack. Mount once at the app root, above navigation. */
 export function ToastHost() {
@@ -25,8 +38,8 @@ export function ToastHost() {
       {toasts.map((item) => (
         <Animated.View
           key={item.id}
-          entering={FadeInUp.springify().damping(18)}
-          exiting={FadeOutUp}
+          entering={enterToast}
+          exiting={exitToast}
           layout={LinearTransition}
         >
           <Pressable accessibilityRole="alert" onPress={() => dismiss(item.id)}>

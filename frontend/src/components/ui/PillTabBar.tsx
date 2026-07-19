@@ -1,10 +1,10 @@
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
-import * as Haptics from 'expo-haptics';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import Animated, { FadeIn } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { GlassSurface } from '@/components/ui/GlassSurface';
+import { HapticPressable } from '@/components/ui/HapticPressable';
 import { colors, radii, shadows, spacing } from '@/theme';
 
 /**
@@ -37,24 +37,24 @@ export function PillTabBar({ state, descriptors, navigation }: BottomTabBarProps
                 canPreventDefault: true,
               });
               if (!isFocused && !event.defaultPrevented) {
-                void Haptics.selectionAsync();
                 navigation.navigate(route.name);
               }
             };
 
             return (
-              <Pressable
+              <HapticPressable
                 key={route.key}
                 accessibilityRole="button"
                 accessibilityState={isFocused ? { selected: true } : {}}
                 accessibilityLabel={options.tabBarAccessibilityLabel ?? route.name}
+                haptic="select"
                 testID={`tab-${route.name}`}
                 onPress={onPress}
                 style={styles.tab}
               >
                 {icon}
                 {isFocused ? <Animated.View entering={FadeIn} style={styles.dot} /> : null}
-              </Pressable>
+              </HapticPressable>
             );
           })}
         </View>

@@ -1,0 +1,122 @@
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useEffect } from 'react';
+import { StyleSheet, Text, View } from 'react-native';
+import Animated, {
+  Easing,
+  useAnimatedStyle,
+  useSharedValue,
+  withRepeat,
+  withSequence,
+  withTiming,
+} from 'react-native-reanimated';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
+import { ScreenTopBar } from '@/components/kev/chrome';
+import { NfcIcon } from '@/components/kev/icons';
+import { useMockScan } from '@/hooks/useMockScan';
+import { colors, radii, shadows, spacing } from '@/theme';
+
+const SCAN_DELAY_MS = 3000;
+
+/** NFC scan — card floats to the phone and back until a tag is detected. */
+export function NfcScanScreen() {
+  const router = useRouter();
+  const { top } = useSafeAreaInsets();
+  const { exam } = useLocalSearchParams<{ exam?: string }>();
+  const completeScan = useMockScan(exam ?? 'ma204');
+
+  const drift = useSharedValue(0);
+
+  useEffect(() => {
+    drift.value = withRepeat(
+      withSequence(
+        withTiming(1, { duration: 900, easing: Easing.inOut(Easing.quad) }),
+        withTiming(0, { duration: 900, easing: Easing.inOut(Easing.quad) }),
+      ),
+      -1,
+    );
+    // Simulated tag detection until react-native-nfc-manager is wired here.
+    const timer = setTimeout(completeScan, SCAN_DELAY_MS);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const cardStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: drift.value * -84 }, { rotate: `${-8 + drift.value * 8}deg` }],
+  }));
+  const wavesStyle = useAnimatedStyle(() => ({ opacity: 0.25 + drift.value * 0.75 }));
+
+  return (
+    <View style={[styles.screen, { paddingTop: top + spacing.md }]}>
+      <ScreenTopBar title="NFC scan" onBack={() => router.back()} />
+
+      <View style={styles.stage}>
+        <View style={styles.phone}>
+          <View style={styles.phoneNotch} />
+          <Animated.View style={wavesStyle}>
+            <NfcIcon color={colors.primary} size={34} />
+          </Animated.View>
+        </View>
+
+        <Animated.View style={[styles.card, cardStyle]}>
+          <View style={styles.cardChip} />
+          <NfcIcon color={colors.white} size={20} />
+          <Text style={styles.cardText}>Student ID</Text>
+        </Animated.View>
+      </View>
+
+      <View style={styles.copy}>
+        <Text style={styles.title}>Hold the card near the phone</Text>
+        <Text style={styles.sub}>Keep the student ID steady until it reads.</Text>
+      </View>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  screen: { backgroundColor: colors.white, flex: 1, paddingHorizontal: spacing.xl },
+  stage: { alignItems: 'center', flex: 1, justifyContent: 'center' },
+  phone: {
+    alignItems: 'center',
+    backgroundColor: colors.surfaceDim,
+    borderColor: colors.hairline,
+    borderRadius: radii.xl,
+    borderWidth: 2,
+    height: 224,
+    justifyContent: 'center',
+    width: 124,
+  },
+  phoneNotch: {
+    backgroundColor: colors.hairline,
+    borderRadius: radii.pill,
+    height: 5,
+    position: 'absolute',
+    top: 10,
+    width: 40,
+  },
+  card: {
+    alignItems: 'flex-start',
+    backgroundColor: colors.primary,
+    borderRadius: radii.md,
+    gap: 6,
+    height: 74,
+    justifyContent: 'flex-end',
+    marginTop: spacing.xxl,
+    padding: spacing.md,
+    width: 118,
+    ...shadows.floating,
+  },
+  cardChip: {
+    backgroundColor: colors.warn,
+    borderRadius: 3,
+    height: 12,
+    position: 'absolute',
+    right: spacing.md,
+    top: spacing.md,
+    width: 16,
+  },
+  cardText: { color: colors.white, fontSize: 11, fontWeight: '700' },
+  copy: { alignItems: 'center', gap: 4, paddingBottom: spacing.xxxl * 2 },
+  title: { color: colors.ink, fontSize: 18, fontWeight: '800' },
+  sub: { color: colors.muted, fontSize: 13, fontWeight: '500' },
+});

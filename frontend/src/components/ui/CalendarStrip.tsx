@@ -1,5 +1,6 @@
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
+import { HapticPressable } from '@/components/ui/HapticPressable';
 import { colors, radii, spacing } from '@/theme';
 
 const DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -48,9 +49,10 @@ export function CalendarStrip({
         const isActive = sameDay(date, active);
         const isMarked = markedDates.some((m) => sameDay(m, date));
         return (
-          <Pressable
+          <HapticPressable
             key={date.toISOString()}
             accessibilityRole="button"
+            haptic="select"
             onPress={onSelect ? () => onSelect(date) : undefined}
             style={[styles.day, isActive && styles.dayActive]}
           >
@@ -61,7 +63,7 @@ export function CalendarStrip({
               {date.getDate()}
             </Text>
             <View style={[styles.dot, isMarked && styles.dotVisible]} />
-          </Pressable>
+          </HapticPressable>
         );
       })}
     </ScrollView>
