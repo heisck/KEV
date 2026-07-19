@@ -50,7 +50,7 @@ public class SessionController {
 
     @PostMapping("/join")
     public SessionDto join(@AuthenticationPrincipal Jwt principal, @Valid @RequestBody JoinSessionRequest request) {
-        return sessions.join(userId(principal), request.sessionCode());
+        return sessions.join(userId(principal), request.getEffectiveCodeOrPassword());
     }
 
     @PostMapping("/{id}/end")

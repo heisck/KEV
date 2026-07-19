@@ -25,6 +25,9 @@ const presets = {
   typecheck: ['run', 'mypy', 'app'],
 };
 const args = presets[mode] ?? ['run', ...process.argv.slice(2)];
+if (args[0] === 'run') {
+  args.splice(1, 0, '--no-sync', '--python', '/usr/bin/python3');
+}
 
 const child = spawn('uv', args, { cwd: mlDir, stdio: 'inherit', shell: isWin });
 child.on('error', (err) => {

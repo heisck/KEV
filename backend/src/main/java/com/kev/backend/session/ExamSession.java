@@ -9,11 +9,12 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.UUID;
 import lombok.Getter;
 import lombok.Setter;
 
-/** An exam room session created via Room Setup; joinable by session code. */
+/** An exam room session created via Room Setup; joinable by session code or password. */
 @Entity
 @Table(name = "exam_sessions")
 @Getter
@@ -26,6 +27,12 @@ public class ExamSession {
 
     @Column(name = "session_code", nullable = false, unique = true)
     private String sessionCode;
+
+    @Column(name = "session_password")
+    private String sessionPassword;
+
+    @Column(name = "title")
+    private String title;
 
     /** Comma-separated course codes, e.g. "DCIT 301,DCIT 305". */
     @Column(name = "course_codes", nullable = false)
@@ -45,6 +52,18 @@ public class ExamSession {
 
     @Column(name = "index_range_end")
     private String indexRangeEnd;
+
+    @Column(name = "exam_date")
+    private LocalDate examDate;
+
+    @Column(name = "start_time")
+    private String startTime;
+
+    @Column(name = "end_time")
+    private String endTime;
+
+    @Column(name = "verification_methods")
+    private String verificationMethods = "FACE,QR,MANUAL";
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
