@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Animated, Easing, StyleSheet, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
@@ -50,6 +50,9 @@ type SplashAnimation = {
   stageTranslateX: Animated.Value;
 };
 
+/** Web opacity/transform native-driver is fine; keep it for 60fps on device. */
+const NATIVE_DRIVER = true;
+
 function createSplashAnimation(): SplashAnimation {
   return {
     backgroundOpacity: new Animated.Value(1),
@@ -70,7 +73,7 @@ function fadeValue(value: Animated.Value, toValue: number, duration: number) {
     toValue,
     duration,
     easing: Easing.out(Easing.cubic),
-    useNativeDriver: true,
+    useNativeDriver: NATIVE_DRIVER,
   }).start();
 }
 
@@ -80,20 +83,20 @@ function revealLogo({ commaOpacity, commaScale, stageTranslateX }: SplashAnimati
       toValue: 1,
       duration: 360,
       easing: Easing.out(Easing.cubic),
-      useNativeDriver: true,
+      useNativeDriver: NATIVE_DRIVER,
     }),
     Animated.spring(commaScale, {
       toValue: 1,
       damping: 16,
       mass: 0.7,
       stiffness: 150,
-      useNativeDriver: true,
+      useNativeDriver: NATIVE_DRIVER,
     }),
     Animated.timing(stageTranslateX, {
       toValue: 0,
       duration: 420,
       easing: Easing.out(Easing.cubic),
-      useNativeDriver: true,
+      useNativeDriver: NATIVE_DRIVER,
     }),
   ]).start();
 }
@@ -104,31 +107,31 @@ function handoffLogo(animation: SplashAnimation, targetTranslateY: number) {
       toValue: 0,
       duration: 160,
       easing: Easing.out(Easing.cubic),
-      useNativeDriver: true,
+      useNativeDriver: NATIVE_DRIVER,
     }),
     Animated.timing(animation.handoffLogoOpacity, {
       toValue: 1,
       duration: 140,
       easing: Easing.out(Easing.cubic),
-      useNativeDriver: true,
+      useNativeDriver: NATIVE_DRIVER,
     }),
     Animated.timing(animation.backgroundOpacity, {
       toValue: 0,
       duration: 340,
       easing: Easing.out(Easing.cubic),
-      useNativeDriver: true,
+      useNativeDriver: NATIVE_DRIVER,
     }),
     Animated.timing(animation.handoffLogoScale, {
       toValue: HERO_LOGO_SCALE,
       duration: 460,
       easing: Easing.out(Easing.cubic),
-      useNativeDriver: true,
+      useNativeDriver: NATIVE_DRIVER,
     }),
     Animated.timing(animation.handoffLogoTranslateY, {
       toValue: targetTranslateY,
       duration: 460,
       easing: Easing.out(Easing.cubic),
-      useNativeDriver: true,
+      useNativeDriver: NATIVE_DRIVER,
     }),
   ]).start();
 }
@@ -179,13 +182,30 @@ function scheduleSplash(
   };
 }
 
+/**
+ * Run the intro once when activated. Do not re-bind to layout metrics —
+ * web viewport / safe-area updates would reset timers and freeze the grid.
+ */
 function useSplashAnimation(isActive: boolean, onFinish: () => void, targetTranslateY: number) {
   const [animation] = useState(createSplashAnimation);
+  const onFinishRef = useRef(onFinish);
+  const targetYRef = useRef(targetTranslateY);
+  const startedRef = useRef(false);
+  onFinishRef.current = onFinish;
+  targetYRef.current = targetTranslateY;
 
   useEffect(() => {
-    if (!isActive) return undefined;
-    return scheduleSplash(animation, onFinish, targetTranslateY);
-  }, [animation, isActive, onFinish, targetTranslateY]);
+    if (!isActive || startedRef.current) return undefined;
+    startedRef.current = true;
+    const finish = () => onFinishRef.current();
+    const cleanup = scheduleSplash(animation, finish, targetYRef.current);
+    // Absolute last resort if Animated timers misbehave on a platform.
+    const forceFinish = setTimeout(finish, 4_000);
+    return () => {
+      cleanup();
+      clearTimeout(forceFinish);
+    };
+  }, [animation, isActive]);
 
   return animation;
 }
@@ -249,8 +269,11 @@ export function AppSplash({ isActive = true, onFinish }: AppSplashProps) {
       <Animated.View
         accessibilityElementsHidden
         importantForAccessibility="no-hide-descendants"
-        pointerEvents="none"
-        style={[styles.screen, styles.overlay, { opacity: animation.overlayOpacity }]}
+        style={[
+          styles.screen,
+          styles.overlay,
+          { opacity: animation.overlayOpacity, pointerEvents: 'none' },
+        ]}
       >
         <Animated.View style={[styles.background, { opacity: animation.backgroundOpacity }]} />
         <Animated.View

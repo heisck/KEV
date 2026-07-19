@@ -12,8 +12,8 @@ A campus/exam mobile app. Polyglot monorepo:
 
 | Path                  | Stack                                                             | Purpose                                           |
 | --------------------- | ----------------------------------------------------------------- | ------------------------------------------------- |
-| `frontend/`           | Expo SDK 56, React Native 0.85, React 19, TypeScript, Expo Router | Mobile app                                        |
-| `backend/`            | Spring Boot 4.0, Java 21, Maven                                   | REST API                                          |
+| `frontend/`           | Expo SDK 54, React Native 0.81, React 19, TypeScript, Expo Router | Mobile app                                        |
+| `backend/`            | Spring Boot 4.1, Java 21, Maven                                   | REST API                                          |
 | `ml/`                 | Python 3.12, FastAPI, Hugging Face (uv)                           | Face-model service (stub)                         |
 | `packages/api-types/` | TypeScript                                                        | Types generated from backend OpenAPI              |
 | `ui-mockup-html/`     | Static HTML                                                       | **Reference only — do NOT edit, import, or port** |

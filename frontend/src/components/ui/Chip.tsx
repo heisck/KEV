@@ -1,5 +1,6 @@
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
+import { GlassPressable } from '@/components/ui/GlassPressable';
 import { colors, radii, spacing } from '@/theme';
 
 type ChipProps = {
@@ -11,14 +12,16 @@ type ChipProps = {
 
 export function Chip({ label, active = false, onPress, testID }: ChipProps) {
   return (
-    <Pressable
-      accessibilityRole="button"
+    <GlassPressable
+      haptic="select"
       onPress={onPress}
-      style={[styles.chip, active && styles.chipActive]}
+      surfaceStyle={[styles.chip, active && styles.chipActive]}
+      tintColor={active ? colors.black : colors.primary08}
+      glassEffectStyle={active ? 'regular' : 'clear'}
       testID={testID}
     >
       <Text style={[styles.label, active && styles.labelActive]}>{label}</Text>
-    </Pressable>
+    </GlassPressable>
   );
 }
 
@@ -52,12 +55,12 @@ export function ChipRow({ labels, activeLabel, onSelect, scrollable = true }: Ch
 
 const styles = StyleSheet.create({
   chip: {
-    backgroundColor: colors.primary08,
     borderRadius: radii.pill,
+    overflow: 'hidden',
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.sm,
   },
-  chipActive: { backgroundColor: colors.black },
+  chipActive: {},
   label: { color: colors.primaryDeep, fontSize: 13, fontWeight: '600' },
   labelActive: { color: colors.white },
   row: { flexDirection: 'row', gap: spacing.sm },

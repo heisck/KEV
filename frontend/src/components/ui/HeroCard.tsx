@@ -1,6 +1,7 @@
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 
+import { HapticPressable } from '@/components/ui/HapticPressable';
 import { colors, radii, shadows, spacing, typography } from '@/theme';
 
 type HeroCardProps = {
@@ -24,8 +25,10 @@ export function HeroCard({
   testID,
 }: HeroCardProps) {
   return (
-    <Pressable
+    <HapticPressable
       accessibilityRole={onPress ? 'button' : undefined}
+      disabled={!onPress}
+      haptic={onPress ? 'tap' : 'none'}
       onPress={onPress}
       style={[styles.card, tint === 'mint' ? styles.mint : styles.primaryTint]}
       testID={testID}
@@ -50,7 +53,7 @@ export function HeroCard({
           </Svg>
         </View>
       ) : null}
-    </Pressable>
+    </HapticPressable>
   );
 }
 

@@ -6,13 +6,13 @@ GitHub Actions secrets, EAS secrets, and your host's environment.
 
 ## Where values come from
 
-| Provider         | Gives you                           | Console                                                                         |
-| ---------------- | ----------------------------------- | ------------------------------------------------------------------------------- |
-| **Neon**         | Postgres URL, user, password        | neon.tech → project → Connection (use the **pooled** string, `sslmode=require`) |
-| **Upstash**      | Redis host, port, password          | upstash.com → Redis database → Details (enable TLS)                             |
-| **Google Cloud** | OAuth client IDs (web + iOS)        | console.cloud.google.com → APIs & Services → Credentials                        |
-| **Hugging Face** | Access token                        | huggingface.co → Settings → Access Tokens                                       |
-| **Sentry**       | DSNs (per service), org, auth token | sentry.io → Project → Client Keys / Auth Tokens                                 |
+| Provider         | Gives you                           | Console                                                                                                                                                     |
+| ---------------- | ----------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Neon**         | Postgres URL, user, password        | neon.tech → project → Connection Details → **Pooled** host (`…-pooler…`, `sslmode=require`). Direct compute endpoints sleep and cause `Connection refused`. |
+| **Upstash**      | Redis host, port, password          | upstash.com → Redis database → Details (enable TLS)                                                                                                         |
+| **Google Cloud** | OAuth client IDs (web + iOS)        | console.cloud.google.com → APIs & Services → Credentials                                                                                                    |
+| **Hugging Face** | Access token                        | huggingface.co → Settings → Access Tokens                                                                                                                   |
+| **Sentry**       | DSNs (per service), org, auth token | sentry.io → Project → Client Keys / Auth Tokens                                                                                                             |
 
 ## Frontend (`frontend/.env`) — only `EXPO_PUBLIC_*` is bundled
 

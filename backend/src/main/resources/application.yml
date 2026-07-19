@@ -6,15 +6,18 @@ spring:
     virtual:
       enabled: true
   datasource:
-    # Neon serverless Postgres — POOLED endpoint, sslmode=require (see .env.example).
+    # Neon: pooled host (-pooler) + sslmode=require — see .env.example / docs/ENVIRONMENT.md
     url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/kev}
     username: ${SPRING_DATASOURCE_USERNAME:kev}
     password: ${SPRING_DATASOURCE_PASSWORD:kev}
     hikari:
-      # Keep the pool small — Neon serverless has modest connection limits.
       maximum-pool-size: ${DB_POOL_MAX:5}
-      minimum-idle: 1
-      connection-timeout: 10000
+      minimum-idle: 0
+      connection-timeout: 20000
+      max-lifetime: 300000
+      idle-timeout: 60000
+      keepalive-time: 30000
+      validation-timeout: 5000
   jpa:
     hibernate:
       ddl-auto: validate # Flyway owns the schema; Hibernate only validates it.

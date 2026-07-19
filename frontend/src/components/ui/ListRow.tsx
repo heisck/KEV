@@ -1,13 +1,13 @@
 import { Image } from 'expo-image';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 
+import { HapticPressable } from '@/components/ui/HapticPressable';
 import { colors, radii, spacing } from '@/theme';
 
 type ListRowProps = {
   title: string;
   subtitle?: string;
   avatarUrl?: string;
-  /** Rendered on the right edge (StatusPill, chevron, actions...). */
   trailing?: React.ReactNode;
   onPress?: () => void;
   onLongPress?: () => void;
@@ -27,8 +27,10 @@ export function ListRow({
   testID,
 }: ListRowProps) {
   return (
-    <Pressable
+    <HapticPressable
       accessibilityRole={onPress ? 'button' : undefined}
+      disabled={!onPress && !onLongPress}
+      haptic={onPress ? 'select' : 'none'}
       onPress={onPress}
       onLongPress={onLongPress}
       style={[styles.row, dimmed && styles.dimmed]}
@@ -52,7 +54,7 @@ export function ListRow({
         ) : null}
       </View>
       {trailing}
-    </Pressable>
+    </HapticPressable>
   );
 }
 

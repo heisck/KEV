@@ -44,3 +44,24 @@ jest.mock('@sentry/react-native', () => ({
   captureException: jest.fn(),
   captureMessage: jest.fn(),
 }));
+
+jest.mock('expo-haptics', () => ({
+  impactAsync: jest.fn(async () => undefined),
+  selectionAsync: jest.fn(async () => undefined),
+  notificationAsync: jest.fn(async () => undefined),
+  ImpactFeedbackStyle: { Light: 'light', Medium: 'medium', Heavy: 'heavy' },
+  NotificationFeedbackType: { Success: 'success', Warning: 'warning', Error: 'error' },
+}));
+
+jest.mock('expo-glass-effect', () => {
+  const React = require('react');
+  const { View } = require('react-native');
+  return {
+    GlassView: ({ children, ...props }: { children?: React.ReactNode }) =>
+      React.createElement(View, props, children),
+    GlassContainer: ({ children, ...props }: { children?: React.ReactNode }) =>
+      React.createElement(View, props, children),
+    isGlassEffectAPIAvailable: () => false,
+    isLiquidGlassAvailable: () => false,
+  };
+});

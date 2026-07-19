@@ -1,36 +1,43 @@
 /**
  * KEV design tokens — single source of truth for color, spacing, radii and type.
- * Brand: teal #3E97B0, deep slate-teal #416363, mint #EDFFF8.
+ * Brand: indigo #5A55D9 on white, soft lavender fills (kev design system).
  */
 export const colors = {
   // Brand
-  primary: '#3E97B0',
-  primaryDeep: '#416363',
-  mint: '#EDFFF8',
+  primary: '#5A55D9',
+  primaryDeep: '#443FBF',
+  mint: '#F3F1FB',
 
   // Tints (primary at low alpha for chips/pills/soft fills)
-  primary08: 'rgba(62, 151, 176, 0.08)',
-  primary12: 'rgba(62, 151, 176, 0.12)',
-  primary20: 'rgba(62, 151, 176, 0.20)',
-  mintDeep: '#D7F4E9',
+  primary08: 'rgba(90, 85, 217, 0.08)',
+  primary12: 'rgba(90, 85, 217, 0.12)',
+  primary20: 'rgba(90, 85, 217, 0.20)',
+  mintDeep: '#E5E1F7',
 
   // Neutrals
-  ink: '#0E1B1E',
-  inkSoft: '#3C5257',
-  muted: '#7A9196',
-  hairline: '#E3EEEA',
+  ink: '#17171C',
+  inkSoft: '#4A4A55',
+  muted: '#9A99A6',
+  hairline: '#EFEEF4',
   surface: '#FFFFFF',
-  surfaceDim: '#F4FAF7',
-  black: '#111417',
+  surfaceDim: '#F7F7FA',
+  black: '#111114',
   white: '#FFFFFF',
 
   // Semantic
-  success: '#2E9E6B',
-  successSoft: '#E3F6EC',
-  warn: '#E8A13A',
+  success: '#43A45F',
+  successSoft: '#E4F4E8',
+  warn: '#F2B33D',
   warnSoft: '#FBF1DF',
-  error: '#D9534F',
+  error: '#DE5B5B',
   errorSoft: '#FBE9E8',
+
+  // Accents (kev mockup)
+  pink: '#D6619C',
+  pinkSoft: '#F9E7F1',
+  blue: '#3D6DE0',
+  blueSoft: '#EAF1FD',
+  star: '#F2B33D',
 } as const;
 
 export const spacing = {

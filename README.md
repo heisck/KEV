@@ -3,15 +3,14 @@
 Campus/exam mobile app — a polyglot monorepo: **Expo** (React Native) frontend, **Spring Boot**
 backend, and a **Python/FastAPI** ML service for Hugging Face face models.
 
-> Status: **project setup / scaffold**. Foundational wiring is in place (auth, providers, typed API
-> client, NFC, observability, CI). Feature UI is intentionally **not** built yet. Agents: read
-> [AGENTS.md](./AGENTS.md) first.
+> Status: **wired monorepo** — auth, API client, sessions/attendance, NFC/face verify, Expo UI shell,
+> observability, CI. Agents: read [AGENTS.md](./AGENTS.md) first; do not invent scope.
 
 ## Structure
 
 ```
-frontend/            Expo SDK 56 + TS + Expo Router (mobile app shell)
-backend/             Spring Boot 4.0 + Java 21 (REST API)
+frontend/            Expo SDK 54 + RN 0.81 + TS + Expo Router (mobile app shell)
+backend/             Spring Boot 4.1 + Java 21 (REST API)
 ml/                  Python 3.12 + FastAPI + Hugging Face (uv) — face model stub
 packages/api-types/  TS types generated from the backend OpenAPI schema
 ui-mockup-html/  Design reference only — not part of the build

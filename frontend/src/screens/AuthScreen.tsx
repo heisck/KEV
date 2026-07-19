@@ -1,13 +1,5 @@
 import { useCallback, useEffect, useState, type ReactNode } from 'react';
-import {
-  Keyboard,
-  Platform,
-  Pressable,
-  Text,
-  TextInput,
-  useWindowDimensions,
-  View,
-} from 'react-native';
+import { Keyboard, Platform, Text, TextInput, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import {
@@ -18,8 +10,11 @@ import {
   GoogleIcon,
   LockIcon,
 } from '@/components/auth/AuthIcons';
+import { GlassPressable } from '@/components/ui/GlassPressable';
+import { GlassSurface } from '@/components/ui/GlassSurface';
+import { HapticPressable } from '@/components/ui/HapticPressable';
 import { AuthScaffold } from '@/screens/AuthScaffold';
-import { AUTH_OVERLAY_VERTICAL_PADDING } from '@/screens/authConfig';
+import { AUTH_OVERLAY_VERTICAL_PADDING, LIMEADE } from '@/screens/authConfig';
 import { authScreenStyles as styles } from '@/screens/authScreenStyles';
 
 type AuthScreenProps = {
@@ -62,8 +57,8 @@ export function AuthScreen({
   const { bottom, top } = useSafeAreaInsets();
   const keyboardHeight = useKeyboardHeight();
 
-  // Compress the space-between column when the keyboard shows so the
-  // "Verify Account" title stays in the viewport and only the inputs lift.
+  // Compress the column when the keyboard shows (iOS) so the inputs lift to sit
+  // above it. The title is anchored by the scaffold and is unaffected.
   const fullMinHeight = Math.max(height - top - bottom - AUTH_OVERLAY_VERTICAL_PADDING * 2, 0);
   const keyboardAdjusted = Platform.OS === 'ios' ? fullMinHeight - keyboardHeight : fullMinHeight;
   const layoutMinHeight = Math.max(keyboardAdjusted, 300);
@@ -74,16 +69,18 @@ export function AuthScreen({
   );
 
   return (
-    <AuthScaffold heightRatio={0.58} withPanel={false}>
+    <AuthScaffold
+      heightRatio={0.58}
+      withPanel={false}
+      overlayTitle={
+        <Text accessibilityLabel="Verify Account" style={styles.verifyTitle}>
+          Verify <Text style={styles.accountTitle}>Account</Text>
+        </Text>
+      }
+    >
       <View style={[styles.layout, { minHeight: layoutMinHeight }]}>
-        <View style={styles.titleGroup}>
-          <Text accessibilityLabel="Verify Account" style={styles.verifyTitle}>
-            Verify <Text style={styles.accountTitle}>Account</Text>
-          </Text>
-        </View>
-
         <View style={styles.bottomGroup}>
-          <View style={styles.inputShell}>
+          <GlassSurface fallbackColor="#FFFFFF" intensity={60} style={styles.inputShell}>
             <View pointerEvents="none" style={styles.inputIcon}>
               <EmailIcon />
             </View>
@@ -104,9 +101,9 @@ export function AuthScreen({
               underlineColorAndroid="transparent"
               value={email}
             />
-          </View>
+          </GlassSurface>
 
-          <View style={styles.inputShell}>
+          <GlassSurface fallbackColor="#FFFFFF" intensity={60} style={styles.inputShell}>
             <View pointerEvents="none" style={styles.inputIcon}>
               <LockIcon />
             </View>
@@ -131,33 +128,31 @@ export function AuthScreen({
               underlineColorAndroid="transparent"
               value={password}
             />
-            <Pressable
+            <HapticPressable
               accessibilityLabel={isPasswordVisible ? 'Hide password' : 'Show password'}
               accessibilityRole="button"
+              haptic="select"
               hitSlop={10}
               onPress={() => setIsPasswordVisible((v) => !v)}
               style={styles.eyeToggle}
             >
               {isPasswordVisible ? <EyeOffIcon size={22} /> : <EyeIcon size={22} />}
-            </Pressable>
-          </View>
+            </HapticPressable>
+          </GlassSurface>
 
           <View style={styles.actionRow}>
             <SocialButton icon={<GoogleIcon size={22} />} label="Google" onPress={onGooglePress} />
-            <Pressable
-              accessibilityRole="button"
+            <GlassPressable
               disabled={isSubmitting}
               onPress={handleSignIn}
-              style={({ pressed }) => [
-                styles.primaryButton,
-                pressed && styles.pressed,
-                isSubmitting && styles.disabled,
-              ]}
+              style={styles.primaryButtonWrap}
+              surfaceStyle={styles.primaryButton}
+              tintColor={LIMEADE}
             >
               <Text style={styles.primaryButtonText}>
                 {isSubmitting ? 'Signing in…' : 'Sign In'}
               </Text>
-            </Pressable>
+            </GlassPressable>
             <SocialButton
               icon={<AppleIcon size={20} />}
               label="Apple"
@@ -185,17 +180,15 @@ function SocialButton({
   const isDark = variant === 'dark';
 
   return (
-    <Pressable
+    <GlassPressable
       accessibilityLabel={label}
-      accessibilityRole="button"
       onPress={onPress}
-      style={({ pressed }) => [
-        styles.socialButton,
-        isDark && styles.darkSocialButton,
-        pressed && styles.pressed,
-      ]}
+      style={styles.socialWrap}
+      surfaceStyle={styles.socialButton}
+      tintColor={isDark ? '#000000' : '#FFFFFF'}
+      glassEffectStyle={isDark ? 'regular' : 'clear'}
     >
       {icon}
-    </Pressable>
+    </GlassPressable>
   );
 }

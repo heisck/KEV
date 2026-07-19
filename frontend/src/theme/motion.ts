@@ -14,4 +14,5 @@ export const durations = {
   slow: 420,
 } as const;
 
-export const pressedScale = 0.97;
+/** Subtle press — pairs with native liquid-glass interactive morph (don't over-scale). */
+export const pressedScale = 0.98;

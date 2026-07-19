@@ -1,60 +1,67 @@
 import { Redirect, Tabs } from 'expo-router';
 
-import { AdminIcon, HomeIcon, ProfileIcon, ScanIcon, SessionsIcon } from '@/components/ui/TabIcons';
-import { PillTabBar } from '@/components/ui';
+import {
+  ChatTabIcon,
+  HomeTabIcon,
+  ProfileTabIcon,
+  RemindersTabIcon,
+  ExamsTabIcon,
+} from '@/components/kev/icons';
+import { KevTabBar } from '@/components/kev/KevTabBar';
 import { useAuthStore } from '@/store/authStore';
 import { colors } from '@/theme';
 
 export default function TabsLayout() {
   const status = useAuthStore((s) => s.status);
-  const user = useAuthStore((s) => s.user);
 
   if (status !== 'authenticated') return <Redirect href="/(auth)" />;
 
   return (
     <Tabs
-      tabBar={(props) => <PillTabBar {...props} />}
+      tabBar={(props) => <KevTabBar {...props} />}
       screenOptions={{
         headerShown: false,
-        sceneStyle: { backgroundColor: colors.surfaceDim },
+        sceneStyle: { backgroundColor: colors.white },
       }}
     >
       <Tabs.Screen
         name="index"
         options={{
           title: 'Home',
-          tabBarIcon: ({ color, size }) => <HomeIcon color={color} size={size} />,
+          tabBarIcon: ({ color, size }) => <HomeTabIcon color={color} size={size} />,
         }}
       />
       <Tabs.Screen
-        name="scan"
+        name="reminders"
         options={{
-          title: 'Scan',
-          tabBarIcon: ({ color, size }) => <ScanIcon color={color} size={size} />,
+          title: 'Reminders',
+          tabBarIcon: ({ color, size }) => <RemindersTabIcon color={color} size={size} />,
         }}
       />
       <Tabs.Screen
-        name="sessions"
+        name="exams"
         options={{
-          title: 'Sessions',
-          tabBarIcon: ({ color, size }) => <SessionsIcon color={color} size={size} />,
+          title: 'Exams',
+          tabBarIcon: ({ color, size }) => <ExamsTabIcon color={color} size={size} />,
         }}
       />
       <Tabs.Screen
-        name="admin"
+        name="chat"
         options={{
-          title: 'Admin',
-          href: user?.role === 'ADMIN' ? undefined : null,
-          tabBarIcon: ({ color, size }) => <AdminIcon color={color} size={size} />,
+          title: 'Chat',
+          tabBarIcon: ({ color, size }) => <ChatTabIcon color={color} size={size} />,
         }}
       />
       <Tabs.Screen
         name="profile"
         options={{
           title: 'Profile',
-          tabBarIcon: ({ color, size }) => <ProfileIcon color={color} size={size} />,
+          tabBarIcon: ({ color, size }) => <ProfileTabIcon color={color} size={size} />,
         }}
       />
+      {/* Still under (tabs) for existing deep links — never in the bar. */}
+      <Tabs.Screen name="scan" options={{ href: null }} />
+      <Tabs.Screen name="sessions" options={{ href: null }} />
     </Tabs>
   );
 }

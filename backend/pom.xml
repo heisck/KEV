@@ -5,14 +5,14 @@
 	<parent>
 		<groupId>org.springframework.boot</groupId>
 		<artifactId>spring-boot-starter-parent</artifactId>
-		<version>4.0.6</version>
+		<version>4.1.0</version>
 		<relativePath/>
 	</parent>
 	<groupId>com.kev</groupId>
 	<artifactId>backend</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
 	<name>backend</name>
-	<description>KEV backend — Spring Boot 4 / Java 21 (Neon Postgres, Upstash Redis, JWT + Google auth).</description>
+	<description>KEV backend — Spring Boot 4.1 / Java 21 (Neon Postgres, Upstash Redis, JWT + Google auth).</description>
 
 	<properties>
 		<java.version>21</java.version>

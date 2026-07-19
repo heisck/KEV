@@ -1,5 +1,5 @@
 import { type ReactNode } from 'react';
-import { Image, ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
+import { Image, Platform, ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import {
@@ -23,6 +23,8 @@ type AuthScaffoldProps = {
   children: ReactNode;
   heightRatio: number;
   heroCaption?: ReactNode;
+  /** Anchored to the screen (outside the ScrollView) so the keyboard never shifts it. */
+  overlayTitle?: ReactNode;
   withPanel?: boolean;
 };
 
@@ -30,6 +32,7 @@ export function AuthScaffold({
   children,
   heightRatio,
   heroCaption,
+  overlayTitle,
   withPanel = true,
 }: AuthScaffoldProps) {
   const { height, width } = useWindowDimensions();
@@ -60,8 +63,19 @@ export function AuthScaffold({
           {heroCaption}
         </View>
       ) : null}
+      {overlayTitle ? (
+        <View
+          pointerEvents="none"
+          style={[styles.overlayTitle, { top: top + AUTH_OVERLAY_VERTICAL_PADDING }]}
+        >
+          {overlayTitle}
+        </View>
+      ) : null}
       <ScrollView
-        automaticallyAdjustKeyboardInsets
+        // Android uses windowSoftInputMode=adjustResize (window shrinks); adding keyboard
+        // insets here too would double-count and scroll the title off-screen. iOS has no
+        // resize, so it relies on the inset.
+        automaticallyAdjustKeyboardInsets={Platform.OS === 'ios'}
         bounces={false}
         contentContainerStyle={[
           withPanel ? styles.content : styles.overlayContent,
@@ -108,6 +122,7 @@ const styles = StyleSheet.create({
     right: 32,
     zIndex: 1,
   },
+  overlayTitle: { alignItems: 'center', left: 0, position: 'absolute', right: 0, zIndex: 1 },
   // Above the hero logo overlay (zIndex 1) so inputs are never obscured.
   scroll: { flex: 1, zIndex: 2 },
   content: { flexGrow: 1, justifyContent: 'flex-end' },

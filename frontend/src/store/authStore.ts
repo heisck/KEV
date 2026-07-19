@@ -28,6 +28,8 @@ type AuthState = {
     user: AuthUserInput,
     tokens: { accessToken: string; refreshToken: string },
   ) => Promise<void>;
+  /** Local profile edit until a PATCH /me endpoint exists. */
+  updateProfile: (patch: Partial<Pick<AuthUser, 'displayName' | 'email'>>) => void;
   signInWithPassword: (email: string, password: string) => Promise<void>;
   signInWithGoogleIdToken: (idToken: string) => Promise<void>;
   signInWithAppleIdToken: (identityToken: string, fullName?: string | null) => Promise<void>;
@@ -48,6 +50,17 @@ export const useAuthStore = create<AuthState>((set, get) => {
       set({
         user: { ...user, role: user.role ?? 'USER', plan: user.plan ?? 'FREE' },
         status: 'authenticated',
+      });
+    },
+    updateProfile(patch) {
+      const current = get().user;
+      if (!current) return;
+      set({
+        user: {
+          ...current,
+          displayName: patch.displayName !== undefined ? patch.displayName : current.displayName,
+          email: patch.email !== undefined ? patch.email : current.email,
+        },
       });
     },
     async signInWithPassword(email, password) {

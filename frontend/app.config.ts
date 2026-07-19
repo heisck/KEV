@@ -27,7 +27,8 @@ const config: ExpoConfig = {
   android: {
     package: 'com.kev.app',
     adaptiveIcon: {
-      backgroundColor: '#3E97B0',
+      // Black mark on white — matches product chrome, not the teal brand fill.
+      backgroundColor: '#FFFFFF',
       foregroundImage: './assets/images/android-icon-foreground.png',
       backgroundImage: './assets/images/android-icon-background.png',
       monochromeImage: './assets/images/android-icon-monochrome.png',
