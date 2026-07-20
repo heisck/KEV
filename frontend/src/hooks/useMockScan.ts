@@ -1,71 +1,69 @@
+import { isAxiosError } from 'axios';
 import { useRouter } from 'expo-router';
 
 import { checkIn } from '@/api/attendance';
 import type { CheckInMethod } from '@/api/schemas';
 import { studentRecordToScanned, type ScannedStudent } from '@/data/exams';
+import { haptic } from '@/lib/haptics';
+import { toast } from '@/lib/toast';
 import { useSessionStore } from '@/store/sessionStore';
+import { useSettingsStore } from '@/store/settingsStore';
+
+type Outcome = 'added' | 'already' | 'error';
+
+/** Resolve the index number to check in from the scan hook's flexible input. */
+function indexOf(scanned?: ScannedStudent | string): string {
+  if (typeof scanned === 'string') return scanned.trim();
+  if (scanned) return scanned.index;
+  return '10953001'; // demo fallback until live NFC/face capture provides the id
+}
 
 /**
- * Real verification check-in hook connecting directly to the backend database.
+ * Verification check-in against the backend. Honors the user's "show result
+ * page" preference: when on, routes to the result screen; when off, gives an
+ * instant toast + haptic and stays on the scanner for the next student.
  */
 export function useMockScan(sessionId: string, method: CheckInMethod = 'FACE') {
   const router = useRouter();
-  const autoAdd = useSessionStore((s) => s.autoAdd);
-  const roster = useSessionStore((s) => s.roster[sessionId]);
   const addStudent = useSessionStore((s) => s.addStudent);
+  const showSuccessPage = useSettingsStore((s) => s.showSuccessPage);
 
   return async (scanned?: ScannedStudent | string) => {
-    let studentObj: ScannedStudent;
-    if (typeof scanned === 'string') {
-      try {
-        const res = await checkIn(Number(sessionId) || 1, { indexNumber: scanned, method });
-        studentObj = studentRecordToScanned(res.student);
-      } catch {
-        studentObj = {
-          id: '0',
-          name: 'Unknown Student',
-          person: 'freja',
-          index: scanned,
-          course: 'General',
-        };
-      }
-    } else if (scanned) {
-      try {
-        const res = await checkIn(Number(sessionId) || 1, { indexNumber: scanned.index, method });
-        studentObj = studentRecordToScanned(res.student);
-      } catch {
-        studentObj = scanned;
-      }
-    } else {
-      try {
-        const res = await checkIn(Number(sessionId) || 1, { indexNumber: '10953001', method });
-        studentObj = studentRecordToScanned(res.student);
-      } catch {
-        studentObj = {
-          id: '1',
-          name: 'Ama Serwaa Boateng',
-          person: 'http://localhost:8080/images/student_ama.jpg',
-          index: '10953001',
-          course: 'BSc Computer Science',
-        };
+    const sid = Number(sessionId) || 1;
+    let student: ScannedStudent | null = typeof scanned === 'object' ? scanned : null;
+    let outcome: Outcome = 'added';
+
+    try {
+      const record = await checkIn(sid, { indexNumber: indexOf(scanned), method });
+      student = studentRecordToScanned(record.student);
+      addStudent(sessionId, student);
+    } catch (err) {
+      if (isAxiosError(err) && err.response?.status === 409) {
+        outcome = 'already';
+      } else {
+        outcome = 'error';
       }
     }
 
-    const alreadyIn = (roster ?? []).some((s) => s.id === studentObj.id);
-    let status: 'added' | 'already' | 'review' = 'review';
-    if (alreadyIn) {
-      status = 'already';
-    } else if (autoAdd) {
-      addStudent(sessionId, studentObj);
-      status = 'added';
-    } else {
-      addStudent(sessionId, studentObj);
-      status = 'added';
+    if (showSuccessPage) {
+      const status = outcome === 'error' ? 'review' : outcome;
+      router.replace({
+        pathname: '/verify/result',
+        params: { exam: sessionId, student: student?.id ?? '0', status, method },
+      });
+      return;
     }
 
-    router.replace({
-      pathname: '/verify/result',
-      params: { exam: sessionId, student: studentObj.id, status },
-    });
+    // Quick-feedback mode: toast + vibration, no navigation.
+    if (outcome === 'added') {
+      haptic('success');
+      toast.success(`${student?.name ?? 'Student'} added`);
+    } else if (outcome === 'already') {
+      haptic('warning');
+      toast.info(`${student?.name ?? 'Student'} is already in this class`);
+    } else {
+      haptic('error');
+      toast.error('Could not verify — try again');
+    }
   };
 }

@@ -41,9 +41,14 @@ public class ChatController {
     public List<UserDto> listLecturers(@RequestParam(required = false) String q) {
         return users.findAll().stream()
                 .filter(u -> u.getRole() == Role.LECTURER || u.getRole() == Role.ADMIN)
-                .filter(u -> q == null || q.isBlank() ||
-                        (u.getDisplayName() != null && u.getDisplayName().toLowerCase().contains(q.trim().toLowerCase())) ||
-                        (u.getEmail() != null && u.getEmail().toLowerCase().contains(q.trim().toLowerCase())))
+                .filter(u -> q == null
+                        || q.isBlank()
+                        || (u.getDisplayName() != null
+                                && u.getDisplayName()
+                                        .toLowerCase()
+                                        .contains(q.trim().toLowerCase()))
+                        || (u.getEmail() != null
+                                && u.getEmail().toLowerCase().contains(q.trim().toLowerCase())))
                 .map(UserDto::from)
                 .toList();
     }
@@ -53,7 +58,8 @@ public class ChatController {
     public List<MessageDto> getMessages(@AuthenticationPrincipal Jwt principal, @PathVariable UUID peerId) {
         if (principal == null) return List.of();
         UUID userId = UUID.fromString(principal.getSubject());
-        return conversations.findByUsers(userId, peerId)
+        return conversations
+                .findByUsers(userId, peerId)
                 .map(c -> messages.findAllByConversationIdOrderByCreatedAtAsc(c.getId()).stream()
                         .map(MessageDto::from)
                         .toList())
@@ -62,7 +68,10 @@ public class ChatController {
 
     @PostMapping("/conversations/{peerId}/messages")
     @Transactional
-    public MessageDto sendMessage(@AuthenticationPrincipal Jwt principal, @PathVariable UUID peerId, @Valid @RequestBody SendMessageRequest req) {
+    public MessageDto sendMessage(
+            @AuthenticationPrincipal Jwt principal,
+            @PathVariable UUID peerId,
+            @Valid @RequestBody SendMessageRequest req) {
         if (principal == null) throw new ApiException(HttpStatus.UNAUTHORIZED, "Unauthorized");
         UUID userId = UUID.fromString(principal.getSubject());
         users.findById(peerId).orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Peer not found"));

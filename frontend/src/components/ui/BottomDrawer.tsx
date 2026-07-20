@@ -19,7 +19,7 @@ import Animated, {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { GlassSurface } from '@/components/ui/GlassSurface';
-import { colors, durations, radii, spacing, springs } from '@/theme';
+import { durations, radii, spacing, springs, usePalette } from '@/theme';
 
 type BottomDrawerProps = {
   visible: boolean;
@@ -33,6 +33,7 @@ type BottomDrawerProps = {
 export function BottomDrawer({ visible, onClose, title, children, testID }: BottomDrawerProps) {
   const { height } = useWindowDimensions();
   const insets = useSafeAreaInsets();
+  const p = usePalette();
   const [mounted, setMounted] = useState(visible);
   const translateY = useSharedValue(height);
   const backdrop = useSharedValue(0);
@@ -69,8 +70,8 @@ export function BottomDrawer({ visible, onClose, title, children, testID }: Bott
         <Animated.View style={[styles.sheetClip, sheetStyle]}>
           <GlassSurface intensity={70} style={styles.sheetGlass}>
             <View style={[styles.sheet, { paddingBottom: insets.bottom + spacing.xl }]}>
-              <View style={styles.grabber} />
-              {title ? <Text style={styles.title}>{title}</Text> : null}
+              <View style={[styles.grabber, { backgroundColor: p.hairline }]} />
+              {title ? <Text style={[styles.title, { color: p.ink }]}>{title}</Text> : null}
               {children}
             </View>
           </GlassSurface>
@@ -101,10 +102,9 @@ const styles = StyleSheet.create({
   },
   grabber: {
     alignSelf: 'center',
-    backgroundColor: colors.hairline,
     borderRadius: radii.pill,
     height: 5,
     width: 44,
   },
-  title: { color: colors.ink, fontSize: 18, fontWeight: '700' },
+  title: { fontSize: 18, fontWeight: '700' },
 });

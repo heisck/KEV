@@ -6,6 +6,16 @@ import { tokenStore } from '@/lib/secureStore';
 
 export const CORRELATION_HEADER = 'X-Correlation-Id';
 
+/**
+ * Called when the refresh path gives up (invalid/expired refresh token) so the
+ * app can drop to the signed-out state. Registered by the auth layer to avoid a
+ * circular import between the client and the auth store.
+ */
+let onAuthExpired: (() => void) | null = null;
+export function setOnAuthExpired(handler: (() => void) | null): void {
+  onAuthExpired = handler;
+}
+
 /** Shared axios instance. Types for responses come from @kev/api-types. */
 const apiConfig = {
   baseURL: env.apiUrl,
@@ -45,8 +55,7 @@ api.interceptors.response.use(
   (response) => response,
   async (error: AxiosError) => {
     const original = error.config as
-      | (InternalAxiosRequestConfig & { _retry?: boolean })
-      | undefined;
+      (InternalAxiosRequestConfig & { _retry?: boolean }) | undefined;
 
     if (error.response?.status === 401 && original && !original._retry) {
       original._retry = true;
@@ -58,7 +67,10 @@ api.interceptors.response.use(
         original.headers.set('Authorization', `Bearer ${token}`);
         return api(original);
       }
+      // Refresh failed — clear tokens and notify the app to sign out so the
+      // route guards redirect to sign-in instead of looping on 401s.
       await tokenStore.clear();
+      onAuthExpired?.();
     }
 
     logger.error('API request failed', {

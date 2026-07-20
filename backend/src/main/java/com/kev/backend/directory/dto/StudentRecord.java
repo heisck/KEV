@@ -3,6 +3,7 @@ package com.kev.backend.directory.dto;
 import com.kev.backend.directory.DirectoryStudent;
 import com.kev.backend.directory.FeesStatus;
 import java.io.Serializable;
+import java.util.List;
 
 /**
  * Student identity + eligibility as reported by the university directory.
@@ -17,7 +18,8 @@ public record StudentRecord(
         String photoUrl,
         boolean enrolled,
         FeesStatus feesStatus,
-        boolean eligible)
+        boolean eligible,
+        List<String> courses)
         implements Serializable {
 
     public static StudentRecord from(DirectoryStudent s) {
@@ -31,6 +33,9 @@ public record StudentRecord(
                 s.getPhotoUrl(),
                 s.isEnrolled(),
                 s.getFeesStatus(),
-                eligible);
+                eligible,
+                s.getCourses().stream()
+                        .map(com.kev.backend.directory.Course::getCode)
+                        .toList());
     }
 }

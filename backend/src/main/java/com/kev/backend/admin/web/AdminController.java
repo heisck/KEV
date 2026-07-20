@@ -54,12 +54,16 @@ public class AdminController {
 
     @PostMapping("/lecturers")
     @ResponseStatus(HttpStatus.CREATED)
-    public UserDto createLecturer(@AuthenticationPrincipal Jwt principal, @Valid @RequestBody CreateLecturerRequest req) {
+    public UserDto createLecturer(
+            @AuthenticationPrincipal Jwt principal, @Valid @RequestBody CreateLecturerRequest req) {
         return admin.createLecturer(UUID.fromString(principal.getSubject()), req);
     }
 
     @PutMapping("/lecturers/{id}")
-    public UserDto updateLecturer(@AuthenticationPrincipal Jwt principal, @PathVariable UUID id, @Valid @RequestBody UpdateLecturerRequest req) {
+    public UserDto updateLecturer(
+            @AuthenticationPrincipal Jwt principal,
+            @PathVariable UUID id,
+            @Valid @RequestBody UpdateLecturerRequest req) {
         return admin.updateLecturer(UUID.fromString(principal.getSubject()), id, req);
     }
 

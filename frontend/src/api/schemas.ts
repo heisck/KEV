@@ -19,6 +19,7 @@ export const StudentRecordSchema = z.object({
   enrolled: z.boolean(),
   feesStatus: FeesStatusSchema,
   eligible: z.boolean(),
+  courses: z.array(z.string()).default([]),
 });
 export type StudentRecord = z.infer<typeof StudentRecordSchema>;
 

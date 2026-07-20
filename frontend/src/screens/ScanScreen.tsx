@@ -10,13 +10,14 @@ import { ManualEntryCard } from '@/components/scan/ManualEntryCard';
 import { NfcScanPanel } from '@/components/scan/NfcScanPanel';
 import { AppButton, Card, ChipRow, EmptyState } from '@/components/ui';
 import { getScanCapabilities } from '@/lib/scanCapabilities';
-import { colors, spacing, typography } from '@/theme';
+import { spacing, typography, usePalette } from '@/theme';
 
 type ScanMode = 'NFC' | 'Manual';
 const METHOD_BY_MODE: Record<ScanMode, CheckInMethod> = { NFC: 'NFC', Manual: 'MANUAL' };
 
 /** Check-in screen: NFC card taps with manual index entry as the fallback. */
 export function ScanScreen() {
+  const p = usePalette();
   const { top } = useSafeAreaInsets();
   const { data: sessions } = useSessions();
   const [hasNfc, setHasNfc] = useState<boolean | null>(null);
@@ -62,7 +63,7 @@ export function ScanScreen() {
   if (sessions && activeSessions.length === 0) {
     return (
       <View style={[styles.screen, { paddingTop: top + spacing.lg }]}>
-        <Text style={styles.title}>Scan</Text>
+        <Text style={[styles.title, { color: p.ink }]}>Scan</Text>
         <EmptyState
           title="No active session"
           message="Check-ins need a live exam session. Create one to start scanning."
@@ -79,10 +80,10 @@ export function ScanScreen() {
       keyboardShouldPersistTaps="handled"
       showsVerticalScrollIndicator={false}
     >
-      <Text style={styles.title}>Scan</Text>
+      <Text style={[styles.title, { color: p.ink }]}>Scan</Text>
 
       <View style={styles.section}>
-        <Text style={styles.sectionLabel}>Session</Text>
+        <Text style={[styles.sectionLabel, { color: p.muted }]}>Session</Text>
         <ChipRow
           labels={activeSessions.map((s) => s.sessionCode)}
           activeLabel={selectedSession?.sessionCode}
@@ -95,7 +96,7 @@ export function ScanScreen() {
 
       {hasNfc ? (
         <View style={styles.section}>
-          <Text style={styles.sectionLabel}>Method</Text>
+          <Text style={[styles.sectionLabel, { color: p.muted }]}>Method</Text>
           <ChipRow
             labels={modes}
             activeLabel={mode}
@@ -110,7 +111,7 @@ export function ScanScreen() {
       {hasNfc === false ? (
         <Card variant="mint" style={styles.nfcNote}>
           <DoodleEmpty size={64} />
-          <Text style={styles.nfcNoteText}>
+          <Text style={[styles.nfcNoteText, { color: p.inkSoft }]}>
             NFC needs the dev build — enter the index number below instead.
           </Text>
         </Card>
@@ -125,14 +126,13 @@ export function ScanScreen() {
 const styles = StyleSheet.create({
   screen: { flex: 1, paddingHorizontal: spacing.xl },
   content: { gap: spacing.xl, paddingBottom: 120, paddingHorizontal: spacing.xl },
-  title: { color: colors.ink, fontFamily: typography.display, fontSize: 28 },
+  title: { fontFamily: typography.display, fontSize: 28 },
   section: { gap: spacing.sm },
   sectionLabel: {
-    color: colors.muted,
     fontSize: 13,
     fontWeight: '700',
     textTransform: 'uppercase',
   },
   nfcNote: { alignItems: 'center', flexDirection: 'row', gap: spacing.lg },
-  nfcNoteText: { color: colors.inkSoft, flex: 1, fontSize: 13, lineHeight: 19 },
+  nfcNoteText: { flex: 1, fontSize: 13, lineHeight: 19 },
 });

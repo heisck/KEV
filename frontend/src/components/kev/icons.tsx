@@ -306,6 +306,14 @@ export function PlusIcon({ color, size = 22 }: IconProps) {
   );
 }
 
+export function MinusIcon({ color, size = 22 }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path d="M5 12h14" stroke={color} strokeWidth={1.9} strokeLinecap="round" />
+    </Svg>
+  );
+}
+
 export function SendIcon({ color, size = 14 }: IconProps) {
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
@@ -396,6 +404,82 @@ export function VerifiedBadgeIcon({ color, size = 16 }: IconProps) {
         d="m7.8 12.2 2.8 2.8 5.6-6"
         stroke="#FFF"
         strokeWidth={2.4}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </Svg>
+  );
+}
+
+/* ---------- Notification badges ---------- */
+
+/** Focus target — a deep-work session glyph. */
+export function FocusIcon({ color, size = 20 }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Circle cx={12} cy={12} r={8} stroke={color} strokeWidth={1.7} />
+      <Circle cx={12} cy={12} r={3.4} fill={color} />
+    </Svg>
+  );
+}
+
+/** Rising bars — progress / halfway glyph. */
+export function ProgressIcon({ color, size = 20 }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Rect x={4} y={13} width={4} height={7} rx={1.4} fill={color} />
+      <Rect x={10} y={9} width={4} height={11} rx={1.4} fill={color} />
+      <Rect x={16} y={5} width={4} height={15} rx={1.4} fill={color} opacity={0.55} />
+    </Svg>
+  );
+}
+
+/** Trash — swipe-to-delete action. */
+export function TrashIcon({ color, size = 20 }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path
+        d="M5 7h14M10 7V5.5A1.5 1.5 0 0 1 11.5 4h1A1.5 1.5 0 0 1 14 5.5V7m3 0-.7 11a2 2 0 0 1-2 1.9H8.7a2 2 0 0 1-2-1.9L6 7"
+        stroke={color}
+        strokeWidth={1.7}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </Svg>
+  );
+}
+
+/** Envelope — email / contact rows. */
+export function MailIcon({ color, size = 20 }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Rect x={3.5} y={5.5} width={17} height={13} rx={2.5} stroke={color} strokeWidth={1.7} />
+      <Path
+        d="m4.5 7.5 7.5 5 7.5-5"
+        stroke={color}
+        strokeWidth={1.7}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </Svg>
+  );
+}
+
+/** Door + arrow — sign-out row. */
+export function LogoutIcon({ color, size = 20 }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path
+        d="M14 6.5V5a1.5 1.5 0 0 0-1.5-1.5h-6A1.5 1.5 0 0 0 5 5v14a1.5 1.5 0 0 0 1.5 1.5h6A1.5 1.5 0 0 0 14 19v-1.5"
+        stroke={color}
+        strokeWidth={1.7}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <Path
+        d="M10 12h10m0 0-3-3m3 3-3 3"
+        stroke={color}
+        strokeWidth={1.7}
         strokeLinecap="round"
         strokeLinejoin="round"
       />

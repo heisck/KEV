@@ -1,4 +1,4 @@
-import { colors } from '@/theme';
+import { usePalette } from '@/theme';
 import Svg, { Circle, Path, Rect } from 'react-native-svg';
 
 type NfcIconProps = {
@@ -49,10 +49,11 @@ export function InfoIcon({ color = '#414938', size = 16 }: NfcIconProps) {
   );
 }
 
-export function VerifiedBadgeIcon({ color = colors.primary, size = 46 }: NfcIconProps) {
+export function VerifiedBadgeIcon({ color, size = 46 }: NfcIconProps) {
+  const p = usePalette();
   return (
     <Svg height={size} viewBox="0 0 48 48" width={size}>
-      <Circle cx={24} cy={24} fill={color} r={22} />
+      <Circle cx={24} cy={24} fill={color ?? p.primary} r={22} />
       <Path
         d="M14 24.5l6.2 6.2L34 17"
         fill="none"

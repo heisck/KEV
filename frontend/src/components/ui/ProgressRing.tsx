@@ -3,7 +3,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import Animated, { useAnimatedProps, useSharedValue, withTiming } from 'react-native-reanimated';
 import Svg, { Circle } from 'react-native-svg';
 
-import { colors, durations } from '@/theme';
+import { durations, usePalette } from '@/theme';
 
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 
@@ -28,6 +28,7 @@ export function ProgressRing({
   const radius = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;
   const animated = useSharedValue(0);
+  const p = usePalette();
 
   useEffect(() => {
     animated.value = withTiming(clamped, { duration: durations.slow });
@@ -44,7 +45,7 @@ export function ProgressRing({
           cx={size / 2}
           cy={size / 2}
           r={radius}
-          stroke={colors.primary12}
+          stroke={p.primary12}
           strokeWidth={strokeWidth}
           fill="none"
         />
@@ -52,7 +53,7 @@ export function ProgressRing({
           cx={size / 2}
           cy={size / 2}
           r={radius}
-          stroke={colors.primary}
+          stroke={p.primary}
           strokeWidth={strokeWidth}
           strokeLinecap="round"
           fill="none"
@@ -62,8 +63,8 @@ export function ProgressRing({
         />
       </Svg>
       <View style={styles.center}>
-        <Text style={styles.value}>{Math.round(clamped * 100)}%</Text>
-        {label ? <Text style={styles.label}>{label}</Text> : null}
+        <Text style={[styles.value, { color: p.ink }]}>{Math.round(clamped * 100)}%</Text>
+        {label ? <Text style={[styles.label, { color: p.muted }]}>{label}</Text> : null}
       </View>
     </View>
   );
@@ -71,6 +72,6 @@ export function ProgressRing({
 
 const styles = StyleSheet.create({
   center: { ...StyleSheet.absoluteFillObject, alignItems: 'center', justifyContent: 'center' },
-  value: { color: colors.ink, fontSize: 16, fontWeight: '800' },
-  label: { color: colors.muted, fontSize: 10 },
+  value: { fontSize: 16, fontWeight: '800' },
+  label: { fontSize: 10 },
 });

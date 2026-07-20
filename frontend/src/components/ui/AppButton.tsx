@@ -1,7 +1,7 @@
 import { StyleSheet, Text, type StyleProp, type ViewStyle } from 'react-native';
 
 import { GlassPressable } from '@/components/ui/GlassPressable';
-import { colors, radii, spacing } from '@/theme';
+import { radii, spacing, usePalette } from '@/theme';
 
 type AppButtonProps = {
   label: string;
@@ -32,16 +32,17 @@ export function AppButton({
   style,
   testID,
 }: AppButtonProps) {
+  const p = usePalette();
   const tint =
     variant === 'primary'
-      ? colors.primary
+      ? p.primary
       : variant === 'ink'
-        ? colors.black
+        ? p.ink
         : variant === 'danger'
-          ? colors.error
-          : colors.primary12;
+          ? p.error
+          : p.primary12;
 
-  const labelColor = variant === 'ghost' ? colors.primaryDeep : colors.white;
+  const labelColor = variant === 'ghost' ? p.primaryDeep : p.onPrimary;
 
   return (
     <GlassPressable

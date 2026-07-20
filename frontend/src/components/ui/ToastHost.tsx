@@ -4,13 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { GlassSurface } from '@/components/ui/GlassSurface';
 import { useToastStore, type ToastTone } from '@/lib/toast';
-import { colors, radii, shadows, spacing } from '@/theme';
-
-const toneDots: Record<ToastTone, string> = {
-  success: colors.success,
-  error: colors.error,
-  info: colors.primary,
-};
+import { radii, shadows, spacing, usePalette } from '@/theme';
 
 // Translate/scale only, never opacity: GlassView (iOS 26) stops rendering while any
 // ancestor has opacity < 1, so fading would flicker the glass. The overshoot on the
@@ -30,8 +24,15 @@ export function ToastHost() {
   const toasts = useToastStore((s) => s.toasts);
   const dismiss = useToastStore((s) => s.dismiss);
   const { top } = useSafeAreaInsets();
+  const p = usePalette();
 
   if (toasts.length === 0) return null;
+
+  const toneDots: Record<ToastTone, string> = {
+    success: p.success,
+    error: p.error,
+    info: p.primary,
+  };
 
   return (
     <View pointerEvents="box-none" style={[styles.host, { top: top + spacing.md }]}>
@@ -46,7 +47,7 @@ export function ToastHost() {
             <GlassSurface intensity={60} style={styles.pill}>
               <View style={styles.row}>
                 <View style={[styles.dot, { backgroundColor: toneDots[item.tone] }]} />
-                <Text numberOfLines={2} style={styles.message}>
+                <Text numberOfLines={2} style={[styles.message, { color: p.ink }]}>
                   {item.message}
                 </Text>
               </View>
@@ -79,5 +80,5 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.md,
   },
   dot: { borderRadius: 4, height: 8, width: 8 },
-  message: { color: colors.ink, flexShrink: 1, fontSize: 14, fontWeight: '600' },
+  message: { flexShrink: 1, fontSize: 14, fontWeight: '600' },
 });

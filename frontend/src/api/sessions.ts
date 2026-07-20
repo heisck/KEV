@@ -10,12 +10,17 @@ import {
 } from '@/api/schemas';
 
 export type CreateSessionInput = {
+  title?: string;
   building: string;
   floor?: string;
   room?: string;
   courseCodes: string[];
   indexRangeStart?: string;
   indexRangeEnd?: string;
+  examDate?: string;
+  startTime?: string;
+  endTime?: string;
+  verificationMethods?: string[];
 };
 
 export async function createSession(input: CreateSessionInput): Promise<SessionDto> {

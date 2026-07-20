@@ -1,6 +1,6 @@
 import { StyleSheet, Text, View } from 'react-native';
 
-import { colors, spacing, typography } from '@/theme';
+import { spacing, typography, usePalette } from '@/theme';
 
 type EmptyStateProps = {
   title: string;
@@ -12,11 +12,12 @@ type EmptyStateProps = {
 };
 
 export function EmptyState({ title, message, illustration, action, testID }: EmptyStateProps) {
+  const p = usePalette();
   return (
     <View style={styles.container} testID={testID}>
       {illustration}
-      <Text style={styles.title}>{title}</Text>
-      {message ? <Text style={styles.message}>{message}</Text> : null}
+      <Text style={[styles.title, { color: p.ink }]}>{title}</Text>
+      {message ? <Text style={[styles.message, { color: p.muted }]}>{message}</Text> : null}
       {action}
     </View>
   );
@@ -30,10 +31,9 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.xxxl,
   },
   title: {
-    color: colors.ink,
     fontFamily: typography.display,
     fontSize: 22,
     textAlign: 'center',
   },
-  message: { color: colors.muted, fontSize: 14, lineHeight: 20, textAlign: 'center' },
+  message: { fontSize: 14, lineHeight: 20, textAlign: 'center' },
 });
