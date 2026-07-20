@@ -1,18 +1,19 @@
-import { Redirect, Tabs } from 'expo-router';
+import { Redirect, router, Tabs } from 'expo-router';
 
 import {
   ChatTabIcon,
   HomeTabIcon,
+  PlusIcon,
   ProfileTabIcon,
   RemindersTabIcon,
-  ExamsTabIcon,
 } from '@/components/kev/icons';
 import { KevTabBar } from '@/components/kev/KevTabBar';
 import { useAuthStore } from '@/store/authStore';
-import { colors } from '@/theme';
+import { usePalette } from '@/theme';
 
 export default function TabsLayout() {
   const status = useAuthStore((s) => s.status);
+  const p = usePalette();
 
   if (status !== 'authenticated') return <Redirect href="/(auth)" />;
 
@@ -21,7 +22,7 @@ export default function TabsLayout() {
       tabBar={(props) => <KevTabBar {...props} />}
       screenOptions={{
         headerShown: false,
-        sceneStyle: { backgroundColor: colors.white },
+        sceneStyle: { backgroundColor: p.bg },
       }}
     >
       <Tabs.Screen
@@ -39,10 +40,17 @@ export default function TabsLayout() {
         }}
       />
       <Tabs.Screen
-        name="exams"
+        name="create"
         options={{
-          title: 'Exams',
-          tabBarIcon: ({ color, size }) => <ExamsTabIcon color={color} size={size} />,
+          title: 'Create',
+          tabBarIcon: ({ color, size }) => <PlusIcon color={color} size={size} />,
+        }}
+        listeners={{
+          tabPress: (e) => {
+            // The Create tab is an action: open the wizard instead of switching tabs.
+            e.preventDefault();
+            router.push('/room-setup');
+          },
         }}
       />
       <Tabs.Screen
@@ -61,7 +69,6 @@ export default function TabsLayout() {
       />
       {/* Still under (tabs) for existing deep links — never in the bar. */}
       <Tabs.Screen name="scan" options={{ href: null }} />
-      <Tabs.Screen name="sessions" options={{ href: null }} />
     </Tabs>
   );
 }

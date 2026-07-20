@@ -8,7 +8,7 @@ import { DoodleEmpty } from '@/components/doodles/DoodleEmpty';
 import { AppButton, BottomDrawer, Card, Chip, EmptyState, StatusPill } from '@/components/ui';
 import { AssignSheet, ReportSheet } from '@/screens/AdminSheets';
 import { useAuthStore } from '@/store/authStore';
-import { colors, spacing, typography } from '@/theme';
+import { spacing, typography, usePalette } from '@/theme';
 
 type Sheet = { kind: 'report' | 'assign'; sessionId: number } | null;
 
@@ -21,17 +21,18 @@ function AdminSessionCard({
   onReport: () => void;
   onAssign: () => void;
 }) {
+  const p = usePalette();
   return (
     <Pressable accessibilityRole="button" onPress={onReport}>
       <Card style={styles.card}>
         <View style={styles.cardTop}>
-          <Text style={styles.cardCode}>{session.sessionCode}</Text>
+          <Text style={[styles.cardCode, { color: p.ink }]}>{session.sessionCode}</Text>
           <StatusPill
             label={session.status === 'ACTIVE' ? 'Active' : 'Ended'}
             tone={session.status === 'ACTIVE' ? 'success' : 'neutral'}
           />
         </View>
-        <Text style={styles.cardMeta}>
+        <Text style={[styles.cardMeta, { color: p.muted }]}>
           {session.checkedInCount} checked in · {session.invigilatorCount} invigilators
         </Text>
         <AppButton label="Assign invigilators" variant="ghost" onPress={onAssign} />
@@ -59,6 +60,7 @@ export function AdminScreen() {
 }
 
 function AdminContent({ plan }: { plan: 'FREE' | 'PREMIUM' }) {
+  const p = usePalette();
   const { top } = useSafeAreaInsets();
   const { data: sessions } = useAdminSessions();
   const [sheet, setSheet] = useState<Sheet>(null);
@@ -70,11 +72,11 @@ function AdminContent({ plan }: { plan: 'FREE' | 'PREMIUM' }) {
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.headerRow}>
-          <Text style={styles.title}>Admin</Text>
+          <Text style={[styles.title, { color: p.ink }]}>Admin</Text>
           <Chip label={plan} active={plan === 'PREMIUM'} />
         </View>
 
-        <Text style={styles.sectionLabel}>Sessions</Text>
+        <Text style={[styles.sectionLabel, { color: p.muted }]}>Sessions</Text>
         {(sessions ?? []).map((session) => (
           <AdminSessionCard
             key={session.id}
@@ -108,15 +110,14 @@ function AdminContent({ plan }: { plan: 'FREE' | 'PREMIUM' }) {
 const styles = StyleSheet.create({
   content: { gap: spacing.md, paddingBottom: 120, paddingHorizontal: spacing.xl },
   headerRow: { alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between' },
-  title: { color: colors.ink, fontFamily: typography.display, fontSize: 28 },
+  title: { fontFamily: typography.display, fontSize: 28 },
   sectionLabel: {
-    color: colors.muted,
     fontSize: 13,
     fontWeight: '700',
     textTransform: 'uppercase',
   },
   card: { gap: spacing.md },
   cardTop: { alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between' },
-  cardCode: { color: colors.ink, fontSize: 16, fontWeight: '800', letterSpacing: 1 },
-  cardMeta: { color: colors.muted, fontSize: 13 },
+  cardCode: { fontSize: 16, fontWeight: '800', letterSpacing: 1 },
+  cardMeta: { fontSize: 13 },
 });

@@ -2,12 +2,15 @@ import { useEffect, useState } from 'react';
 import { Animated, Pressable, Text, View } from 'react-native';
 
 import { ContactlessIcon } from '@/components/nfc/NfcIcons';
-import { nfcVerificationStyles as styles } from '@/screens/nfcVerificationStyles';
+import { makeStyles } from '@/screens/nfcVerificationStyles';
+import { usePalette } from '@/theme';
 
 const RIPPLE_DELAYS = [0, 620, 1240];
 
 export function NfcScanVisual({ onScanComplete }: { onScanComplete?: () => void }) {
   const [ripples] = useState(() => RIPPLE_DELAYS.map(() => new Animated.Value(0)));
+  const p = usePalette();
+  const styles = makeStyles(p);
 
   useEffect(() => {
     const animations = ripples.map((ripple, index) =>

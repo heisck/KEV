@@ -1,4 +1,4 @@
-import { api, CORRELATION_HEADER } from '@/api/client';
+import { api, CORRELATION_HEADER, setOnAuthExpired } from '@/api/client';
 
 describe('api client', () => {
   it('is configured with the backend base URL', () => {
@@ -7,5 +7,11 @@ describe('api client', () => {
 
   it('exposes the correlation-id header name shared with the backend', () => {
     expect(CORRELATION_HEADER).toBe('X-Correlation-Id');
+  });
+
+  it('accepts and clears an auth-expired handler without throwing', () => {
+    const handler = jest.fn();
+    expect(() => setOnAuthExpired(handler)).not.toThrow();
+    expect(() => setOnAuthExpired(null)).not.toThrow();
   });
 });

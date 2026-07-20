@@ -1,257 +1,287 @@
 import Constants from 'expo-constants';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
+import { type ReactNode } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
-import Svg, { Circle, Ellipse } from 'react-native-svg';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { CrownIcon, DocIcon, EllipsisIcon, PinIcon } from '@/components/kev/icons';
+import type { CheckInMethod } from '@/api/schemas';
+import {
+  BackIcon,
+  ChevronRightIcon,
+  DocIcon,
+  LogoutIcon,
+  MailIcon,
+  PencilIcon,
+  PinIcon,
+  ScanFrameIcon,
+} from '@/components/kev/icons';
+import { SegmentedControl, SettingToggle } from '@/components/settings/SettingsControls';
 import { HapticPressable } from '@/components/ui/HapticPressable';
 import { useAuthStore } from '@/store/authStore';
-import { colors, radii, spacing } from '@/theme';
+import { useSettingsStore, type ThemePreference } from '@/store/settingsStore';
+import { radii, spacing, usePalette, type Palette } from '@/theme';
 
-const REPORTS = ['CS101_attendance.pdf', 'MA204_flagged.docx', 'PH110_report.pdf'] as const;
+const THEME_OPTIONS: { value: ThemePreference; label: string }[] = [
+  { value: 'light', label: 'Light' },
+  { value: 'dark', label: 'Dark' },
+  { value: 'system', label: 'System' },
+];
 
-/** Soft lavender blobs behind the profile header (reference layout). */
-function BannerBlobs() {
+const SCAN_OPTIONS: { value: CheckInMethod; label: string }[] = [
+  { value: 'FACE', label: 'Face' },
+  { value: 'NFC', label: 'NFC' },
+  { value: 'MANUAL', label: 'Manual' },
+];
+
+/** Small-caps section label above a grouped block. */
+function SectionLabel({ text, p }: { text: string; p: Palette }) {
+  return <Text style={[styles.sectionLabel, { color: p.muted }]}>{text}</Text>;
+}
+
+/** Icon-in-a-tint · label · trailing (chevron by default). */
+function Row({
+  icon,
+  label,
+  p,
+  onPress,
+  danger,
+  trailing,
+  testID,
+}: {
+  icon: ReactNode;
+  label: string;
+  p: Palette;
+  onPress?: () => void;
+  danger?: boolean;
+  trailing?: ReactNode;
+  testID?: string;
+}) {
+  const color = danger ? p.error : p.ink;
   return (
-    <Svg width="100%" height="100%" viewBox="0 0 300 120" preserveAspectRatio="xMidYMid slice">
-      <Ellipse cx={40} cy={110} rx={90} ry={55} fill={colors.mintDeep} opacity={0.8} />
-      <Circle cx={250} cy={20} r={60} fill={colors.mintDeep} opacity={0.55} />
-      <Circle cx={160} cy={130} r={45} fill={colors.primary12} />
-    </Svg>
+    <HapticPressable
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      disabled={!onPress}
+      haptic={onPress ? 'select' : 'none'}
+      onPress={onPress}
+      style={[styles.row, { borderBottomColor: p.hairline }]}
+      testID={testID}
+    >
+      <View style={[styles.rowIcon, { backgroundColor: danger ? p.errorSoft : p.mint }]}>
+        {icon}
+      </View>
+      <Text style={[styles.rowLabel, { color }]}>{label}</Text>
+      {trailing ?? <ChevronRightIcon color={danger ? p.error : p.muted} />}
+    </HapticPressable>
   );
 }
 
-/** Profile — banner card, overlapping avatar, meta chips, note and report docs. */
+/** Profile — identity header, preferences and account rows (reference layout). */
 export function ProfileScreen() {
   const router = useRouter();
   const { top } = useSafeAreaInsets();
+  const p = usePalette();
   const user = useAuthStore((s) => s.user);
   const signOut = useAuthStore((s) => s.signOut);
+  const settings = useSettingsStore();
   const version = Constants.expoConfig?.version ?? '1.0.0';
   const name = user?.displayName ?? 'Invigilator';
+  const email = user?.email ?? 'No email on file';
 
   return (
-    <ScrollView
-      style={styles.screen}
-      contentContainerStyle={[styles.content, { paddingTop: top + spacing.md }]}
-      showsVerticalScrollIndicator={false}
-    >
-      <View style={styles.card}>
-        <View style={styles.banner}>
-          <BannerBlobs />
-          <View style={styles.bannerBar}>
-            <Text style={styles.bannerTitle}>Profile</Text>
-            <HapticPressable
-              accessibilityRole="button"
-              accessibilityLabel="Account upgrade options"
-              style={styles.moreButton}
-              onPress={() => router.push('/upgrade')}
-            >
-              <EllipsisIcon color={colors.ink} />
-            </HapticPressable>
-          </View>
-        </View>
+    <View style={[styles.screen, { backgroundColor: p.primary }]}>
+      <View style={[styles.band, { paddingTop: top + spacing.sm }]}>
+        <HapticPressable
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
+          haptic="select"
+          onPress={() => (router.canGoBack() ? router.back() : router.push('/(tabs)'))}
+          style={styles.bandBtn}
+        >
+          <BackIcon color={p.onPrimary} size={20} />
+        </HapticPressable>
+        <Text style={[styles.bandTitle, { color: p.onPrimary }]}>Profile</Text>
+        <HapticPressable
+          accessibilityRole="button"
+          accessibilityLabel="Edit profile"
+          haptic="select"
+          onPress={() => router.push('/edit-profile')}
+          style={styles.bandBtn}
+        >
+          <PencilIcon color={p.onPrimary} size={16} />
+        </HapticPressable>
+      </View>
 
-        <View style={styles.avatarRing}>
-          {user?.pictureUrl ? (
-            <Image source={{ uri: user.pictureUrl }} style={styles.avatar} contentFit="cover" />
-          ) : (
-            <View style={[styles.avatar, styles.avatarFallback]}>
-              <Text style={styles.avatarInitial}>{name.charAt(0).toUpperCase()}</Text>
-            </View>
-          )}
-        </View>
-
-        <Text style={styles.name}>{name}</Text>
-        <View style={styles.chipRow}>
-          <View style={styles.chip}>
-            <PinIcon color={colors.primary} />
-            <Text style={styles.chipText}>KNUST Campus</Text>
-          </View>
-          <View style={styles.chip}>
-            <Text style={styles.chipText}>{user?.role ?? 'USER'}</Text>
-          </View>
-          <View style={[styles.chip, styles.chipPlan]}>
-            <Text style={[styles.chipText, styles.chipPlanText]}>{user?.plan ?? 'FREE'}</Text>
-          </View>
-        </View>
-
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>About</Text>
-          <Text style={styles.note}>
-            {user?.email ?? 'No email on file.'}
-            {'\n'}KEV exam verifier · Version {version}
-          </Text>
-        </View>
-
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Recent reports</Text>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.docs}
-          >
-            {REPORTS.map((doc) => (
-              <HapticPressable
-                key={doc}
-                accessibilityRole="button"
-                accessibilityLabel={`Open ${doc}`}
-                onPress={() => router.push('/(tabs)/sessions')}
-                style={styles.doc}
+      <ScrollView
+        style={[styles.sheet, { backgroundColor: p.bg }]}
+        contentContainerStyle={styles.sheetBody}
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={styles.identity}>
+          <View style={[styles.avatarRing, { borderColor: p.hairline }]}>
+            {user?.pictureUrl ? (
+              <Image source={{ uri: user.pictureUrl }} style={styles.avatar} contentFit="cover" />
+            ) : (
+              <View
+                style={[styles.avatar, styles.avatarFallback, { backgroundColor: p.primary12 }]}
               >
-                <View style={styles.docBadge}>
-                  <DocIcon color={colors.primary} />
-                </View>
-                <Text numberOfLines={2} style={styles.docName}>
-                  {doc}
+                <Text style={[styles.avatarInitial, { color: p.primary }]}>
+                  {name.charAt(0).toUpperCase()}
                 </Text>
-              </HapticPressable>
-            ))}
-          </ScrollView>
+              </View>
+            )}
+          </View>
+          <Text style={[styles.name, { color: p.ink }]}>{name}</Text>
+          <Text style={[styles.email, { color: p.muted }]}>{email}</Text>
         </View>
-      </View>
 
-      <View style={styles.footerRow}>
-        <HapticPressable
-          accessibilityRole="button"
-          accessibilityLabel="Upgrade to Premium"
-          onPress={() => router.push('/upgrade')}
-          style={styles.premium}
-        >
-          <CrownIcon color={colors.primary} />
-          <Text style={styles.premiumText}>Premium</Text>
-        </HapticPressable>
-        <HapticPressable
-          accessibilityRole="button"
-          testID="profile-sign-out"
+        <SectionLabel text="Location" p={p} />
+        <Row
+          icon={<PinIcon color={p.primary} size={16} />}
+          label="KNUST Campus"
+          p={p}
+          onPress={() => router.push('/edit-profile')}
+        />
+
+        <SectionLabel text="Preferences" p={p} />
+        <Row
+          icon={<ScanFrameIcon color={p.primary} size={18} />}
+          label="Appearance"
+          p={p}
+          trailing={
+            <SegmentedControl
+              options={THEME_OPTIONS}
+              value={settings.theme}
+              onChange={settings.setTheme}
+              palette={p}
+            />
+          }
+        />
+        <Row
+          icon={<ScanFrameIcon color={p.primary} size={18} />}
+          label="Scan method"
+          p={p}
+          trailing={
+            <SegmentedControl
+              options={SCAN_OPTIONS}
+              value={settings.defaultScanMethod}
+              onChange={settings.setDefaultScanMethod}
+              palette={p}
+            />
+          }
+        />
+        <Row
+          icon={<DocIcon color={p.primary} size={18} />}
+          label="Show result page"
+          p={p}
+          trailing={
+            <SettingToggle
+              value={settings.showSuccessPage}
+              onToggle={() => settings.setShowSuccessPage(!settings.showSuccessPage)}
+              palette={p}
+              testID="setting-success-page"
+            />
+          }
+        />
+        <Row
+          icon={<MailIcon color={p.primary} size={18} />}
+          label="Notifications"
+          p={p}
+          trailing={
+            <SettingToggle
+              value={settings.notificationsEnabled}
+              onToggle={() => settings.setNotificationsEnabled(!settings.notificationsEnabled)}
+              palette={p}
+              testID="setting-notifications"
+            />
+          }
+        />
+
+        <SectionLabel text="Account" p={p} />
+        <Row
+          icon={<DocIcon color={p.primary} size={18} />}
+          label="Recent reports"
+          p={p}
+          onPress={() => router.push('/(tabs)')}
+        />
+        <Row
+          icon={<MailIcon color={p.primary} size={18} />}
+          label="Email-in"
+          p={p}
+          onPress={() => router.push('/edit-profile')}
+        />
+        <Row
+          icon={<LogoutIcon color={p.error} size={18} />}
+          label="Log out"
+          p={p}
+          danger
           onPress={() => void signOut()}
-          style={styles.signOut}
-        >
-          <Text style={styles.signOutText}>Sign out</Text>
-        </HapticPressable>
-      </View>
-    </ScrollView>
+          testID="profile-sign-out"
+        />
+
+        <Text style={[styles.version, { color: p.muted }]}>KEV exam verifier · v{version}</Text>
+      </ScrollView>
+    </View>
   );
 }
 
 const AVATAR = 92;
 
 const styles = StyleSheet.create({
-  screen: { backgroundColor: colors.white, flex: 1 },
-  content: { gap: spacing.lg, paddingBottom: spacing.xxxl, paddingHorizontal: spacing.xl },
-  card: {
-    backgroundColor: colors.white,
-    borderColor: colors.hairline,
-    borderRadius: radii.xl,
-    borderWidth: 1,
-    overflow: 'hidden',
-    paddingBottom: spacing.lg,
-  },
-  banner: { borderRadius: radii.lg, height: 120, margin: spacing.sm, overflow: 'hidden' },
-  bannerBar: {
-    ...StyleSheet.absoluteFillObject,
-    alignItems: 'flex-start',
+  screen: { flex: 1 },
+  band: {
+    alignItems: 'center',
     flexDirection: 'row',
     justifyContent: 'space-between',
-    padding: spacing.md,
+    paddingBottom: spacing.xl,
+    paddingHorizontal: spacing.xl,
   },
-  bannerTitle: {
-    color: colors.ink,
-    flex: 1,
-    fontSize: 16,
-    fontWeight: '700',
-    marginLeft: 36 + spacing.md, // optical centering against the more button
-    textAlign: 'center',
-  },
-  moreButton: {
+  bandBtn: {
     alignItems: 'center',
-    backgroundColor: colors.white,
     borderRadius: radii.pill,
-    height: 36,
-    justifyContent: 'center',
-    width: 36,
-  },
-  avatarRing: {
-    alignSelf: 'center',
-    backgroundColor: colors.white,
-    borderRadius: (AVATAR + 12) / 2,
-    marginTop: -(AVATAR / 2) - spacing.sm,
-    padding: 6,
-  },
-  avatar: { borderRadius: AVATAR / 2, height: AVATAR, width: AVATAR },
-  avatarFallback: {
-    alignItems: 'center',
-    backgroundColor: colors.primary12,
-    justifyContent: 'center',
-  },
-  avatarInitial: { color: colors.primary, fontSize: 34, fontWeight: '800' },
-  name: {
-    color: colors.ink,
-    fontSize: 22,
-    fontWeight: '800',
-    marginTop: spacing.sm,
-    textAlign: 'center',
-  },
-  chipRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing.sm,
-    justifyContent: 'center',
-    marginTop: spacing.md,
-    paddingHorizontal: spacing.lg,
-  },
-  chip: {
-    alignItems: 'center',
-    backgroundColor: colors.mint,
-    borderRadius: radii.pill,
-    flexDirection: 'row',
-    gap: 5,
-    paddingHorizontal: spacing.md,
-    paddingVertical: 5,
-  },
-  chipText: { color: colors.inkSoft, fontSize: 11, fontWeight: '700' },
-  chipPlan: { backgroundColor: colors.pinkSoft },
-  chipPlanText: { color: colors.pink },
-  section: { gap: spacing.sm, paddingHorizontal: spacing.lg, paddingTop: spacing.xl },
-  sectionTitle: { color: colors.ink, fontSize: 16, fontWeight: '800' },
-  note: { color: colors.muted, fontSize: 13, fontWeight: '500', lineHeight: 20 },
-  docs: { gap: spacing.md },
-  doc: {
-    backgroundColor: colors.surfaceDim,
-    borderRadius: radii.md,
-    gap: spacing.sm,
-    padding: spacing.md,
-    width: 108,
-  },
-  docBadge: {
-    alignItems: 'center',
-    backgroundColor: colors.primary12,
-    borderRadius: radii.sm,
     height: 40,
     justifyContent: 'center',
     width: 40,
   },
-  docName: { color: colors.inkSoft, fontSize: 11, fontWeight: '600' },
-  footerRow: { flexDirection: 'row', gap: spacing.md },
-  premium: {
-    alignItems: 'center',
-    borderColor: colors.hairline,
-    borderRadius: radii.pill,
-    borderWidth: 1,
-    flexDirection: 'row',
-    gap: 6,
-    justifyContent: 'center',
-    paddingHorizontal: spacing.xl,
-  },
-  premiumText: { color: colors.ink, fontSize: 13, fontWeight: '700' },
-  signOut: {
-    alignItems: 'center',
-    backgroundColor: colors.primary,
-    borderRadius: radii.pill,
+  bandTitle: { fontSize: 18, fontWeight: '700' },
+  sheet: {
+    borderTopLeftRadius: radii.xl,
+    borderTopRightRadius: radii.xl,
     flex: 1,
-    paddingVertical: spacing.lg - 2,
+    marginTop: -spacing.md,
   },
-  signOutText: { color: colors.white, fontSize: 14, fontWeight: '700' },
+  sheetBody: { paddingBottom: spacing.xxxl, paddingHorizontal: spacing.xl },
+  identity: { alignItems: 'center', paddingBottom: spacing.md, paddingTop: spacing.xl },
+  avatarRing: { borderRadius: (AVATAR + 12) / 2, borderWidth: 3, padding: 3 },
+  avatar: { borderRadius: AVATAR / 2, height: AVATAR, width: AVATAR },
+  avatarFallback: { alignItems: 'center', justifyContent: 'center' },
+  avatarInitial: { fontSize: 34, fontWeight: '800' },
+  name: { fontSize: 20, fontWeight: '800', marginTop: spacing.md },
+  email: { fontSize: 13, fontWeight: '500', marginTop: 2 },
+  sectionLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 0.6,
+    paddingBottom: spacing.xs,
+    paddingTop: spacing.xl,
+    textTransform: 'uppercase',
+  },
+  row: {
+    alignItems: 'center',
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    flexDirection: 'row',
+    gap: spacing.md,
+    minHeight: 56,
+    paddingVertical: spacing.md,
+  },
+  rowIcon: {
+    alignItems: 'center',
+    borderRadius: radii.pill,
+    height: 34,
+    justifyContent: 'center',
+    width: 34,
+  },
+  rowLabel: { flex: 1, fontSize: 15, fontWeight: '600' },
+  version: { fontSize: 12, fontWeight: '500', paddingTop: spacing.xl, textAlign: 'center' },
 });

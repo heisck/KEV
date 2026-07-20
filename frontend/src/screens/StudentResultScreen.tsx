@@ -13,7 +13,8 @@ import { DoodleEmpty } from '@/components/doodles/DoodleEmpty';
 import { VerifiedBadgeIcon } from '@/components/nfc/NfcIcons';
 import { FaceVerifyPanel } from '@/components/scan/FaceVerifyPanel';
 import { AppButton, Card, EmptyState, StatusPill } from '@/components/ui';
-import { studentResultStyles as styles } from '@/screens/studentResultStyles';
+import { makeStyles } from '@/screens/studentResultStyles';
+import { usePalette } from '@/theme';
 
 const FEES_TONE: Record<FeesStatus, 'success' | 'warn' | 'error'> = {
   PAID: 'success',
@@ -29,6 +30,8 @@ type StudentResultScreenProps = {
 
 /** Modal result of a scan: directory record, eligibility pills, Mark IN and face verify. */
 export function StudentResultScreen({ indexNumber, sessionId, method }: StudentResultScreenProps) {
+  const p = usePalette();
+  const styles = makeStyles(p);
   const { data: student, isLoading, error } = useStudentLookup(indexNumber);
   const checkIn = useCheckIn(sessionId);
   const [showFace, setShowFace] = useState(false);

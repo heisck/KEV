@@ -63,7 +63,7 @@ public class ExamSession {
     private String endTime;
 
     @Column(name = "verification_methods")
-    private String verificationMethods = "FACE,QR,MANUAL";
+    private String verificationMethods = "FACE,NFC,MANUAL";
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)

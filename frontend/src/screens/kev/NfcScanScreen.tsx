@@ -14,13 +14,14 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ScreenTopBar } from '@/components/kev/chrome';
 import { NfcIcon } from '@/components/kev/icons';
 import { useMockScan } from '@/hooks/useMockScan';
-import { colors, radii, shadows, spacing } from '@/theme';
+import { radii, shadows, spacing, usePalette } from '@/theme';
 
 const SCAN_DELAY_MS = 3000;
 
 /** NFC scan — card floats to the phone and back until a tag is detected. */
 export function NfcScanScreen() {
   const router = useRouter();
+  const p = usePalette();
   const { top } = useSafeAreaInsets();
   const { exam } = useLocalSearchParams<{ exam?: string }>();
   const completeScan = useMockScan(exam ?? '1', 'NFC');
@@ -47,39 +48,39 @@ export function NfcScanScreen() {
   const wavesStyle = useAnimatedStyle(() => ({ opacity: 0.25 + drift.value * 0.75 }));
 
   return (
-    <View style={[styles.screen, { paddingTop: top + spacing.md }]}>
+    <View style={[styles.screen, { backgroundColor: p.bg, paddingTop: top + spacing.md }]}>
       <ScreenTopBar title="NFC scan" onBack={() => router.back()} />
 
       <View style={styles.stage}>
-        <View style={styles.phone}>
-          <View style={styles.phoneNotch} />
+        <View style={[styles.phone, { backgroundColor: p.surfaceDim, borderColor: p.hairline }]}>
+          <View style={[styles.phoneNotch, { backgroundColor: p.hairline }]} />
           <Animated.View style={wavesStyle}>
-            <NfcIcon color={colors.primary} size={34} />
+            <NfcIcon color={p.primary} size={34} />
           </Animated.View>
         </View>
 
-        <Animated.View style={[styles.card, cardStyle]}>
-          <View style={styles.cardChip} />
-          <NfcIcon color={colors.white} size={20} />
-          <Text style={styles.cardText}>Student ID</Text>
+        <Animated.View style={[styles.card, { backgroundColor: p.primary }, cardStyle]}>
+          <View style={[styles.cardChip, { backgroundColor: p.warn }]} />
+          <NfcIcon color={p.onPrimary} size={20} />
+          <Text style={[styles.cardText, { color: p.onPrimary }]}>Student ID</Text>
         </Animated.View>
       </View>
 
       <View style={styles.copy}>
-        <Text style={styles.title}>Hold the card near the phone</Text>
-        <Text style={styles.sub}>Keep the student ID steady until it reads.</Text>
+        <Text style={[styles.title, { color: p.ink }]}>Hold the card near the phone</Text>
+        <Text style={[styles.sub, { color: p.muted }]}>
+          Keep the student ID steady until it reads.
+        </Text>
       </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: { backgroundColor: colors.white, flex: 1, paddingHorizontal: spacing.xl },
+  screen: { flex: 1, paddingHorizontal: spacing.xl },
   stage: { alignItems: 'center', flex: 1, justifyContent: 'center' },
   phone: {
     alignItems: 'center',
-    backgroundColor: colors.surfaceDim,
-    borderColor: colors.hairline,
     borderRadius: radii.xl,
     borderWidth: 2,
     height: 224,
@@ -87,7 +88,6 @@ const styles = StyleSheet.create({
     width: 124,
   },
   phoneNotch: {
-    backgroundColor: colors.hairline,
     borderRadius: radii.pill,
     height: 5,
     position: 'absolute',
@@ -96,7 +96,6 @@ const styles = StyleSheet.create({
   },
   card: {
     alignItems: 'flex-start',
-    backgroundColor: colors.primary,
     borderRadius: radii.md,
     gap: 6,
     height: 74,
@@ -107,7 +106,6 @@ const styles = StyleSheet.create({
     ...shadows.floating,
   },
   cardChip: {
-    backgroundColor: colors.warn,
     borderRadius: 3,
     height: 12,
     position: 'absolute',
@@ -115,8 +113,8 @@ const styles = StyleSheet.create({
     top: spacing.md,
     width: 16,
   },
-  cardText: { color: colors.white, fontSize: 11, fontWeight: '700' },
+  cardText: { fontSize: 11, fontWeight: '700' },
   copy: { alignItems: 'center', gap: 4, paddingBottom: spacing.xxxl * 2 },
-  title: { color: colors.ink, fontSize: 18, fontWeight: '800' },
-  sub: { color: colors.muted, fontSize: 13, fontWeight: '500' },
+  title: { fontSize: 18, fontWeight: '800' },
+  sub: { fontSize: 13, fontWeight: '500' },
 });

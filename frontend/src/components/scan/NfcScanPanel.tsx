@@ -3,7 +3,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import { NfcScanVisual } from '@/components/nfc/NfcScanVisual';
 import { AppButton } from '@/components/ui';
 import { useNfcScan, type NfcErrorKind, type NfcScanStatus } from '@/hooks/useNfcScan';
-import { colors, spacing } from '@/theme';
+import { spacing, usePalette } from '@/theme';
 
 const STATUS_COPY: Record<NfcScanStatus, string> = {
   idle: 'Hold a student card near the phone, then start the scan.',
@@ -27,13 +27,14 @@ type NfcScanPanelProps = { onIndexNumber: (indexNumber: string) => void };
 
 /** NFC mode: reuses the animated scan visual with a start/cancel button and status copy. */
 export function NfcScanPanel({ onIndexNumber }: NfcScanPanelProps) {
+  const p = usePalette();
   const { status, error, start, cancel } = useNfcScan({ onIndexNumber });
   const isBusy = status === 'requesting' || status === 'scanning' || status === 'reading';
 
   return (
     <View style={styles.panel}>
       <NfcScanVisual />
-      <Text style={styles.status} testID="nfc-status">
+      <Text style={[styles.status, { color: p.inkSoft }]} testID="nfc-status">
         {status === 'error' && error ? ERROR_COPY[error] : STATUS_COPY[status]}
       </Text>
       <AppButton
@@ -48,5 +49,5 @@ export function NfcScanPanel({ onIndexNumber }: NfcScanPanelProps) {
 
 const styles = StyleSheet.create({
   panel: { alignItems: 'stretch', gap: spacing.lg },
-  status: { color: colors.inkSoft, fontSize: 14, lineHeight: 20, textAlign: 'center' },
+  status: { fontSize: 14, lineHeight: 20, textAlign: 'center' },
 });

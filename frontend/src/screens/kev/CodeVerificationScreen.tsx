@@ -6,13 +6,14 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ScreenTopBar } from '@/components/kev/chrome';
 import { LockIcon, PencilIcon } from '@/components/kev/icons';
 import { HapticPressable } from '@/components/ui/HapticPressable';
-import { colors, radii, spacing } from '@/theme';
+import { colors, radii, spacing, usePalette } from '@/theme';
 
 const CODE_LENGTH = 5;
 
 /** Code verification — dashed lock badge, five code boxes, resend + submit. */
 export function CodeVerificationScreen() {
   const router = useRouter();
+  const p = usePalette();
   const { top } = useSafeAreaInsets();
   const { contact } = useLocalSearchParams<{ contact?: string }>();
   const inputRef = useRef<TextInput>(null);
@@ -20,18 +21,20 @@ export function CodeVerificationScreen() {
   const complete = code.length === CODE_LENGTH;
 
   return (
-    <View style={[styles.screen, { paddingTop: top + spacing.md }]}>
+    <View style={[styles.screen, { backgroundColor: p.bg, paddingTop: top + spacing.md }]}>
       <ScreenTopBar title="Verification" onBack={() => router.back()} />
 
       <View style={styles.body}>
-        <View style={styles.dashRing}>
-          <View style={styles.lockBadge}>
-            <LockIcon color={colors.white} size={30} />
+        <View style={[styles.dashRing, { borderColor: p.mintDeep }]}>
+          <View style={[styles.lockBadge, { backgroundColor: p.primaryDeep }]}>
+            <LockIcon color={p.onPrimary} size={30} />
           </View>
         </View>
 
-        <Text style={styles.title}>Verification Code</Text>
-        <Text style={styles.sub}>We sent a verification code to{'\n'}your registered contact.</Text>
+        <Text style={[styles.title, { color: p.ink }]}>Verification Code</Text>
+        <Text style={[styles.sub, { color: p.muted }]}>
+          We sent a verification code to{'\n'}your registered contact.
+        </Text>
 
         <HapticPressable
           accessibilityRole="button"
@@ -42,8 +45,17 @@ export function CodeVerificationScreen() {
           {Array.from({ length: CODE_LENGTH }, (_, i) => {
             const digit = code[i];
             return (
-              <View key={i} style={[styles.box, digit ? styles.boxFilled : null]}>
-                <Text style={styles.boxDigit}>{digit ?? ''}</Text>
+              <View
+                key={i}
+                style={[
+                  styles.box,
+                  { backgroundColor: p.mint },
+                  digit
+                    ? [styles.boxFilled, { backgroundColor: p.surface, borderColor: p.primaryDeep }]
+                    : null,
+                ]}
+              >
+                <Text style={[styles.boxDigit, { color: p.ink }]}>{digit ?? ''}</Text>
               </View>
             );
           })}
@@ -59,14 +71,16 @@ export function CodeVerificationScreen() {
         />
 
         <View style={styles.contactRow}>
-          <Text style={styles.contact}>{contact ?? 'your account contact'}</Text>
+          <Text style={[styles.contact, { color: p.muted }]}>
+            {contact ?? 'your account contact'}
+          </Text>
           <HapticPressable
             accessibilityRole="button"
             accessibilityLabel="Edit contact"
             onPress={() => router.back()}
-            style={styles.editButton}
+            style={[styles.editButton, { borderColor: p.hairline }]}
           >
-            <PencilIcon color={colors.inkSoft} />
+            <PencilIcon color={p.inkSoft} />
           </HapticPressable>
         </View>
       </View>
@@ -75,19 +89,23 @@ export function CodeVerificationScreen() {
         <HapticPressable
           accessibilityRole="button"
           onPress={() => setCode('')}
-          style={styles.resend}
+          style={[styles.resend, { borderColor: p.hairline }]}
           testID="verify-code-resend"
         >
-          <Text style={styles.resendText}>Send Again</Text>
+          <Text style={[styles.resendText, { color: p.ink }]}>Send Again</Text>
         </HapticPressable>
         <HapticPressable
           accessibilityRole="button"
           disabled={!complete}
           onPress={() => router.back()}
-          style={[styles.submit, !complete && styles.submitDisabled]}
+          style={[
+            styles.submit,
+            { backgroundColor: p.primaryDeep },
+            !complete && styles.submitDisabled,
+          ]}
           testID="verify-code-submit"
         >
-          <Text style={styles.submitText}>Submit</Text>
+          <Text style={[styles.submitText, { color: p.onPrimary }]}>Submit</Text>
         </HapticPressable>
       </View>
     </View>

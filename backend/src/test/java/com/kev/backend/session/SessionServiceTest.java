@@ -55,11 +55,14 @@ class SessionServiceTest {
         when(invigilators.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
         SessionDto dto = service.create(
-                creator, new CreateSessionRequest("JQB", "GF", "12", List.of("DCIT 301", "DCIT 305"), null, null));
+                creator,
+                new CreateSessionRequest(
+                        null, "JQB", "GF", "12", List.of("DCIT 301", "DCIT 305"), null, null, null, null, null, null));
 
         assertThat(dto.sessionCode()).matches("KEV-[2-9A-HJKMNP-Z]{4}");
         assertThat(dto.courseCodes()).containsExactly("DCIT 301", "DCIT 305");
-        assertThat(dto.status()).isEqualTo("ACTIVE");
+        // No exam date set → treated as UPCOMING (unscheduled, just created).
+        assertThat(dto.status()).isEqualTo("UPCOMING");
     }
 
     @Test

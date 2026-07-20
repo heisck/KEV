@@ -12,16 +12,17 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { useInvigilators } from '@/api/hooks';
+import { useLecturers } from '@/api/hooks';
 import { api } from '@/api/client';
 import { BackIcon, SearchIcon } from '@/components/kev/icons';
 import { Avatar, type PersonKey } from '@/components/kev/people';
 import { HapticPressable } from '@/components/ui/HapticPressable';
 import { useChatStore, type ChatMessage } from '@/store/chatStore';
-import { colors, radii, spacing } from '@/theme';
+import { colors, radii, spacing, usePalette } from '@/theme';
 
 /** Lecturer inbox + thread. Open via `/(tabs)/chat?with=<lecturerId>`. */
 export function ChatScreen() {
+  const p = usePalette();
   const { top, bottom } = useSafeAreaInsets();
   const { with: withId } = useLocalSearchParams<{ with?: string }>();
   const threads = useChatStore((s) => s.threads);
@@ -34,7 +35,7 @@ export function ChatScreen() {
   const [searchQuery, setSearchQuery] = useState('');
   const listRef = useRef<FlatList>(null);
 
-  const { data: lecturers } = useInvigilators();
+  const { data: lecturers } = useLecturers();
 
   // Deep-link from "Message in chat" / invigilators.
   useEffect(() => {
@@ -98,11 +99,11 @@ export function ChatScreen() {
   if (activeId && peer) {
     return (
       <KeyboardAvoidingView
-        style={[styles.screen, { paddingTop: top + spacing.md }]}
+        style={[styles.screen, { backgroundColor: p.bg, paddingTop: top + spacing.md }]}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         keyboardVerticalOffset={8}
       >
-        <View style={styles.threadHeader}>
+        <View style={[styles.threadHeader, { borderBottomColor: p.hairline }]}>
           <HapticPressable
             accessibilityRole="button"
             accessibilityLabel="Back to inbox"
@@ -111,14 +112,14 @@ export function ChatScreen() {
             onPress={closeThread}
             style={styles.backBtn}
           >
-            <BackIcon color={colors.ink} />
+            <BackIcon color={p.ink} />
           </HapticPressable>
           <Avatar person={peer.person as PersonKey} size={36} verified />
           <View style={styles.threadHeadText}>
-            <Text style={styles.threadName} numberOfLines={1}>
+            <Text style={[styles.threadName, { color: p.ink }]} numberOfLines={1}>
               {peer.name}
             </Text>
-            <Text style={styles.threadSub} numberOfLines={1}>
+            <Text style={[styles.threadSub, { color: p.muted }]} numberOfLines={1}>
               {peer.hall}
             </Text>
           </View>
@@ -131,25 +132,49 @@ export function ChatScreen() {
           contentContainerStyle={styles.messages}
           onContentSizeChange={() => listRef.current?.scrollToEnd({ animated: false })}
           ListEmptyComponent={
-            <Text style={styles.threadEmpty}>Say hello — start of your conversation.</Text>
+            <Text style={[styles.threadEmpty, { color: p.muted }]}>
+              Say hello — start of your conversation.
+            </Text>
           }
           renderItem={({ item }) => (
-            <View style={[styles.bubble, item.mine ? styles.bubbleMine : styles.bubbleTheirs]}>
-              <Text style={[styles.bubbleText, item.mine && styles.bubbleTextMine]}>
+            <View
+              style={[
+                styles.bubble,
+                item.mine
+                  ? [styles.bubbleMine, { backgroundColor: p.primary }]
+                  : [styles.bubbleTheirs, { backgroundColor: p.surfaceDim }],
+              ]}
+            >
+              <Text
+                style={[
+                  styles.bubbleText,
+                  { color: p.ink },
+                  item.mine && [styles.bubbleTextMine, { color: p.onPrimary }],
+                ]}
+              >
                 {item.text}
               </Text>
-              <Text style={[styles.bubbleTime, item.mine && styles.bubbleTimeMine]}>{item.at}</Text>
+              <Text
+                style={[styles.bubbleTime, { color: p.muted }, item.mine && styles.bubbleTimeMine]}
+              >
+                {item.at}
+              </Text>
             </View>
           )}
         />
 
-        <View style={[styles.composer, { paddingBottom: Math.max(bottom, spacing.md) }]}>
+        <View
+          style={[
+            styles.composer,
+            { borderTopColor: p.hairline, paddingBottom: Math.max(bottom, spacing.md) },
+          ]}
+        >
           <TextInput
             value={draft}
             onChangeText={setDraft}
             placeholder="Message…"
-            placeholderTextColor={colors.muted}
-            style={styles.input}
+            placeholderTextColor={p.muted}
+            style={[styles.input, { backgroundColor: p.surfaceDim, color: p.ink }]}
             returnKeyType="send"
             onSubmitEditing={submit}
             testID="chat-input"
@@ -159,10 +184,14 @@ export function ChatScreen() {
             accessibilityLabel="Send message"
             disabled={!draft.trim()}
             onPress={submit}
-            style={[styles.send, !draft.trim() && styles.sendDisabled]}
+            style={[
+              styles.send,
+              { backgroundColor: p.primary },
+              !draft.trim() && styles.sendDisabled,
+            ]}
             testID="chat-send"
           >
-            <Text style={styles.sendText}>Send</Text>
+            <Text style={[styles.sendText, { color: p.onPrimary }]}>Send</Text>
           </HapticPressable>
         </View>
       </KeyboardAvoidingView>
@@ -174,21 +203,21 @@ export function ChatScreen() {
   );
 
   return (
-    <View style={[styles.screen, { paddingTop: top + spacing.md }]}>
-      <Text style={styles.title}>Chat Directory</Text>
-      <Text style={styles.subtitle}>
+    <View style={[styles.screen, { backgroundColor: p.bg, paddingTop: top + spacing.md }]}>
+      <Text style={[styles.title, { color: p.ink }]}>Chat Directory</Text>
+      <Text style={[styles.subtitle, { color: p.muted }]}>
         List every lecturer in the database. Select one to open conversation.
       </Text>
 
-      <View style={styles.search}>
-        <SearchIcon color={colors.muted} />
+      <View style={[styles.search, { backgroundColor: p.surfaceDim }]}>
+        <SearchIcon color={p.muted} />
         <TextInput
           value={searchQuery}
           onChangeText={setSearchQuery}
           placeholder="Search lecturers..."
-          placeholderTextColor={colors.muted}
+          placeholderTextColor={p.muted}
           autoCapitalize="none"
-          style={styles.searchInput}
+          style={[styles.searchInput, { color: p.ink }]}
           testID="chat-search"
         />
       </View>
@@ -203,17 +232,17 @@ export function ChatScreen() {
               accessibilityLabel={`Chat with ${i.displayName || i.email}`}
               haptic="select"
               onPress={() => openThread(i.id)}
-              style={styles.row}
+              style={[styles.row, { backgroundColor: p.surfaceDim }]}
               testID={`chat-row-${i.id}`}
             >
               <Avatar person="freja" size={48} verified />
               <View style={styles.rowText}>
-                <Text style={styles.rowName}>{i.displayName || i.email}</Text>
-                <Text style={styles.rowPreview} numberOfLines={1}>
+                <Text style={[styles.rowName, { color: p.ink }]}>{i.displayName || i.email}</Text>
+                <Text style={[styles.rowPreview, { color: p.muted }]} numberOfLines={1}>
                   {last?.text ?? 'Tap to start conversation'}
                 </Text>
               </View>
-              {last ? <Text style={styles.rowTime}>{last.at}</Text> : null}
+              {last ? <Text style={[styles.rowTime, { color: p.muted }]}>{last.at}</Text> : null}
             </HapticPressable>
           );
         })}

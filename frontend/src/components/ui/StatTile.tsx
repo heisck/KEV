@@ -1,7 +1,7 @@
 import { StyleSheet, Text, View } from 'react-native';
 
 import { HapticPressable } from '@/components/ui/HapticPressable';
-import { colors, radii, spacing } from '@/theme';
+import { radii, spacing, usePalette } from '@/theme';
 
 export type StatTileTone = 'neutral' | 'primary' | 'mint' | 'warn';
 
@@ -16,6 +16,25 @@ type StatTileProps = {
 
 /** Colored stat tile with a count badge — used in the 2×2 dashboard grid. */
 export function StatTile({ label, count, tone = 'neutral', icon, onPress, testID }: StatTileProps) {
+  const p = usePalette();
+  const tones = {
+    neutral: { backgroundColor: p.surfaceDim },
+    primary: { backgroundColor: p.primary12 },
+    mint: { backgroundColor: p.mint },
+    warn: { backgroundColor: p.warnSoft },
+  } as const;
+  const badges = {
+    neutral: { backgroundColor: p.surface },
+    primary: { backgroundColor: p.primary },
+    mint: { backgroundColor: p.primaryDeep },
+    warn: { backgroundColor: p.warn },
+  } as const;
+  const counts = {
+    neutral: { color: p.ink },
+    primary: { color: p.onPrimary },
+    mint: { color: p.onPrimary },
+    warn: { color: p.onPrimary },
+  } as const;
   return (
     <HapticPressable
       accessibilityRole={onPress ? 'button' : undefined}
@@ -31,7 +50,7 @@ export function StatTile({ label, count, tone = 'neutral', icon, onPress, testID
           <Text style={[styles.count, counts[tone]]}>{count}</Text>
         </View>
       </View>
-      <Text style={styles.label}>{label}</Text>
+      <Text style={[styles.label, { color: p.ink }]}>{label}</Text>
     </HapticPressable>
   );
 }
@@ -59,26 +78,5 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
   },
   count: { fontSize: 16, fontWeight: '800' },
-  label: { color: colors.ink, fontSize: 13, fontWeight: '600' },
-});
-
-const tones = StyleSheet.create({
-  neutral: { backgroundColor: colors.surfaceDim },
-  primary: { backgroundColor: colors.primary12 },
-  mint: { backgroundColor: colors.mint },
-  warn: { backgroundColor: colors.warnSoft },
-});
-
-const badges = StyleSheet.create({
-  neutral: { backgroundColor: colors.surface },
-  primary: { backgroundColor: colors.primary },
-  mint: { backgroundColor: colors.primaryDeep },
-  warn: { backgroundColor: colors.warn },
-});
-
-const counts = StyleSheet.create({
-  neutral: { color: colors.ink },
-  primary: { color: colors.white },
-  mint: { color: colors.white },
-  warn: { color: colors.white },
+  label: { fontSize: 13, fontWeight: '600' },
 });

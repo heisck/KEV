@@ -65,7 +65,7 @@ class AdminServiceTest {
     @Test
     void freeAdminBlockedAtLimitWithUpgradeHint() {
         stubAssignHappyPath();
-        when(invigilators.countActiveAssignmentsBy(adminId)).thenReturn(5L);
+        when(invigilators.countActiveAssignmentsBy(adminId)).thenReturn((long) AdminService.FREE_PLAN_ASSIGNMENT_LIMIT);
 
         assertThatThrownBy(() -> service.assign(adminId, 1L, targetId))
                 .isInstanceOf(ApiException.class)
@@ -80,7 +80,8 @@ class AdminServiceTest {
     @Test
     void freeAdminUnderLimitCanAssign() {
         stubAssignHappyPath();
-        when(invigilators.countActiveAssignmentsBy(adminId)).thenReturn(4L);
+        when(invigilators.countActiveAssignmentsBy(adminId))
+                .thenReturn((long) AdminService.FREE_PLAN_ASSIGNMENT_LIMIT - 1);
         when(invigilators.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
         assertThat(service.assign(adminId, 1L, targetId).assignedByAdmin()).isTrue();

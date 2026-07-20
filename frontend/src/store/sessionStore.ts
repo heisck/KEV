@@ -6,9 +6,6 @@ type SessionState = {
   /** Session ids this device has joined (entered the correct password for). */
   joined: Record<string, true>;
   join: (sessionId: string) => void;
-  /** When true, scanned students are added without the review step. */
-  autoAdd: boolean;
-  setAutoAdd: (value: boolean) => void;
   /** Students added by scanning, per session. */
   roster: Record<string, ScannedStudent[]>;
   addStudent: (sessionId: string, student: ScannedStudent) => void;
@@ -18,8 +15,6 @@ type SessionState = {
 export const useSessionStore = create<SessionState>((set) => ({
   joined: {},
   join: (sessionId) => set((s) => ({ joined: { ...s.joined, [sessionId]: true } })),
-  autoAdd: true,
-  setAutoAdd: (value) => set({ autoAdd: value }),
   roster: {},
   addStudent: (sessionId, student) =>
     set((s) => {

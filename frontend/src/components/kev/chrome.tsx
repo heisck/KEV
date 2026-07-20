@@ -3,7 +3,7 @@ import { StyleSheet, Text, View, type ViewStyle } from 'react-native';
 
 import { BackIcon, ClockIcon } from '@/components/kev/icons';
 import { GlassPressable } from '@/components/ui/GlassPressable';
-import { colors, radii, spacing } from '@/theme';
+import { radii, spacing, usePalette } from '@/theme';
 
 /** 48pt glass circle button (bell / back / scan). */
 export function CircleButton({
@@ -15,12 +15,13 @@ export function CircleButton({
   onPress?: () => void;
   label: string;
 }) {
+  const p = usePalette();
   return (
     <GlassPressable
       accessibilityLabel={label}
       onPress={onPress}
       surfaceStyle={styles.circle}
-      tintColor={colors.white}
+      tintColor={p.surface}
       glassEffectStyle="clear"
     >
       {children}
@@ -38,12 +39,13 @@ export function ScreenTopBar({
   onBack: () => void;
   trailing?: ReactNode;
 }) {
+  const p = usePalette();
   return (
     <View style={styles.topBar}>
       <CircleButton label="Go back" onPress={onBack}>
-        <BackIcon color={colors.ink} />
+        <BackIcon color={p.ink} />
       </CircleButton>
-      <Text style={styles.topTitle}>{title}</Text>
+      <Text style={[styles.topTitle, { color: p.ink }]}>{title}</Text>
       <View style={styles.trailing}>{trailing}</View>
     </View>
   );
@@ -51,14 +53,15 @@ export function ScreenTopBar({
 
 /** Pink "Upcoming" / green "Ongoing" pill — icon + label on one row. */
 export function StatusChip({ status }: { status: 'Upcoming' | 'Ongoing' }) {
+  const p = usePalette();
   const upcoming = status === 'Upcoming';
-  const tint = upcoming ? colors.pink : colors.success;
+  const tint = upcoming ? p.pink : p.success;
   return (
     <View
       style={[
         styles.chip,
         styles.chipRow,
-        { backgroundColor: upcoming ? colors.pinkSoft : colors.successSoft },
+        { backgroundColor: upcoming ? p.pinkSoft : p.successSoft },
       ]}
     >
       <ClockIcon color={tint} />
@@ -77,17 +80,18 @@ export function BlueChip({
   icon: ReactNode;
   onPress?: () => void;
 }) {
+  const p = usePalette();
   return (
     <GlassPressable
       haptic="select"
       onPress={onPress}
       surfaceStyle={[styles.chip, styles.blueChip]}
-      tintColor={colors.blueSoft}
+      tintColor={p.blueSoft}
       glassEffectStyle="clear"
     >
       <View style={styles.chipRow}>
         {icon}
-        <Text style={[styles.chipText, styles.blueText]}>{label}</Text>
+        <Text style={[styles.chipText, { color: p.blue }]}>{label}</Text>
       </View>
     </GlassPressable>
   );
@@ -103,7 +107,7 @@ const styles = StyleSheet.create({
     width: 48,
   },
   topBar: { alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between' },
-  topTitle: { color: colors.ink, fontSize: 16, fontWeight: '700' },
+  topTitle: { fontSize: 16, fontWeight: '700' },
   trailing: { alignItems: 'flex-end', minWidth: 48 },
   chip: {
     alignSelf: 'flex-start',
@@ -115,5 +119,4 @@ const styles = StyleSheet.create({
   chipRow: { alignItems: 'center', flexDirection: 'row', gap: 5 },
   chipText: { fontSize: 12, fontWeight: '600' },
   blueChip: {},
-  blueText: { color: colors.blue },
 } as const satisfies Record<string, ViewStyle | object>);

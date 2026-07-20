@@ -5,7 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { GlassSurface } from '@/components/ui/GlassSurface';
 import { HapticPressable } from '@/components/ui/HapticPressable';
-import { colors, radii, shadows, spacing } from '@/theme';
+import { radii, shadows, spacing, usePalette } from '@/theme';
 
 /**
  * Floating pill tab bar (Roam template) on a glass surface with an
@@ -13,6 +13,7 @@ import { colors, radii, shadows, spacing } from '@/theme';
  */
 export function PillTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
   const insets = useSafeAreaInsets();
+  const p = usePalette();
 
   return (
     <View pointerEvents="box-none" style={[styles.wrap, { paddingBottom: insets.bottom + 10 }]}>
@@ -26,7 +27,7 @@ export function PillTabBar({ state, descriptors, navigation }: BottomTabBarProps
             const isFocused = state.index === index;
             const icon = options.tabBarIcon?.({
               focused: isFocused,
-              color: isFocused ? colors.ink : colors.muted,
+              color: isFocused ? p.ink : p.muted,
               size: 24,
             });
 
@@ -53,7 +54,12 @@ export function PillTabBar({ state, descriptors, navigation }: BottomTabBarProps
                 style={styles.tab}
               >
                 {icon}
-                {isFocused ? <Animated.View entering={FadeIn} style={styles.dot} /> : null}
+                {isFocused ? (
+                  <Animated.View
+                    entering={FadeIn}
+                    style={[styles.dot, { backgroundColor: p.primary }]}
+                  />
+                ) : null}
               </HapticPressable>
             );
           })}
@@ -89,5 +95,5 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.sm,
     paddingVertical: spacing.sm,
   },
-  dot: { backgroundColor: colors.primary, borderRadius: 2.5, height: 5, width: 5 },
+  dot: { borderRadius: 2.5, height: 5, width: 5 },
 });

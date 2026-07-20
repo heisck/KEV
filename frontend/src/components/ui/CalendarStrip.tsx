@@ -1,7 +1,7 @@
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { HapticPressable } from '@/components/ui/HapticPressable';
-import { colors, radii, spacing } from '@/theme';
+import { radii, spacing, usePalette } from '@/theme';
 
 const DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
@@ -31,6 +31,7 @@ export function CalendarStrip({
   markedDates = [],
   testID,
 }: CalendarStripProps) {
+  const p = usePalette();
   const active = selected ?? today;
   const week = Array.from({ length: 7 }, (_, i) => {
     const d = new Date(today);
@@ -54,15 +55,19 @@ export function CalendarStrip({
             accessibilityRole="button"
             haptic="select"
             onPress={onSelect ? () => onSelect(date) : undefined}
-            style={[styles.day, isActive && styles.dayActive]}
+            style={[
+              styles.day,
+              { backgroundColor: p.surface },
+              isActive && { backgroundColor: p.ink },
+            ]}
           >
-            <Text style={[styles.dayLabel, isActive && styles.dayTextActive]}>
+            <Text style={[styles.dayLabel, { color: isActive ? p.bg : p.muted }]}>
               {DAY_LABELS[date.getDay()]}
             </Text>
-            <Text style={[styles.dayNumber, isActive && styles.dayTextActive]}>
+            <Text style={[styles.dayNumber, { color: isActive ? p.bg : p.ink }]}>
               {date.getDate()}
             </Text>
-            <View style={[styles.dot, isMarked && styles.dotVisible]} />
+            <View style={[styles.dot, isMarked && { backgroundColor: p.primary }]} />
           </HapticPressable>
         );
       })}
@@ -74,16 +79,12 @@ const styles = StyleSheet.create({
   row: { flexDirection: 'row', gap: spacing.sm },
   day: {
     alignItems: 'center',
-    backgroundColor: colors.surface,
     borderRadius: radii.md,
     gap: 2,
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.md,
   },
-  dayActive: { backgroundColor: colors.black },
-  dayLabel: { color: colors.muted, fontSize: 11, fontWeight: '600' },
-  dayNumber: { color: colors.ink, fontSize: 16, fontWeight: '800' },
-  dayTextActive: { color: colors.white },
+  dayLabel: { fontSize: 11, fontWeight: '600' },
+  dayNumber: { fontSize: 16, fontWeight: '800' },
   dot: { backgroundColor: 'transparent', borderRadius: 2, height: 4, width: 4 },
-  dotVisible: { backgroundColor: colors.primary },
 });

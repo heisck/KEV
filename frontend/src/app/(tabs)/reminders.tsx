@@ -1,3 +1,3 @@
-import { RemindersScreen } from '@/screens/kev/SimpleTabScreens';
+import { NotificationsScreen } from '@/screens/kev/NotificationsScreen';
 
-export default RemindersScreen;
+export default NotificationsScreen;
