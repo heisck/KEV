@@ -47,28 +47,22 @@ public class SessionService {
         ExamSession session = new ExamSession();
         session.setSessionCode(uniqueCode());
         session.setSessionPassword(uniquePassword());
-        session.setTitle(
-                req.title() != null && !req.title().isBlank()
-                        ? req.title().trim()
-                        : (req.building() + " " + (req.room() != null ? req.room() : "")).trim());
-        session.setCourseCodes(req.courseCodes() != null ? String.join(",", req.courseCodes()) : "");
-        session.setBuilding(req.building());
-        session.setFloor(req.floor());
-        session.setRoom(req.room());
-        session.setIndexRangeStart(req.indexRangeStart());
-        session.setIndexRangeEnd(req.indexRangeEnd());
-        session.setExamDate(req.examDate());
-        session.setStartTime(req.startTime());
-        session.setEndTime(req.endTime());
-        if (req.verificationMethods() != null && !req.verificationMethods().isEmpty()) {
-            session.setVerificationMethods(String.join(",", req.verificationMethods()));
-        } else {
-            session.setVerificationMethods("FACE,NFC,MANUAL");
-        }
+        applyEditableFields(session, req);
         session.setCreatedBy(userId);
         ExamSession saved = sessions.save(session);
         addMember(saved.getId(), userId, null, "CREATOR");
         return toDto(saved);
+    }
+
+    @Transactional
+    public SessionDto update(UUID userId, Long sessionId, CreateSessionRequest req) {
+        ExamSession session = requireMember(userId, sessionId);
+        SessionStatus status = resolvedStatus(session);
+        if (status == SessionStatus.COMPLETED || status == SessionStatus.CANCELLED) {
+            throw new ApiException(HttpStatus.CONFLICT, "Closed sessions cannot be edited");
+        }
+        applyEditableFields(session, req);
+        return toDto(sessions.save(session));
     }
 
     @Transactional
@@ -138,6 +132,19 @@ public class SessionService {
         return session;
     }
 
+    @Transactional(readOnly = true)
+    public ExamSession requireOngoingMember(UUID userId, Long sessionId) {
+        ExamSession session = requireMember(userId, sessionId);
+        SessionStatus status = resolvedStatus(session);
+        if (status == SessionStatus.UPCOMING) {
+            throw new ApiException(HttpStatus.CONFLICT, "Session has not started");
+        }
+        if (status != SessionStatus.ONGOING) {
+            throw new ApiException(HttpStatus.CONFLICT, "Session is closed");
+        }
+        return session;
+    }
+
     public ExamSession require(Long sessionId) {
         return sessions.findById(sessionId)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Session not found"));
@@ -159,9 +166,12 @@ public class SessionService {
     public SessionDto toDto(ExamSession session) {
         long checkedIn = attendance.countBySessionIdAndStatus(session.getId(), AttendanceStatus.CHECKED_IN);
         long members = invigilators.countBySessionId(session.getId());
-        String status = SessionStatusCalculator.resolve(session, java.time.LocalDateTime.now())
-                .name();
+        String status = resolvedStatus(session).name();
         return SessionDto.from(session, status, checkedIn, members);
+    }
+
+    private SessionStatus resolvedStatus(ExamSession session) {
+        return SessionStatusCalculator.resolve(session, java.time.LocalDateTime.now());
     }
 
     private InvigilatorDto toInvigilatorDto(SessionInvigilator membership) {
@@ -174,6 +184,27 @@ public class SessionService {
                 membership.getJoinedAt(),
                 membership.getAssignedBy() != null,
                 membership.getRole());
+    }
+
+    private void applyEditableFields(ExamSession session, CreateSessionRequest req) {
+        session.setTitle(
+                req.title() != null && !req.title().isBlank()
+                        ? req.title().trim()
+                        : (req.building() + " " + (req.room() != null ? req.room() : "")).trim());
+        session.setCourseCodes(req.courseCodes() != null ? String.join(",", req.courseCodes()) : "");
+        session.setBuilding(req.building().trim());
+        session.setFloor(req.floor());
+        session.setRoom(req.room());
+        session.setIndexRangeStart(req.indexRangeStart());
+        session.setIndexRangeEnd(req.indexRangeEnd());
+        session.setExamDate(req.examDate());
+        session.setStartTime(req.startTime());
+        session.setEndTime(req.endTime());
+        String methods =
+                req.verificationMethods() != null && !req.verificationMethods().isEmpty()
+                        ? String.join(",", req.verificationMethods())
+                        : "FACE,NFC,MANUAL";
+        session.setVerificationMethods(methods);
     }
 
     private String uniquePassword() {

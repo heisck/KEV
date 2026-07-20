@@ -1,7 +1,11 @@
 import { fireEvent, render } from '@testing-library/react-native';
+import { Image, KeyboardAvoidingView, Platform, StyleSheet } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { AuthScreen } from '@/screens/AuthScreen';
+import { AUTH_HERO_DARK_IMAGE } from '@/screens/authConfig';
+import { getPalette } from '@/theme/palette';
+import { useSettingsStore } from '@/store/settingsStore';
 
 function renderAuthScreen(onEmailSignIn = jest.fn()) {
   return render(
@@ -16,7 +20,20 @@ function renderAuthScreen(onEmailSignIn = jest.fn()) {
   );
 }
 
+function renderKeyboardView(os: 'android' | 'ios') {
+  const platformDescriptor = Object.getOwnPropertyDescriptor(Platform, 'OS');
+  Object.defineProperty(Platform, 'OS', { configurable: true, value: os });
+
+  try {
+    return renderAuthScreen().UNSAFE_getByType(KeyboardAvoidingView);
+  } finally {
+    if (platformDescriptor) Object.defineProperty(Platform, 'OS', platformDescriptor);
+  }
+}
+
 describe('AuthScreen', () => {
+  beforeEach(() => useSettingsStore.setState({ theme: 'light' }));
+
   it('renders the email, password and social auth actions', () => {
     const { getByLabelText, getByPlaceholderText, getByText } = renderAuthScreen();
 
@@ -48,5 +65,27 @@ describe('AuthScreen', () => {
     expect(passwordInput.props.secureTextEntry).toBe(false);
     fireEvent.press(getByLabelText('Hide password'));
     expect(passwordInput.props.secureTextEntry).toBe(true);
+  });
+
+  it('moves the full form above the Android keyboard', () => {
+    expect(renderKeyboardView('android').props.behavior).toBe('height');
+  });
+
+  it('moves the full form as one layer on iOS', () => {
+    const keyboardView = renderKeyboardView('ios');
+
+    expect(keyboardView.props.behavior).toBe('position');
+    expect(keyboardView.props.contentContainerStyle).toEqual(expect.objectContaining({ flex: 1 }));
+  });
+
+  it('uses the dark hero and readable dark form controls', () => {
+    useSettingsStore.setState({ theme: 'dark' });
+    const { UNSAFE_getByType, getByPlaceholderText } = renderAuthScreen();
+    const emailInput = getByPlaceholderText('Write your gmail');
+    const darkPalette = getPalette(true);
+
+    expect(UNSAFE_getByType(Image).props.source).toBe(AUTH_HERO_DARK_IMAGE);
+    expect(emailInput.props.placeholderTextColor).toBe(darkPalette.muted);
+    expect(StyleSheet.flatten(emailInput.props.style).color).toBe(darkPalette.ink);
   });
 });

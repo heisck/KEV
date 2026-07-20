@@ -9,7 +9,8 @@ import { BellIcon, SearchIcon } from '@/components/kev/icons';
 import { Avatar } from '@/components/kev/people';
 import { ExamCard } from '@/components/kev/ExamCard';
 import { HapticPressable } from '@/components/ui/HapticPressable';
-import { sessionToExam, type ExamStatus } from '@/data/exams';
+import { JoinSessionButton } from '@/components/session/JoinSessionButton';
+import { matchesExamQuery, sessionToExam, type ExamStatus } from '@/data/exams';
 import { useAuthStore } from '@/store/authStore';
 import { radii, spacing, usePalette } from '@/theme';
 
@@ -30,8 +31,7 @@ export function HomeScreen() {
     const list = rawSessions?.map(sessionToExam) ?? [];
     return list.filter(
       (e) =>
-        (filter === 'All' || e.status === (filter as ExamStatus)) &&
-        e.course.toLowerCase().includes(query.trim().toLowerCase()),
+        (filter === 'All' || e.status === (filter as ExamStatus)) && matchesExamQuery(e, query),
     );
   }, [rawSessions, filter, query]);
 
@@ -60,13 +60,14 @@ export function HomeScreen() {
         <TextInput
           value={query}
           onChangeText={setQuery}
-          placeholder="Search sessions by class"
+          placeholder="Search by class or session ID"
           placeholderTextColor={p.muted}
           autoCapitalize="none"
           style={[styles.searchInput, { color: p.ink }]}
           testID="home-search"
         />
       </View>
+      <JoinSessionButton />
 
       <View style={[styles.filters, { borderBottomColor: p.hairline }]}>
         {FILTERS.map((f) => {

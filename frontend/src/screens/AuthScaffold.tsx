@@ -1,5 +1,13 @@
 import { type ReactNode } from 'react';
-import { Image, Platform, ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
+import {
+  Image,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  useWindowDimensions,
+  View,
+} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import {
@@ -12,12 +20,13 @@ import {
 } from '@/components/AppLogoMark';
 import { SystemStatusBar } from '@/components/SystemStatusBar';
 import {
-  AUTH_HERO_IMAGE_URL,
   AUTH_OVERLAY_VERTICAL_PADDING,
+  getAuthHeroImage,
   getAuthSheetHeight,
   getAuthSheetWidth,
   isTabletWidth,
 } from '@/screens/authConfig';
+import { usePalette } from '@/theme';
 
 type AuthScaffoldProps = {
   children: ReactNode;
@@ -37,6 +46,7 @@ export function AuthScaffold({
 }: AuthScaffoldProps) {
   const { height, width } = useWindowDimensions();
   const { bottom, top } = useSafeAreaInsets();
+  const palette = usePalette();
   const isTablet = isTabletWidth(width);
   const minHeightRatio = isTablet ? Math.min(heightRatio, 0.34) : heightRatio;
   const sheetHeight = getAuthSheetHeight(height, minHeightRatio);
@@ -47,12 +57,12 @@ export function AuthScaffold({
   const captionTop = logoTop + logoSize.height + HERO_LOGO_CAPTION_GAP;
 
   return (
-    <View style={styles.screen}>
+    <View style={[styles.screen, { backgroundColor: palette.bg }]}>
       <SystemStatusBar backgroundColor="transparent" barStyle="light-content" translucent />
       <Image
         accessibilityIgnoresInvertColors
         resizeMode="cover"
-        source={{ uri: AUTH_HERO_IMAGE_URL }}
+        source={getAuthHeroImage(palette.isDark)}
         style={styles.hero}
       />
       <View pointerEvents="none" style={[styles.logoAnchor, { top: logoTop }]}>
@@ -71,48 +81,51 @@ export function AuthScaffold({
           {overlayTitle}
         </View>
       ) : null}
-      <ScrollView
-        // Android uses windowSoftInputMode=adjustResize (window shrinks); adding keyboard
-        // insets here too would double-count and scroll the title off-screen. iOS has no
-        // resize, so it relies on the inset.
-        automaticallyAdjustKeyboardInsets={Platform.OS === 'ios'}
-        bounces={false}
-        contentContainerStyle={[
-          withPanel ? styles.content : styles.overlayContent,
-          !withPanel && {
-            paddingBottom: bottom + AUTH_OVERLAY_VERTICAL_PADDING,
-            paddingTop: top + AUTH_OVERLAY_VERTICAL_PADDING,
-          },
-        ]}
-        keyboardShouldPersistTaps="handled"
-        overScrollMode="never"
-        showsVerticalScrollIndicator={false}
+      <KeyboardAvoidingView
+        // Position avoids the delayed ScrollView reflow that makes iOS fields move twice.
+        behavior={Platform.OS === 'ios' ? 'position' : 'height'}
+        contentContainerStyle={styles.keyboardContent}
         style={styles.scroll}
       >
-        {withPanel ? (
-          <View
-            style={[
-              styles.panel,
-              isTablet && styles.tabletPanel,
-              {
-                minHeight: sheetHeight,
-                paddingBottom: 22 + bottom,
-                width: getAuthSheetWidth(width),
-              },
-            ]}
-          >
-            {children}
-          </View>
-        ) : (
-          children
-        )}
-      </ScrollView>
+        <ScrollView
+          bounces={false}
+          contentContainerStyle={[
+            withPanel ? styles.content : styles.overlayContent,
+            !withPanel && {
+              paddingBottom: bottom + AUTH_OVERLAY_VERTICAL_PADDING,
+              paddingTop: top + AUTH_OVERLAY_VERTICAL_PADDING,
+            },
+          ]}
+          keyboardShouldPersistTaps="handled"
+          overScrollMode="never"
+          showsVerticalScrollIndicator={false}
+          style={styles.scroll}
+        >
+          {withPanel ? (
+            <View
+              style={[
+                styles.panel,
+                isTablet && styles.tabletPanel,
+                {
+                  minHeight: sheetHeight,
+                  paddingBottom: 22 + bottom,
+                  width: getAuthSheetWidth(width),
+                },
+              ]}
+            >
+              {children}
+            </View>
+          ) : (
+            children
+          )}
+        </ScrollView>
+      </KeyboardAvoidingView>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: { backgroundColor: '#111111', flex: 1 },
+  screen: { flex: 1 },
   hero: { bottom: 0, left: 0, position: 'absolute', right: 0, top: 0 },
   logoAnchor: { alignItems: 'center', left: 0, position: 'absolute', right: 0, zIndex: 1 },
   heroCaption: {
@@ -123,6 +136,7 @@ const styles = StyleSheet.create({
     zIndex: 1,
   },
   overlayTitle: { alignItems: 'center', left: 0, position: 'absolute', right: 0, zIndex: 1 },
+  keyboardContent: { flex: 1 },
   // Above the hero logo overlay (zIndex 1) so inputs are never obscured.
   scroll: { flex: 1, zIndex: 2 },
   content: { flexGrow: 1, justifyContent: 'flex-end' },

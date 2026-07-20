@@ -3,9 +3,11 @@ import * as admin from '@/api/admin';
 import * as attendance from '@/api/attendance';
 import * as chat from '@/api/chat';
 import * as directory from '@/api/directory';
+import * as notifications from '@/api/notifications';
 import * as sessions from '@/api/sessions';
 import * as verify from '@/api/verify';
 import type { CheckInMethod } from '@/api/schemas';
+import { useAuthStore } from '@/store/authStore';
 
 const keys = {
   sessions: ['sessions'] as const,
@@ -16,24 +18,36 @@ const keys = {
   invigilators: ['admin', 'invigilators'] as const,
   adminSessions: ['admin', 'sessions'] as const,
   report: (id: number) => ['admin', 'sessions', id, 'report'] as const,
+  notifications: ['notifications'] as const,
 };
 
 export function useSessions() {
-  return useQuery({ queryKey: keys.sessions, queryFn: sessions.listSessions });
+  const userId = useAuthStore((state) => state.user?.id);
+  return useQuery({
+    queryKey: [...keys.sessions, userId],
+    queryFn: sessions.listSessions,
+    enabled: Boolean(userId),
+  });
 }
 
 export function useSessionDetail(id: number) {
+  const userId = useAuthStore((state) => state.user?.id);
   const valid = Number.isInteger(id) && id > 0;
   return useQuery({
-    queryKey: keys.session(id),
+    queryKey: [...keys.session(id), userId],
     queryFn: () => sessions.getSession(id),
-    enabled: valid,
-    refetchInterval: valid ? 5000 : false,
+    enabled: valid && Boolean(userId),
+    refetchInterval: valid && userId ? 5000 : false,
   });
 }
 
 export function useSessionSummary(id: number) {
-  return useQuery({ queryKey: keys.summary(id), queryFn: () => sessions.getSummary(id) });
+  const userId = useAuthStore((state) => state.user?.id);
+  return useQuery({
+    queryKey: [...keys.summary(id), userId],
+    queryFn: () => sessions.getSummary(id),
+    enabled: Boolean(userId),
+  });
 }
 
 export function useCreateSession() {
@@ -44,11 +58,25 @@ export function useCreateSession() {
   });
 }
 
+export function useUpdateSession(id: number) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: sessions.CreateSessionInput) => sessions.updateSession(id, input),
+    onSuccess: (session) => {
+      void qc.invalidateQueries({ queryKey: keys.sessions });
+      void qc.invalidateQueries({ queryKey: keys.session(session.id) });
+    },
+  });
+}
+
 export function useJoinSession() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (code: string) => sessions.joinSession(code),
-    onSuccess: () => qc.invalidateQueries({ queryKey: keys.sessions }),
+    onSuccess: (session) => {
+      void qc.invalidateQueries({ queryKey: keys.sessions });
+      void qc.invalidateQueries({ queryKey: keys.session(session.id) });
+    },
   });
 }
 
@@ -57,6 +85,17 @@ export function useCheckIn(sessionId: number) {
   return useMutation({
     mutationFn: (input: { indexNumber: string; method: CheckInMethod }) =>
       attendance.checkIn(sessionId, input),
+    onSettled: () => {
+      void qc.invalidateQueries({ queryKey: keys.session(sessionId) });
+      void qc.invalidateQueries({ queryKey: keys.summary(sessionId) });
+    },
+  });
+}
+
+export function useRemoveAttendance(sessionId: number) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (attendanceId: number) => attendance.removeAttendance(sessionId, attendanceId),
     onSettled: () => {
       void qc.invalidateQueries({ queryKey: keys.session(sessionId) });
       void qc.invalidateQueries({ queryKey: keys.summary(sessionId) });
@@ -86,6 +125,16 @@ export function useInvigilators() {
 /** Lecturer/admin directory for chat — any signed-in user (non-admin safe). */
 export function useLecturers() {
   return useQuery({ queryKey: keys.lecturers, queryFn: () => chat.listLecturers() });
+}
+
+export function useNotifications(enabled = true) {
+  const userId = useAuthStore((state) => state.user?.id);
+  return useQuery({
+    queryKey: [...keys.notifications, userId],
+    queryFn: notifications.listNotifications,
+    enabled: enabled && Boolean(userId),
+    refetchInterval: enabled && userId ? 3_000 : false,
+  });
 }
 
 export function useAdminSessions() {

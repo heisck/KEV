@@ -1,10 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { LayoutChangeEvent, StyleSheet, Text, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, { runOnJS, useAnimatedStyle, useSharedValue } from 'react-native-reanimated';
 
 import { MinusIcon, PlusIcon } from '@/components/kev/icons';
 import { HapticPressable } from '@/components/ui/HapticPressable';
+import { haptic } from '@/lib/haptics';
 import { radii, shadows, spacing, usePalette } from '@/theme';
 import type { Palette } from '@/theme';
 
@@ -94,17 +95,21 @@ export function RoomSlider({
   // Thumb position in px. Driven by the gesture; synced to the controlled value
   // after render via useEffect (never written during render, which Reanimated forbids).
   const pos = useSharedValue(0);
+  const selectedValue = useSharedValue(value);
   const startPos = useSharedValue(0);
 
   useEffect(() => {
     pos.value = restX;
-  }, [pos, restX]);
+    selectedValue.value = value;
+  }, [pos, restX, selectedValue, value]);
 
-  const commit = (px: number) => {
-    if (maxTravel <= 0) return;
-    const next = min + Math.round((Math.min(Math.max(0, px), maxTravel) / maxTravel) * span);
-    if (next !== value) onChange(next);
-  };
+  const emitValue = useCallback(
+    (next: number) => {
+      haptic('select');
+      onChange(next);
+    },
+    [onChange],
+  );
 
   const pan = Gesture.Pan()
     .onStart(() => {
@@ -113,7 +118,11 @@ export function RoomSlider({
     .onUpdate((e) => {
       const x = Math.min(Math.max(0, startPos.value + e.translationX), maxTravel);
       pos.value = x;
-      runOnJS(commit)(x);
+      if (maxTravel <= 0) return;
+      const next = min + Math.round((x / maxTravel) * span);
+      if (next === selectedValue.value) return;
+      selectedValue.value = next;
+      runOnJS(emitValue)(next);
     });
 
   const thumbStyle = useAnimatedStyle(() => ({ transform: [{ translateX: pos.value }] }));
@@ -130,7 +139,7 @@ export function RoomSlider({
       </View>
 
       <GestureDetector gesture={pan}>
-        <View style={s.track} onLayout={onTrackLayout}>
+        <View style={s.track} onLayout={onTrackLayout} testID="room-slider-track">
           <View style={s.teeth} pointerEvents="none">
             {Array.from({ length: TEETH }).map((_, i) => (
               <View key={i} style={[s.tooth, i % 6 === 0 && s.toothMajor]} />

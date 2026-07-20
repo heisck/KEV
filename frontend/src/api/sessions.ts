@@ -28,6 +28,11 @@ export async function createSession(input: CreateSessionInput): Promise<SessionD
   return SessionDtoSchema.parse(res.data);
 }
 
+export async function updateSession(id: number, input: CreateSessionInput): Promise<SessionDto> {
+  const res = await api.put(`/api/sessions/${id}`, input);
+  return SessionDtoSchema.parse(res.data);
+}
+
 export async function listSessions(): Promise<SessionDto[]> {
   const res = await api.get('/api/sessions');
   return z.array(SessionDtoSchema).parse(res.data);

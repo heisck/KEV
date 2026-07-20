@@ -19,14 +19,8 @@ import {
 import { SegmentedControl, SettingToggle } from '@/components/settings/SettingsControls';
 import { HapticPressable } from '@/components/ui/HapticPressable';
 import { useAuthStore } from '@/store/authStore';
-import { useSettingsStore, type ThemePreference } from '@/store/settingsStore';
+import { useSettingsStore } from '@/store/settingsStore';
 import { radii, spacing, usePalette, type Palette } from '@/theme';
-
-const THEME_OPTIONS: { value: ThemePreference; label: string }[] = [
-  { value: 'light', label: 'Light' },
-  { value: 'dark', label: 'Dark' },
-  { value: 'system', label: 'System' },
-];
 
 const SCAN_OPTIONS: { value: CheckInMethod; label: string }[] = [
   { value: 'FACE', label: 'Face' },
@@ -96,7 +90,7 @@ export function ProfileScreen() {
           accessibilityRole="button"
           accessibilityLabel="Go back"
           haptic="select"
-          onPress={() => (router.canGoBack() ? router.back() : router.push('/(tabs)'))}
+          onPress={() => router.replace('/(tabs)/chat')}
           style={styles.bandBtn}
         >
           <BackIcon color={p.onPrimary} size={20} />
@@ -147,14 +141,25 @@ export function ProfileScreen() {
         <SectionLabel text="Preferences" p={p} />
         <Row
           icon={<ScanFrameIcon color={p.primary} size={18} />}
-          label="Appearance"
+          label="Use system appearance"
           p={p}
           trailing={
-            <SegmentedControl
-              options={THEME_OPTIONS}
-              value={settings.theme}
-              onChange={settings.setTheme}
-              palette={p}
+            <SettingToggle
+              value={settings.theme === 'system'}
+              onToggle={() => settings.setTheme(settings.theme === 'system' ? 'light' : 'system')}
+              testID="setting-system-theme"
+            />
+          }
+        />
+        <Row
+          icon={<ScanFrameIcon color={p.primary} size={18} />}
+          label="Dark mode"
+          p={p}
+          trailing={
+            <SettingToggle
+              value={settings.theme === 'dark'}
+              onToggle={() => settings.setTheme(settings.theme === 'dark' ? 'light' : 'dark')}
+              testID="setting-dark-theme"
             />
           }
         />
@@ -179,7 +184,6 @@ export function ProfileScreen() {
             <SettingToggle
               value={settings.showSuccessPage}
               onToggle={() => settings.setShowSuccessPage(!settings.showSuccessPage)}
-              palette={p}
               testID="setting-success-page"
             />
           }
@@ -192,7 +196,6 @@ export function ProfileScreen() {
             <SettingToggle
               value={settings.notificationsEnabled}
               onToggle={() => settings.setNotificationsEnabled(!settings.notificationsEnabled)}
-              palette={p}
               testID="setting-notifications"
             />
           }

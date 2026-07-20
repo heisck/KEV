@@ -14,9 +14,12 @@ type ToastState = {
 };
 
 /** App-wide toast queue; render via <ToastHost /> once at the root. */
-export const useToastStore = create<ToastState>((set) => ({
+export const useToastStore = create<ToastState>((set, get) => ({
   toasts: [],
   show(message, tone = 'info') {
+    // De-dupe: a burst of identical messages (e.g. parallel API calls failing
+    // on the same startup 401) should surface as one toast, not a stack.
+    if (get().toasts.some((t) => t.message === message && t.tone === tone)) return;
     const id = nextId++;
     set((s) => ({ toasts: [...s.toasts, { id, message, tone }] }));
     setTimeout(
