@@ -21,7 +21,7 @@ public class MockUitsDirectory implements UniversityDirectory {
 
     @Override
     @Transactional(readOnly = true)
-    @Cacheable(cacheNames = "directory", key = "#indexNumber")
+    @Cacheable(cacheNames = "directory", key = "#indexNumber", unless = "#result == null")
     public Optional<StudentRecord> findByIndexNumber(String indexNumber) {
         return students.findByIndexNumberWithCourses(indexNumber).map(StudentRecord::from);
     }

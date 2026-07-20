@@ -10,11 +10,16 @@
 import { spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
+import { loadEnv } from './load-root-env.mjs';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const mlDir = join(root, 'ml');
 const isWin = process.platform === 'win32';
-const port = process.env.ML_PORT ?? '8000';
+
+// Root .env is the single source of truth; ml/.env (if present) overrides it.
+const dotEnv = loadEnv(join(mlDir, '.env'));
+const childEnv = { ...process.env, ...dotEnv };
+const port = dotEnv.ML_PORT ?? process.env.ML_PORT ?? '8000';
 
 const mode = process.argv[2] ?? 'dev';
 const presets = {
@@ -29,7 +34,7 @@ if (args[0] === 'run') {
   args.splice(1, 0, '--no-sync', '--python', '/usr/bin/python3');
 }
 
-const child = spawn('uv', args, { cwd: mlDir, stdio: 'inherit', shell: isWin });
+const child = spawn('uv', args, { cwd: mlDir, stdio: 'inherit', shell: isWin, env: childEnv });
 child.on('error', (err) => {
   console.error(`[run-ml] Failed to start uv: ${err.message}`);
   console.error('[run-ml] Is uv installed and on PATH? (winget install astral-sh.uv)');

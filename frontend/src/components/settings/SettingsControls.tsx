@@ -1,9 +1,9 @@
 import { type ReactNode } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import Animated, { useAnimatedStyle, withSpring } from 'react-native-reanimated';
 
 import { HapticPressable } from '@/components/ui/HapticPressable';
-import { radii, shadows, spacing } from '@/theme';
+import { NativePreferenceSwitch } from '@/components/ui/NativePreferenceSwitch';
+import { radii, spacing } from '@/theme';
 import type { Palette } from '@/theme';
 
 /** A labelled row wrapping a settings control. */
@@ -64,36 +64,17 @@ export function SegmentedControl<T extends string>({
   );
 }
 
-const TRACK_W = 52;
-const KNOB = 26;
-
-/** Apple-style toggle switch, palette-aware. */
+/** Native platform switch; iOS renders Apple's UISwitch. */
 export function SettingToggle({
   value,
   onToggle,
-  palette: p,
   testID,
 }: {
   value: boolean;
   onToggle: () => void;
-  palette: Palette;
   testID?: string;
 }) {
-  const knobStyle = useAnimatedStyle(() => ({
-    transform: [{ translateX: withSpring(value ? TRACK_W - KNOB - 3 : 3, { damping: 18 }) }],
-  }));
-  return (
-    <HapticPressable
-      accessibilityRole="switch"
-      accessibilityState={{ checked: value }}
-      haptic="select"
-      onPress={onToggle}
-      style={[styles.track, { backgroundColor: value ? p.primary : p.mintDeep }]}
-      testID={testID}
-    >
-      <Animated.View style={[styles.knob, { backgroundColor: p.surface }, knobStyle]} />
-    </HapticPressable>
-  );
+  return <NativePreferenceSwitch value={value} onValueChange={onToggle} testID={testID} />;
 }
 
 const styles = StyleSheet.create({
@@ -109,6 +90,4 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.sm - 1,
   },
   segmentLabel: { fontSize: 12, fontWeight: '700' },
-  track: { borderRadius: radii.pill, height: KNOB + 6, justifyContent: 'center', width: TRACK_W },
-  knob: { borderRadius: KNOB / 2, height: KNOB, width: KNOB, ...shadows.card },
 });

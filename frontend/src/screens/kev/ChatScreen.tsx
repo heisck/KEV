@@ -1,10 +1,9 @@
-import { useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   FlatList,
   KeyboardAvoidingView,
   Platform,
-  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -14,28 +13,42 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useLecturers } from '@/api/hooks';
 import { api } from '@/api/client';
-import { BackIcon, SearchIcon } from '@/components/kev/icons';
+import { BackIcon } from '@/components/kev/icons';
 import { Avatar, type PersonKey } from '@/components/kev/people';
 import { HapticPressable } from '@/components/ui/HapticPressable';
-import { useChatStore, type ChatMessage } from '@/store/chatStore';
+import { parseMessages } from '@/lib/chatMessages';
+import { useChatStore } from '@/store/chatStore';
+import { useAuthStore } from '@/store/authStore';
 import { colors, radii, spacing, usePalette } from '@/theme';
 
-/** Lecturer inbox + thread. Open via `/(tabs)/chat?with=<lecturerId>`. */
-export function ChatScreen() {
+type ChatScreenProps = { threadId?: string };
+
+const CHAT_POLL_MS = 2_000;
+
+/** Full-screen lecturer thread. The directory lives in the tabs group. */
+export function ChatScreen({ threadId }: ChatScreenProps = {}) {
   const p = usePalette();
   const { top, bottom } = useSafeAreaInsets();
+  const router = useRouter();
   const { with: withId } = useLocalSearchParams<{ with?: string }>();
   const threads = useChatStore((s) => s.threads);
-  const activeId = useChatStore((s) => s.activeLecturerId);
+  const currentUserId = useAuthStore((s) => s.user?.id);
+  const storedActiveId = useChatStore((s) => s.activeLecturerId);
+  const activeId = threadId ?? storedActiveId;
   const openThread = useChatStore((s) => s.openThread);
   const closeThread = useChatStore((s) => s.closeThread);
   const send = useChatStore((s) => s.send);
   const setThreadMessages = useChatStore((s) => s.setThreadMessages);
   const [draft, setDraft] = useState('');
-  const [searchQuery, setSearchQuery] = useState('');
   const listRef = useRef<FlatList>(null);
 
   const { data: lecturers } = useLecturers();
+
+  useEffect(() => {
+    if (!threadId) return undefined;
+    openThread(threadId);
+    return closeThread;
+  }, [closeThread, openThread, threadId]);
 
   // Deep-link from "Message in chat" / invigilators.
   useEffect(() => {
@@ -44,30 +57,27 @@ export function ChatScreen() {
     }
   }, [openThread, withId]);
 
-  // Load real messages when thread opens
+  // Poll while a thread is open so both lecturers see persisted messages promptly.
   useEffect(() => {
-    if (activeId && activeId.length > 0) {
+    if (!activeId) return undefined;
+    let active = true;
+    const load = () => {
       api
-        .get(`/api/chat/conversations/${activeId}/messages`)
+        .get<unknown>(`/api/chat/conversations/${activeId}/messages`)
         .then((res) => {
-          if (Array.isArray(res.data)) {
-            const mapped: ChatMessage[] = res.data.map((m: any) => ({
-              id: String(m.id),
-              text: m.content,
-              mine: true,
-              at: new Date(m.createdAt).toLocaleTimeString([], {
-                hour: '2-digit',
-                minute: '2-digit',
-              }),
-            }));
-            setThreadMessages(activeId, mapped);
-          }
+          if (active) setThreadMessages(activeId, parseMessages(res.data, currentUserId));
         })
         .catch(() => {
           // Ignore offline fallback
         });
-    }
-  }, [activeId, setThreadMessages]);
+    };
+    load();
+    const interval = setInterval(load, CHAT_POLL_MS);
+    return () => {
+      active = false;
+      clearInterval(interval);
+    };
+  }, [activeId, currentUserId, setThreadMessages]);
 
   const peer = useMemo(() => {
     const found = lecturers?.find((i) => i.id === activeId);
@@ -86,13 +96,13 @@ export function ChatScreen() {
   const submit = async () => {
     if (!activeId || !draft.trim()) return;
     const content = draft.trim();
-    send(activeId, content);
     setDraft('');
-    requestAnimationFrame(() => listRef.current?.scrollToEnd({ animated: true }));
     try {
       await api.post(`/api/chat/conversations/${activeId}/messages`, { content });
+      send(activeId, content);
+      requestAnimationFrame(() => listRef.current?.scrollToEnd({ animated: true }));
     } catch {
-      // Offline fallback already stored locally via send
+      setDraft(content);
     }
   };
 
@@ -109,7 +119,7 @@ export function ChatScreen() {
             accessibilityLabel="Back to inbox"
             haptic="select"
             hitSlop={10}
-            onPress={closeThread}
+            onPress={() => (threadId ? router.back() : closeThread())}
             style={styles.backBtn}
           >
             <BackIcon color={p.ink} />
@@ -133,7 +143,7 @@ export function ChatScreen() {
           onContentSizeChange={() => listRef.current?.scrollToEnd({ animated: false })}
           ListEmptyComponent={
             <Text style={[styles.threadEmpty, { color: p.muted }]}>
-              Say hello — start of your conversation.
+              Say hello. Start your conversation.
             </Text>
           }
           renderItem={({ item }) => (
@@ -198,100 +208,10 @@ export function ChatScreen() {
     );
   }
 
-  const filteredLecturers = (lecturers ?? []).filter((l) =>
-    (l.displayName || l.email).toLowerCase().includes(searchQuery.trim().toLowerCase()),
-  );
-
-  return (
-    <View style={[styles.screen, { backgroundColor: p.bg, paddingTop: top + spacing.md }]}>
-      <Text style={[styles.title, { color: p.ink }]}>Chat Directory</Text>
-      <Text style={[styles.subtitle, { color: p.muted }]}>
-        List every lecturer in the database. Select one to open conversation.
-      </Text>
-
-      <View style={[styles.search, { backgroundColor: p.surfaceDim }]}>
-        <SearchIcon color={p.muted} />
-        <TextInput
-          value={searchQuery}
-          onChangeText={setSearchQuery}
-          placeholder="Search lecturers..."
-          placeholderTextColor={p.muted}
-          autoCapitalize="none"
-          style={[styles.searchInput, { color: p.ink }]}
-          testID="chat-search"
-        />
-      </View>
-
-      <ScrollView contentContainerStyle={styles.inbox} showsVerticalScrollIndicator={false}>
-        {filteredLecturers.map((i) => {
-          const last = threads[i.id]?.[threads[i.id].length - 1];
-          return (
-            <HapticPressable
-              key={i.id}
-              accessibilityRole="button"
-              accessibilityLabel={`Chat with ${i.displayName || i.email}`}
-              haptic="select"
-              onPress={() => openThread(i.id)}
-              style={[styles.row, { backgroundColor: p.surfaceDim }]}
-              testID={`chat-row-${i.id}`}
-            >
-              <Avatar person="freja" size={48} verified />
-              <View style={styles.rowText}>
-                <Text style={[styles.rowName, { color: p.ink }]}>{i.displayName || i.email}</Text>
-                <Text style={[styles.rowPreview, { color: p.muted }]} numberOfLines={1}>
-                  {last?.text ?? 'Tap to start conversation'}
-                </Text>
-              </View>
-              {last ? <Text style={[styles.rowTime, { color: p.muted }]}>{last.at}</Text> : null}
-            </HapticPressable>
-          );
-        })}
-      </ScrollView>
-    </View>
-  );
+  return <View style={[styles.screen, { backgroundColor: p.bg }]} />;
 }
-
 const styles = StyleSheet.create({
   screen: { backgroundColor: colors.white, flex: 1 },
-  title: {
-    color: colors.ink,
-    fontSize: 24,
-    fontWeight: '800',
-    paddingHorizontal: spacing.xl,
-    paddingTop: spacing.md,
-  },
-  subtitle: {
-    color: colors.muted,
-    fontSize: 13,
-    fontWeight: '500',
-    marginBottom: spacing.md,
-    paddingHorizontal: spacing.xl,
-  },
-  inbox: { gap: spacing.sm, paddingBottom: spacing.xxxl, paddingHorizontal: spacing.xl },
-  search: {
-    alignItems: 'center',
-    backgroundColor: colors.surfaceDim,
-    borderRadius: radii.pill,
-    flexDirection: 'row',
-    gap: spacing.sm,
-    marginHorizontal: spacing.xl,
-    marginBottom: spacing.md,
-    paddingHorizontal: spacing.lg,
-  },
-  searchInput: { color: colors.ink, flex: 1, fontSize: 14, paddingVertical: spacing.md },
-  row: {
-    alignItems: 'center',
-    backgroundColor: colors.surfaceDim,
-    borderRadius: radii.lg,
-    flexDirection: 'row',
-    gap: spacing.md,
-    padding: spacing.md,
-  },
-  rowText: { flex: 1, gap: 2 },
-  rowName: { color: colors.ink, fontSize: 15, fontWeight: '700' },
-  rowPreview: { color: colors.muted, fontSize: 13, fontWeight: '500' },
-  rowTime: { color: colors.muted, fontSize: 11, fontWeight: '600' },
-
   threadHeader: {
     alignItems: 'center',
     borderBottomColor: colors.hairline,

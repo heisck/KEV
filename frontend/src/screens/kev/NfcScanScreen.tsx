@@ -1,4 +1,3 @@
-import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import Animated, {
@@ -13,18 +12,22 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ScreenTopBar } from '@/components/kev/chrome';
 import { NfcIcon } from '@/components/kev/icons';
+import { ScanMethodSwitcher } from '@/components/scan/ScanMethodSwitcher';
+import { SessionLockButton } from '@/components/scan/SessionLockButton';
 import { useMockScan } from '@/hooks/useMockScan';
+import { useScanNavigation } from '@/hooks/useScanNavigation';
+import { useScanSessionId } from '@/hooks/useScanSession';
 import { radii, shadows, spacing, usePalette } from '@/theme';
 
 const SCAN_DELAY_MS = 3000;
 
 /** NFC scan — card floats to the phone and back until a tag is detected. */
 export function NfcScanScreen() {
-  const router = useRouter();
   const p = usePalette();
-  const { top } = useSafeAreaInsets();
-  const { exam } = useLocalSearchParams<{ exam?: string }>();
-  const completeScan = useMockScan(exam ?? '1', 'NFC');
+  const { bottom, top } = useSafeAreaInsets();
+  const sessionId = useScanSessionId();
+  const { goBack } = useScanNavigation(sessionId);
+  const completeScan = useMockScan(sessionId, 'NFC');
 
   const drift = useSharedValue(0);
 
@@ -48,8 +51,17 @@ export function NfcScanScreen() {
   const wavesStyle = useAnimatedStyle(() => ({ opacity: 0.25 + drift.value * 0.75 }));
 
   return (
-    <View style={[styles.screen, { backgroundColor: p.bg, paddingTop: top + spacing.md }]}>
-      <ScreenTopBar title="NFC scan" onBack={() => router.back()} />
+    <View
+      style={[
+        styles.screen,
+        { backgroundColor: p.bg, paddingBottom: bottom + spacing.lg, paddingTop: top + spacing.md },
+      ]}
+    >
+      <ScreenTopBar
+        title="NFC scan"
+        onBack={goBack}
+        trailing={<SessionLockButton sessionId={sessionId} />}
+      />
 
       <View style={styles.stage}>
         <View style={[styles.phone, { backgroundColor: p.surfaceDim, borderColor: p.hairline }]}>
@@ -72,6 +84,7 @@ export function NfcScanScreen() {
           Keep the student ID steady until it reads.
         </Text>
       </View>
+      <ScanMethodSwitcher active="NFC" sessionId={sessionId} />
     </View>
   );
 }
@@ -114,7 +127,7 @@ const styles = StyleSheet.create({
     width: 16,
   },
   cardText: { fontSize: 11, fontWeight: '700' },
-  copy: { alignItems: 'center', gap: 4, paddingBottom: spacing.xxxl * 2 },
+  copy: { alignItems: 'center', gap: 4, paddingBottom: spacing.xl },
   title: { fontSize: 18, fontWeight: '800' },
   sub: { fontSize: 13, fontWeight: '500' },
 });

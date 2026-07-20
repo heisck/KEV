@@ -4,46 +4,30 @@
  * Picks mvnw.cmd on Windows and ./mvnw elsewhere so the same npm
  * scripts work locally (Windows) and in CI (Linux).
  *
- * Loads backend/.env into the child environment (Spring Boot does not read
- * .env files itself). Values in backend/.env win over the parent process env
- * so a stale SPRING_DATASOURCE_URL in the shell/IDE cannot pin an old Neon host.
- * CI with no backend/.env still uses process env only.
+ * Loads the root `.env` (single source of truth) into the child environment,
+ * with an optional backend/.env layered on top as an override. Spring Boot does
+ * not read .env files itself. These values win over the parent process env so a
+ * stale SPRING_DATASOURCE_URL in the shell/IDE cannot pin an old Neon host.
+ * CI with no .env files still uses process env only.
  *
  *   node scripts/run-backend.mjs spring-boot:run
  *   node scripts/run-backend.mjs verify
  */
 import { spawn } from 'node:child_process';
-import { existsSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
+import { loadEnv } from './load-root-env.mjs';
+import { ensureDevInfra } from './dev-infra.mjs';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const backendDir = join(root, 'backend');
 const isWin = process.platform === 'win32';
 const wrapper = join(backendDir, isWin ? 'mvnw.cmd' : 'mvnw');
 
-function loadDotEnv(file) {
-  if (!existsSync(file)) return {};
-  const vars = {};
-  for (const line of readFileSync(file, 'utf8').split(/\r?\n/)) {
-    const match = /^\s*(?:export\s+)?([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*)\s*$/.exec(line);
-    if (!match || line.trim().startsWith('#')) continue;
-    let value = match[2];
-    if (
-      (value.startsWith('"') && value.endsWith('"')) ||
-      (value.startsWith("'") && value.endsWith("'"))
-    ) {
-      value = value.slice(1, -1);
-    }
-    vars[match[1]] = value;
-  }
-  return vars;
-}
-
-const dotEnv = loadDotEnv(join(backendDir, '.env'));
+const dotEnv = loadEnv(join(backendDir, '.env'));
 const keys = Object.keys(dotEnv);
 if (keys.length > 0) {
-  console.log(`[run-backend] env: applying ${keys.length} vars from backend/.env`);
+  console.log(`[run-backend] env: applying ${keys.length} vars from root .env (+ backend/.env override)`);
 }
 const jdbc = dotEnv.SPRING_DATASOURCE_URL ?? process.env.SPRING_DATASOURCE_URL ?? '';
 if (jdbc.includes('neon.tech') && !jdbc.includes('-pooler')) {
@@ -54,6 +38,12 @@ if (jdbc.includes('neon.tech') && !jdbc.includes('-pooler')) {
 
 const args = process.argv.slice(2);
 if (args.length === 0) args.push('spring-boot:run');
+
+// Only auto-manage local infra when actually running the app (not for verify/test,
+// which use Testcontainers). Brings up Postgres + Redis and seeds via Flyway on boot.
+if (args.includes('spring-boot:run')) {
+  ensureDevInfra(jdbc);
+}
 
 const child = spawn(wrapper, args, {
   cwd: backendDir,

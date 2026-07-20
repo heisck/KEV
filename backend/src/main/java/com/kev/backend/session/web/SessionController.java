@@ -16,6 +16,7 @@ import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -36,6 +37,14 @@ public class SessionController {
     @PostMapping
     public SessionDto create(@AuthenticationPrincipal Jwt principal, @Valid @RequestBody CreateSessionRequest request) {
         return sessions.create(userId(principal), request);
+    }
+
+    @PutMapping("/{id}")
+    public SessionDto update(
+            @AuthenticationPrincipal Jwt principal,
+            @PathVariable Long id,
+            @Valid @RequestBody CreateSessionRequest request) {
+        return sessions.update(userId(principal), id, request);
     }
 
     @GetMapping

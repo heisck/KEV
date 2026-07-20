@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useState, type ReactNode } from 'react';
-import { Keyboard, Platform, Text, TextInput, useWindowDimensions, View } from 'react-native';
+import { useCallback, useState, type ReactNode } from 'react';
+import { Text, TextInput, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import {
@@ -14,8 +14,9 @@ import { GlassPressable } from '@/components/ui/GlassPressable';
 import { GlassSurface } from '@/components/ui/GlassSurface';
 import { HapticPressable } from '@/components/ui/HapticPressable';
 import { AuthScaffold } from '@/screens/AuthScaffold';
-import { AUTH_OVERLAY_VERTICAL_PADDING, LIMEADE } from '@/screens/authConfig';
+import { AUTH_OVERLAY_VERTICAL_PADDING } from '@/screens/authConfig';
 import { authScreenStyles as styles } from '@/screens/authScreenStyles';
+import { usePalette } from '@/theme';
 
 type AuthScreenProps = {
   onApplePress?: () => void;
@@ -25,24 +26,7 @@ type AuthScreenProps = {
   isSubmitting?: boolean;
 };
 
-/** Tracks the soft-keyboard height so the layout can compress instead of scrolling. */
-function useKeyboardHeight() {
-  const [keyboardHeight, setKeyboardHeight] = useState(0);
-
-  useEffect(() => {
-    const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
-    const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
-    const show = Keyboard.addListener(showEvent, (e) => setKeyboardHeight(e.endCoordinates.height));
-    const hide = Keyboard.addListener(hideEvent, () => setKeyboardHeight(0));
-    return () => {
-      show.remove();
-      hide.remove();
-    };
-  }, []);
-
-  return keyboardHeight;
-}
-
+/** Email/password sign-in surface. Keyboard avoidance is handled by AuthScaffold. */
 export function AuthScreen({
   onApplePress,
   onGooglePress,
@@ -55,13 +39,12 @@ export function AuthScreen({
   const [focusedField, setFocusedField] = useState<'email' | 'password' | null>(null);
   const { height } = useWindowDimensions();
   const { bottom, top } = useSafeAreaInsets();
-  const keyboardHeight = useKeyboardHeight();
+  const palette = usePalette();
 
-  // Compress the column when the keyboard shows (iOS) so the inputs lift to sit
-  // above it. The title is anchored by the scaffold and is unaffected.
+  // Static column height; the scaffold's KeyboardAvoidingView lifts the inputs above
+  // the keyboard, so no per-keystroke keyboard-height math is needed here.
   const fullMinHeight = Math.max(height - top - bottom - AUTH_OVERLAY_VERTICAL_PADDING * 2, 0);
-  const keyboardAdjusted = Platform.OS === 'ios' ? fullMinHeight - keyboardHeight : fullMinHeight;
-  const layoutMinHeight = Math.max(keyboardAdjusted, 300);
+  const layoutMinHeight = Math.max(fullMinHeight, 300);
 
   const handleSignIn = useCallback(
     () => onEmailSignIn?.(email.trim(), password),
@@ -80,7 +63,7 @@ export function AuthScreen({
     >
       <View style={[styles.layout, { minHeight: layoutMinHeight }]}>
         <View style={styles.bottomGroup}>
-          <GlassSurface fallbackColor="#FFFFFF" intensity={60} style={styles.inputShell}>
+          <GlassSurface fallbackColor={palette.input} intensity={60} style={styles.inputShell}>
             <View pointerEvents="none" style={styles.inputIcon}>
               <EmailIcon />
             </View>
@@ -94,16 +77,20 @@ export function AuthScreen({
               onChangeText={setEmail}
               onFocus={() => setFocusedField('email')}
               placeholder="Write your gmail"
-              placeholderTextColor="#9CA3AF"
-              selectionColor="#091426"
-              style={[styles.input, focusedField === 'email' && styles.inputFocused]}
+              placeholderTextColor={palette.muted}
+              selectionColor={palette.ink}
+              style={[
+                styles.input,
+                { color: palette.ink },
+                focusedField === 'email' && styles.inputFocused,
+              ]}
               textContentType="emailAddress"
               underlineColorAndroid="transparent"
               value={email}
             />
           </GlassSurface>
 
-          <GlassSurface fallbackColor="#FFFFFF" intensity={60} style={styles.inputShell}>
+          <GlassSurface fallbackColor={palette.input} intensity={60} style={styles.inputShell}>
             <View pointerEvents="none" style={styles.inputIcon}>
               <LockIcon />
             </View>
@@ -116,12 +103,13 @@ export function AuthScreen({
               onChangeText={setPassword}
               onFocus={() => setFocusedField('password')}
               placeholder="Your password"
-              placeholderTextColor="#9CA3AF"
+              placeholderTextColor={palette.muted}
               secureTextEntry={!isPasswordVisible}
-              selectionColor="#091426"
+              selectionColor={palette.ink}
               style={[
                 styles.input,
                 styles.passwordInput,
+                { color: palette.ink },
                 focusedField === 'password' && styles.inputFocused,
               ]}
               textContentType="password"
@@ -147,9 +135,9 @@ export function AuthScreen({
               onPress={handleSignIn}
               style={styles.primaryButtonWrap}
               surfaceStyle={styles.primaryButton}
-              tintColor={LIMEADE}
+              tintColor={palette.primary}
             >
-              <Text style={styles.primaryButtonText}>
+              <Text style={[styles.primaryButtonText, { color: palette.onPrimary }]}>
                 {isSubmitting ? 'Signing in…' : 'Sign In'}
               </Text>
             </GlassPressable>
@@ -178,6 +166,7 @@ function SocialButton({
   variant?: 'dark' | 'light';
 }) {
   const isDark = variant === 'dark';
+  const palette = usePalette();
 
   return (
     <GlassPressable
@@ -185,7 +174,7 @@ function SocialButton({
       onPress={onPress}
       style={styles.socialWrap}
       surfaceStyle={styles.socialButton}
-      tintColor={isDark ? '#000000' : '#FFFFFF'}
+      tintColor={isDark ? '#000000' : palette.surface}
       glassEffectStyle={isDark ? 'regular' : 'clear'}
     >
       {icon}

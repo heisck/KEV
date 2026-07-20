@@ -3,8 +3,29 @@ import * as Crypto from 'expo-crypto';
 import { env } from '@/config/env';
 import { logger } from '@/lib/logger';
 import { tokenStore } from '@/lib/secureStore';
+import { toast } from '@/lib/toast';
 
 export const CORRELATION_HEADER = 'X-Correlation-Id';
+
+type ApiErrorShape = {
+  config?: { url?: string };
+  response?: { data?: unknown; status?: number };
+};
+
+/** Scanner conflicts are rendered on the result page, so the global client stays quiet. */
+export function isHandledApiError(error: ApiErrorShape): boolean {
+  const status = error.response?.status;
+  const url = error.config?.url;
+  if (status === 404 && url?.includes('/api/directory/students/')) return true;
+  if (status !== 409 || !url?.endsWith('/attendance')) return false;
+  const data = error.response?.data;
+  return (
+    typeof data === 'object' &&
+    data !== null &&
+    'detail' in data &&
+    data.detail === 'Student already checked in'
+  );
+}
 
 /**
  * Called when the refresh path gives up (invalid/expired refresh token) so the
@@ -51,6 +72,16 @@ async function refreshAccessToken(): Promise<string | null> {
   }
 }
 
+/** Human-readable toast copy for a failed request, keyed by what went wrong. */
+function toastMessage(error: AxiosError): string {
+  const status = error.response?.status;
+  if (status === undefined) return 'Network error — check your connection';
+  if (status === 401) return 'Please sign in to continue';
+  if (status === 403) return "You don't have access to that";
+  if (status >= 500) return 'Something went wrong on our end. Try again.';
+  return 'Request failed. Please try again.';
+}
+
 api.interceptors.response.use(
   (response) => response,
   async (error: AxiosError) => {
@@ -73,10 +104,13 @@ api.interceptors.response.use(
       onAuthExpired?.();
     }
 
-    logger.error('API request failed', {
-      url: error.config?.url,
-      status: error.response?.status,
-    });
+    if (!isHandledApiError(error)) {
+      logger.error('API request failed', {
+        url: error.config?.url,
+        status: error.response?.status,
+      });
+      toast.error(toastMessage(error));
+    }
     return Promise.reject(error);
   },
 );

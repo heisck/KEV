@@ -29,17 +29,23 @@ ui-mockup-html/  Design reference only — not part of the build
 ```bash
 npm install                       # bootstrap the workspace + git hooks
 
-# Configure env (never commit real values)
-cp .env.example .env              # master reference
-cp frontend/.env.example frontend/.env
-cp backend/.env.example backend/.env   # or export the SPRING_* / UPSTASH_* / GOOGLE_* vars
-cp ml/.env.example ml/.env
+# Configure env — ONE root file feeds all three services (never commit real values)
+cp .env.example .env              # then fill in secrets; frontend, backend & ml all read this
 
 npm run dev                       # run frontend + backend + ml together
 ```
 
-- Frontend: Expo dev server (press `a`/`i`; native Google sign-in & NFC need a dev build, not Expo Go).
+- **Env**: the single root `.env` is the source of truth — the frontend (`app.config.ts`), backend
+  (`scripts/run-backend.mjs`) and ml (`scripts/run-ml.mjs`) all load it. A service-local
+  `.env` (e.g. `backend/.env`) is optional and overrides the root file if present.
+- **QR code / Expo menu**: `npm run dev` multiplexes all three services, so Expo's interactive
+  QR + keypress UI is suppressed. Run the frontend alone (`npm run dev:frontend`) to get it —
+  though native modules (Google sign-in, NFC) need a **dev build** (`npx expo run:android|ios`), not Expo Go.
 - Backend: http://localhost:8080 — health `GET /api/health`, Swagger UI `/swagger-ui.html`.
+  When the datasource is local, `npm run dev` auto-starts **Postgres + Redis via Docker Compose**
+  and waits for readiness before booting; Flyway then runs migrations **including the seed data**
+  (`V6`/`V7`/`V10`/`V11`) on first start. Requires Docker running. For **Neon** instead, put the
+  pooled URL in `.env` — the container step is skipped automatically.
 - ML: http://localhost:8000 — health `GET /health`.
 
 ## Common commands

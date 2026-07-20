@@ -84,7 +84,7 @@ export function InvigilatorsScreen() {
               onPress={() => {
                 const id = selected.id;
                 setSelected(null);
-                router.push({ pathname: '/(tabs)/chat', params: { with: id } });
+                router.push({ pathname: '/chat/[id]', params: { id } });
               }}
               style={styles.detailCta}
             />

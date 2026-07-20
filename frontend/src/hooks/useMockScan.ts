@@ -2,7 +2,7 @@ import { isAxiosError } from 'axios';
 import { useRouter } from 'expo-router';
 
 import { checkIn } from '@/api/attendance';
-import type { CheckInMethod } from '@/api/schemas';
+import { getProblemDetail, type CheckInMethod } from '@/api/schemas';
 import { studentRecordToScanned, type ScannedStudent } from '@/data/exams';
 import { haptic } from '@/lib/haptics';
 import { toast } from '@/lib/toast';
@@ -10,6 +10,10 @@ import { useSessionStore } from '@/store/sessionStore';
 import { useSettingsStore } from '@/store/settingsStore';
 
 type Outcome = 'added' | 'already' | 'error';
+
+export function shouldShowScanResult(showSuccessPage: boolean, outcome: Outcome): boolean {
+  return showSuccessPage && outcome !== 'error';
+}
 
 /** Resolve the index number to check in from the scan hook's flexible input. */
 function indexOf(scanned?: ScannedStudent | string): string {
@@ -26,7 +30,6 @@ function indexOf(scanned?: ScannedStudent | string): string {
 export function useMockScan(sessionId: string, method: CheckInMethod = 'FACE') {
   const router = useRouter();
   const addStudent = useSessionStore((s) => s.addStudent);
-  const showSuccessPage = useSettingsStore((s) => s.showSuccessPage);
 
   return async (scanned?: ScannedStudent | string) => {
     const sid = Number(sessionId) || 1;
@@ -35,21 +38,25 @@ export function useMockScan(sessionId: string, method: CheckInMethod = 'FACE') {
 
     try {
       const record = await checkIn(sid, { indexNumber: indexOf(scanned), method });
-      student = studentRecordToScanned(record.student);
+      student = studentRecordToScanned(record.student, record.method, record.id);
       addStudent(sessionId, student);
     } catch (err) {
-      if (isAxiosError(err) && err.response?.status === 409) {
+      if (
+        isAxiosError(err) &&
+        err.response?.status === 409 &&
+        getProblemDetail(err)?.detail === 'Student already checked in'
+      ) {
         outcome = 'already';
       } else {
         outcome = 'error';
       }
     }
 
-    if (showSuccessPage) {
-      const status = outcome === 'error' ? 'review' : outcome;
+    const showSuccessPage = useSettingsStore.getState().showSuccessPage;
+    if (shouldShowScanResult(showSuccessPage, outcome)) {
       router.replace({
         pathname: '/verify/result',
-        params: { exam: sessionId, student: student?.id ?? '0', status, method },
+        params: { exam: sessionId, student: student?.id ?? '0', status: outcome, method },
       });
       return;
     }
@@ -63,7 +70,7 @@ export function useMockScan(sessionId: string, method: CheckInMethod = 'FACE') {
       toast.info(`${student?.name ?? 'Student'} is already in this class`);
     } else {
       haptic('error');
-      toast.error('Could not verify — try again');
+      toast.error('Could not verify. Try again');
     }
   };
 }

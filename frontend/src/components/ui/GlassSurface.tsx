@@ -2,6 +2,8 @@ import { BlurView } from 'expo-blur';
 import { GlassView, isGlassEffectAPIAvailable, isLiquidGlassAvailable } from 'expo-glass-effect';
 import { Platform, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 
+import { usePalette } from '@/theme';
+
 type GlassSurfaceProps = {
   children?: React.ReactNode;
   style?: StyleProp<ViewStyle>;
@@ -46,12 +48,15 @@ export function GlassSurface({
   glassEffectStyle = 'regular',
   testID,
 }: GlassSurfaceProps) {
+  const palette = usePalette();
+  const colorScheme = palette.isDark ? 'dark' : 'light';
+
   if (isGlassReady()) {
     // Apple/Expo: never put opacity < 1 on GlassView or ancestors.
     // Interactive must be fixed at mount (remount with key to change).
     return (
       <GlassView
-        colorScheme="light"
+        colorScheme={colorScheme}
         glassEffectStyle={glassEffectStyle}
         isInteractive={interactive}
         style={style}
@@ -62,14 +67,15 @@ export function GlassSurface({
       </GlassView>
     );
   }
-  const fill = fallbackColor ? { backgroundColor: fallbackColor } : null;
+  const fillColor = fallbackColor ?? (palette.isDark ? 'rgba(30, 30, 38, 0.82)' : undefined);
+  const fill = fillColor ? { backgroundColor: fillColor } : null;
   if (Platform.OS === 'ios' || Platform.OS === 'android') {
     return (
       <BlurView
         intensity={intensity}
         style={[styles.blurFallback, fill, style]}
         testID={testID}
-        tint="light"
+        tint={colorScheme}
       >
         {children}
       </BlurView>

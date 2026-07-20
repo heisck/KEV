@@ -90,7 +90,12 @@ export function DateTimeField({
       ) : null}
 
       {Platform.OS === 'ios' ? (
-        <BottomDrawer visible={open} onClose={() => setOpen(false)} title={label}>
+        <BottomDrawer
+          visible={open}
+          onClose={() => setOpen(false)}
+          title={label}
+          testID={`picker-drawer-${label}`}
+        >
           <DateTimePicker
             value={draft}
             mode={mode}

@@ -1,29 +1,32 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
-import { ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ScrollView, Text, TextInput, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useJoinSession, useSessionDetail } from '@/api/hooks';
 import { SceneArt } from '@/components/kev/art';
-import { BlueChip, CircleButton, ScreenTopBar } from '@/components/kev/chrome';
+import { BlueChip, ScreenTopBar } from '@/components/kev/chrome';
 import {
-  CheckCircleIcon,
   ChevronRightIcon,
   FaceIdIcon,
   KeypadIcon,
   NfcIcon,
-  PlusIcon,
-  ScanFrameIcon,
   SendIcon,
-  StepsIcon,
 } from '@/components/kev/icons';
 import { Avatar } from '@/components/kev/people';
+import { ScanResultPreference } from '@/components/scan/ScanResultPreference';
+import { StudentRosterControls } from '@/components/scan/StudentRosterControls';
+import { SessionActionsMenu } from '@/components/session/SessionActionsMenu';
 import { BottomDrawer } from '@/components/ui/BottomDrawer';
 import { HapticPressable } from '@/components/ui/HapticPressable';
 import { studentRecordToScanned } from '@/data/exams';
+import { useStudentRosterFilters } from '@/hooks/useStudentRosterFilters';
+import { isPastSession, scanBlockMessage } from '@/lib/sessionLifecycle';
+import { toast } from '@/lib/toast';
+import { useAuthStore } from '@/store/authStore';
 import { useSessionStore } from '@/store/sessionStore';
-import { colors, radii, spacing, usePalette } from '@/theme';
-import type { Palette } from '@/theme';
+import { colors, spacing, usePalette } from '@/theme';
+import { makeGroupSessionStyles } from '@/screens/kev/groupSessionStyles';
 
 const METHODS = [
   { label: 'Face', icon: <FaceIdIcon color={colors.pink} />, path: '/verify/face' as const },
@@ -35,43 +38,56 @@ const METHODS = [
 export function GroupSessionScreen() {
   const router = useRouter();
   const p = usePalette();
-  const styles = makeStyles(p);
+  const styles = makeGroupSessionStyles(p);
+  const { height } = useWindowDimensions();
   const { top } = useSafeAreaInsets();
   const { exam } = useLocalSearchParams<{ exam?: string }>();
   const sessionId = exam ?? '1';
 
   const { data: detail } = useSessionDetail(Number(sessionId) || 1);
   const joinMutation = useJoinSession();
+  const userId = useAuthStore((state) => state.user?.id);
+  const chatPeerId = detail?.invigilators.find((member) => member.userId !== userId)?.userId;
 
-  const joined =
-    useSessionStore((s) => Boolean(s.joined[sessionId])) || (detail?.invigilators?.length ?? 0) > 0;
-  const join = useSessionStore((s) => s.join);
+  const joined = detail?.invigilators.some((member) => member.userId === userId) ?? false;
   const scanned = useSessionStore((s) => s.roster[sessionId]);
   // Merge DB attendance with the local scan roster, de-duplicating by id.
-  const students = Array.from(
+  const roster = Array.from(
     new Map(
       [
-        ...(detail?.attendance?.map((a) => studentRecordToScanned(a.student)) ?? []),
         ...(scanned ?? []),
+        ...(detail?.attendance
+          ?.filter((attendance) => attendance.status === 'CHECKED_IN')
+          .map((attendance) =>
+            studentRecordToScanned(attendance.student, attendance.method, attendance.id),
+          ) ?? []),
       ].map((st) => [st.id, st]),
     ).values(),
   );
+  const { students, controls } = useStudentRosterFilters(roster);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [code, setCode] = useState('');
   const [error, setError] = useState(false);
+  const scanMessage = detail
+    ? scanBlockMessage(detail.session.status)
+    : 'Session details are loading';
 
-  const openScanHub = () => router.push({ pathname: '/verify/index', params: { exam: sessionId } });
-  const openMethod = (path: (typeof METHODS)[number]['path']) =>
+  const openMethod = (path: (typeof METHODS)[number]['path']) => {
+    if (scanMessage) return toast.info(scanMessage);
     router.push({ pathname: path, params: { exam: sessionId } });
+  };
 
   const submitCode = async () => {
     if (!code.trim()) return;
     try {
-      await joinMutation.mutateAsync(code.trim());
-      join(sessionId);
+      const session = await joinMutation.mutateAsync(code.trim());
+      const joinedId = String(session.id);
       setDrawerOpen(false);
       setCode('');
       setError(false);
+      if (joinedId !== sessionId) {
+        router.replace({ pathname: '/group-session', params: { exam: joinedId } });
+      }
     } catch {
       setError(true);
     }
@@ -81,140 +97,91 @@ export function GroupSessionScreen() {
     <View style={[styles.screen, { paddingTop: top + spacing.md }]}>
       <ScreenTopBar
         title="Group Session"
-        onBack={() => router.back()}
+        onBack={() => router.replace('/(tabs)')}
         trailing={
-          <CircleButton
-            label={joined ? 'Open scanner' : 'Join the session to scan'}
-            onPress={joined ? openScanHub : () => setDrawerOpen(true)}
-          >
-            <ScanFrameIcon color={joined ? p.ink : p.hairline} />
-          </CircleButton>
+          <SessionActionsMenu
+            code={detail?.session.sessionCode}
+            password={detail?.session.sessionPassword ?? detail?.session.sessionCode}
+            lecturers={detail?.invigilators ?? []}
+            joined={joined}
+            onJoin={() => setDrawerOpen(true)}
+          />
         }
       />
 
       <ScrollView contentContainerStyle={styles.body} showsVerticalScrollIndicator={false}>
-        <View style={styles.members}>
-          <View style={styles.member}>
-            {joined ? (
-              <View style={[styles.addTile, styles.addedTile]}>
-                <CheckCircleIcon color={p.success} size={26} />
-              </View>
-            ) : (
-              <HapticPressable
-                accessibilityRole="button"
-                accessibilityLabel="Join session"
-                onPress={() => setDrawerOpen(true)}
-                style={styles.addTile}
-              >
-                <PlusIcon color={p.ink} />
-              </HapticPressable>
-            )}
-            <Text style={styles.memberLabel}>{joined ? 'Added' : '+ Join Session'}</Text>
-          </View>
-          {(detail?.invigilators ?? []).map((m) => {
-            const initials =
-              m.displayName
-                ?.split(' ')
-                .map((w) => w[0])
-                .join('')
-                .slice(0, 2)
-                .toUpperCase() || 'KW';
-            return (
-              <HapticPressable
-                key={m.userId}
-                accessibilityRole="button"
-                accessibilityLabel="View invigilators"
-                onPress={() => router.push('/invigilators')}
-                style={styles.member}
-              >
-                <View style={[styles.addTile, { backgroundColor: p.primary12 }]}>
-                  <Text style={{ color: p.primary, fontSize: 16, fontWeight: '800' }}>
-                    {initials}
-                  </Text>
-                </View>
-                <Text style={styles.memberLabel}>{initials}</Text>
-              </HapticPressable>
-            );
-          })}
-        </View>
-
         {joined ? (
           <>
-            <View style={styles.rosterHeader}>
-              <Text style={styles.rosterTitle}>Students</Text>
-              <View style={styles.counter}>
-                <Text style={styles.counterText}>{students.length}</Text>
+            <StudentRosterControls {...controls} />
+            <View style={[styles.rosterSection, { minHeight: height * 0.3 }]}>
+              <View style={styles.rosterHeader}>
+                <Text style={styles.rosterTitle}>Students</Text>
+                <View style={styles.counter}>
+                  <Text style={styles.counterText}>{students.length}</Text>
+                </View>
               </View>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.roster}
+              >
+                {students.map((s) => (
+                  <HapticPressable
+                    key={s.id}
+                    accessibilityRole="button"
+                    accessibilityLabel={`${s.name} result`}
+                    onPress={() =>
+                      router.push({
+                        pathname: '/verify/result',
+                        params: {
+                          attendance: String(s.attendanceId ?? ''),
+                          exam: sessionId,
+                          mode: 'profile',
+                          status: 'added',
+                          student: s.id,
+                        },
+                      })
+                    }
+                    style={styles.student}
+                  >
+                    <Avatar person={s.person} size={72} />
+                    <Text numberOfLines={2} style={styles.studentName}>
+                      {s.name}
+                    </Text>
+                  </HapticPressable>
+                ))}
+              </ScrollView>
             </View>
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.roster}
-            >
-              {students.map((s) => (
+            <View style={styles.sectionDivider} />
+            {!isPastSession(detail?.session.status) ? <ScanResultPreference /> : null}
+
+            <View style={styles.methods}>
+              {METHODS.map((m) => (
                 <HapticPressable
-                  key={s.id}
+                  key={m.label}
                   accessibilityRole="button"
-                  accessibilityLabel={`${s.name} result`}
-                  onPress={() =>
-                    router.push({
-                      pathname: '/verify/result',
-                      params: { exam: sessionId, student: s.id },
-                    })
-                  }
-                  style={styles.student}
+                  accessibilityLabel={`${m.label} verification`}
+                  onPress={() => openMethod(m.path)}
+                  style={[styles.method, scanMessage && styles.methodDisabled]}
                 >
-                  <Avatar person="freja" size={44} />
-                  <Text numberOfLines={1} style={styles.studentName}>
-                    {s.name}
-                  </Text>
+                  <View style={styles.methodCircle}>{m.icon}</View>
+                  <Text style={styles.methodLabel}>{m.label}</Text>
                 </HapticPressable>
               ))}
-            </ScrollView>
+            </View>
           </>
-        ) : null}
-
-        <View style={styles.methods}>
-          {METHODS.map((m) => (
+        ) : (
+          <View style={styles.joinPrompt}>
+            <Text style={styles.rosterTitle}>Join this session to scan students</Text>
             <HapticPressable
-              key={m.label}
               accessibilityRole="button"
-              accessibilityLabel={`${m.label} verification`}
-              onPress={() => (joined ? openMethod(m.path) : setDrawerOpen(true))}
-              style={[styles.method, !joined && styles.methodDisabled]}
+              onPress={() => setDrawerOpen(true)}
+              style={styles.joinButton}
             >
-              <View style={styles.methodCircle}>{m.icon}</View>
-              <Text style={styles.methodLabel}>{m.label}</Text>
+              <Text style={styles.joinButtonText}>Enter session password</Text>
             </HapticPressable>
-          ))}
-        </View>
-
-        <HapticPressable
-          accessibilityRole="button"
-          accessibilityLabel="Open scan hub"
-          onPress={() => (joined ? openScanHub : setDrawerOpen(true))}
-          style={styles.heroCard}
-        >
-          <View style={styles.heroImage}>
-            <SceneArt art="arena" />
           </View>
-          <View style={styles.heroFooter}>
-            <Avatar person="anna" size={44} />
-            <View style={styles.heroText}>
-              <Text style={styles.heroTitle}>Anna verified Hall A</Text>
-              <View style={styles.tracking}>
-                <StepsIcon color={p.inkSoft} size={12} />
-                <Text style={styles.trackingText}>Live tracking</Text>
-              </View>
-            </View>
-            <View style={styles.country}>
-              <View
-                style={[styles.addTile, { width: 18, height: 18, backgroundColor: p.primary12 }]}
-              />
-              <Text style={styles.countryText}>Hall A</Text>
-            </View>
-          </View>
-        </HapticPressable>
+        )}
 
         <View style={styles.rowCard}>
           <View style={styles.thumb}>
@@ -227,7 +194,11 @@ export function GroupSessionScreen() {
           <BlueChip
             label="Post"
             icon={<SendIcon color={p.blue} />}
-            onPress={() => router.push({ pathname: '/(tabs)/chat', params: { with: 'i1' } })}
+            onPress={() =>
+              chatPeerId
+                ? router.push({ pathname: '/chat/[id]', params: { id: chatPeerId } })
+                : router.push('/(tabs)/chat')
+            }
           />
         </View>
 
@@ -259,8 +230,8 @@ export function GroupSessionScreen() {
         <Text style={styles.drawerHint}>Enter the session password to join.</Text>
         <TextInput
           value={code}
-          onChangeText={(t) => {
-            setCode(t);
+          onChangeText={(text) => {
+            setCode(text);
             setError(false);
           }}
           onSubmitEditing={submitCode}
@@ -272,7 +243,7 @@ export function GroupSessionScreen() {
           style={[styles.input, error && styles.inputError]}
           testID="join-session-code"
         />
-        {error ? <Text style={styles.errorText}>Wrong password — try again.</Text> : null}
+        {error ? <Text style={styles.errorText}>Wrong password. Try again.</Text> : null}
         <HapticPressable
           accessibilityRole="button"
           onPress={submitCode}
@@ -285,107 +256,3 @@ export function GroupSessionScreen() {
     </View>
   );
 }
-
-const makeStyles = (p: Palette) =>
-  StyleSheet.create({
-    screen: { backgroundColor: p.bg, flex: 1, paddingHorizontal: spacing.xl },
-    body: { gap: spacing.lg, paddingBottom: spacing.xxxl, paddingTop: spacing.xl },
-    members: { flexDirection: 'row', gap: spacing.lg },
-    member: { alignItems: 'center', gap: spacing.sm },
-    addTile: {
-      alignItems: 'center',
-      backgroundColor: p.surfaceDim,
-      borderRadius: radii.pill,
-      height: 56,
-      justifyContent: 'center',
-      width: 56,
-    },
-    addedTile: { backgroundColor: p.successSoft },
-    memberLabel: { color: p.ink, fontSize: 12, fontWeight: '600' },
-    rosterHeader: { alignItems: 'center', flexDirection: 'row', gap: spacing.sm },
-    rosterTitle: { color: p.ink, fontSize: 16, fontWeight: '700' },
-    counter: {
-      backgroundColor: p.primary12,
-      borderRadius: radii.pill,
-      minWidth: 26,
-      paddingHorizontal: 7,
-      paddingVertical: 2,
-    },
-    counterText: { color: p.primary, fontSize: 12, fontWeight: '700', textAlign: 'center' },
-    roster: { gap: spacing.md },
-    student: { alignItems: 'center', gap: 5, width: 56 },
-    studentName: { color: p.inkSoft, fontSize: 11, fontWeight: '600' },
-    methods: { flexDirection: 'row', justifyContent: 'space-evenly' },
-    method: { alignItems: 'center', gap: spacing.sm },
-    methodDisabled: { opacity: 0.4 },
-    methodCircle: {
-      alignItems: 'center',
-      backgroundColor: p.surfaceDim,
-      borderRadius: radii.pill,
-      height: 62,
-      justifyContent: 'center',
-      width: 62,
-    },
-    methodLabel: { color: p.inkSoft, fontSize: 11, fontWeight: '600' },
-    heroCard: {
-      backgroundColor: p.surface,
-      borderColor: p.hairline,
-      borderRadius: radii.lg,
-      borderWidth: 1,
-      overflow: 'hidden',
-    },
-    // Image runs edge to edge; bottom edge softly curved like the mockup.
-    heroImage: {
-      borderBottomLeftRadius: radii.md + 4,
-      borderBottomRightRadius: radii.md + 4,
-      height: 190,
-      overflow: 'hidden',
-    },
-    heroFooter: {
-      alignItems: 'center',
-      flexDirection: 'row',
-      gap: spacing.md,
-      padding: spacing.md,
-    },
-    heroText: { flex: 1, gap: 3 },
-    heroTitle: { color: p.ink, fontSize: 16, fontWeight: '700' },
-    tracking: { alignItems: 'center', flexDirection: 'row', gap: 5 },
-    trackingText: { color: p.inkSoft, fontSize: 11, fontWeight: '500' },
-    country: { alignItems: 'center', flexDirection: 'row', gap: 6 },
-    countryText: { color: p.inkSoft, fontSize: 12, fontWeight: '600' },
-    rowCard: {
-      alignItems: 'center',
-      backgroundColor: p.surfaceDim,
-      borderRadius: radii.lg,
-      flexDirection: 'row',
-      gap: spacing.lg,
-      padding: spacing.lg,
-    },
-    thumb: { borderRadius: radii.sm, height: 64, overflow: 'hidden', width: 64 },
-    tallThumb: { borderRadius: radii.sm, height: 96, overflow: 'hidden', width: 96 },
-    rowText: { flex: 1, gap: 4 },
-    rowTitle: { color: p.ink, fontSize: 16, fontWeight: '700' },
-    rowSub: { color: p.muted, fontSize: 12, fontWeight: '500' },
-    explore: { alignItems: 'center', flexDirection: 'row', gap: 3, marginTop: 2 },
-    exploreText: { color: p.primary, fontSize: 12, fontWeight: '700' },
-    drawerHint: { color: p.muted, fontSize: 13, fontWeight: '500' },
-    input: {
-      backgroundColor: p.surfaceDim,
-      borderColor: p.hairline,
-      borderRadius: radii.md,
-      borderWidth: 1,
-      color: p.ink,
-      fontSize: 16,
-      paddingHorizontal: spacing.lg,
-      paddingVertical: spacing.md,
-    },
-    inputError: { borderColor: p.error },
-    errorText: { color: p.error, fontSize: 12, fontWeight: '600' },
-    joinButton: {
-      alignItems: 'center',
-      backgroundColor: p.primary,
-      borderRadius: radii.pill,
-      paddingVertical: spacing.lg - 2,
-    },
-    joinButtonText: { color: p.onPrimary, fontSize: 15, fontWeight: '700' },
-  });

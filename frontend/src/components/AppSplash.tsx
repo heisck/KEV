@@ -12,7 +12,6 @@ import {
 } from '@/components/AppLogoMark';
 import { SystemStatusBar } from '@/components/SystemStatusBar';
 import {
-  BG,
   CELL,
   COMMA_HEIGHT,
   COMMA_LEFT,
@@ -23,8 +22,6 @@ import {
   GRID_CENTER_OFFSET,
   GRID_WIDTH,
   hideLine,
-  INK,
-  LINE,
   lineIndex,
   lineSpecs,
   LOGO_HEIGHT,
@@ -34,6 +31,7 @@ import {
   vanishSteps,
   type LineSpec,
 } from '@/components/splashLogo';
+import { usePalette } from '@/theme';
 
 type AppSplashProps = { isActive?: boolean; onFinish: () => void };
 
@@ -210,8 +208,9 @@ function useSplashAnimation(isActive: boolean, onFinish: () => void, targetTrans
   return animation;
 }
 
-function getLineStyle(line: LineSpec) {
+function getLineStyle(line: LineSpec, color: string) {
   const base = {
+    backgroundColor: color,
     left: line.col * CELL,
     position: 'absolute' as const,
     top: line.row * CELL,
@@ -221,14 +220,15 @@ function getLineStyle(line: LineSpec) {
     : [styles.line, base, styles.verticalLine];
 }
 
-function GridLines({ opacities }: { opacities?: Animated.Value[] }) {
+function GridLines({ color, opacities }: { color: string; opacities?: Animated.Value[] }) {
   return (
     <View style={styles.grid}>
       {lineSpecs.map((line, index) => (
         <Animated.View
           key={line.key}
+          testID="splash-grid-line"
           style={[
-            getLineStyle(line),
+            getLineStyle(line, color),
             { opacity: opacities?.[index] ?? (finalHiddenLines.has(line.key) ? 0 : 1) },
           ]}
         />
@@ -238,9 +238,11 @@ function GridLines({ opacities }: { opacities?: Animated.Value[] }) {
 }
 
 function CommaMark({
+  color,
   opacity,
   scale,
 }: {
+  color: string;
   opacity?: Animated.Value | number;
   scale?: Animated.Value;
 }) {
@@ -249,7 +251,7 @@ function CommaMark({
       style={[styles.commaMark, { opacity: opacity ?? 1, transform: [{ scale: scale ?? 1 }] }]}
     >
       <Svg height="100%" viewBox="0 0 115 178" width="100%">
-        <Path d={COMMA_PATH} fill={INK} />
+        <Path d={COMMA_PATH} fill={color} />
       </Svg>
     </Animated.View>
   );
@@ -262,10 +264,15 @@ export function AppSplash({ isActive = true, onFinish }: AppSplashProps) {
   const targetLogoHeight = getAppLogoMarkSize().height;
   const targetTranslateY = targetLogoTop + targetLogoHeight / 2 - height / 2;
   const animation = useSplashAnimation(isActive, onFinish, targetTranslateY);
+  const palette = usePalette();
 
   return (
     <>
-      <SystemStatusBar backgroundColor={BG} barStyle="dark-content" translucent={false} />
+      <SystemStatusBar
+        backgroundColor={palette.bg}
+        barStyle={palette.isDark ? 'light-content' : 'dark-content'}
+        translucent={false}
+      />
       <Animated.View
         accessibilityElementsHidden
         importantForAccessibility="no-hide-descendants"
@@ -275,7 +282,13 @@ export function AppSplash({ isActive = true, onFinish }: AppSplashProps) {
           { opacity: animation.overlayOpacity, pointerEvents: 'none' },
         ]}
       >
-        <Animated.View style={[styles.background, { opacity: animation.backgroundOpacity }]} />
+        <Animated.View
+          testID="splash-background"
+          style={[
+            styles.background,
+            { backgroundColor: palette.bg, opacity: animation.backgroundOpacity },
+          ]}
+        />
         <Animated.View
           style={[
             styles.stage,
@@ -285,8 +298,12 @@ export function AppSplash({ isActive = true, onFinish }: AppSplashProps) {
             },
           ]}
         >
-          <GridLines opacities={animation.lineOpacity} />
-          <CommaMark opacity={animation.commaOpacity} scale={animation.commaScale} />
+          <GridLines color={palette.ink} opacities={animation.lineOpacity} />
+          <CommaMark
+            color={palette.ink}
+            opacity={animation.commaOpacity}
+            scale={animation.commaScale}
+          />
         </Animated.View>
         <Animated.View
           style={[
@@ -308,25 +325,26 @@ export function AppSplash({ isActive = true, onFinish }: AppSplashProps) {
 }
 
 export function AppSplashFinalState() {
+  const palette = usePalette();
+
   return (
-    <View style={[styles.screen, styles.finalScreen]}>
+    <View style={[styles.screen, { backgroundColor: palette.bg }]}>
       <View style={styles.stage}>
-        <GridLines />
-        <CommaMark />
+        <GridLines color={palette.ink} />
+        <CommaMark color={palette.ink} />
       </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  background: { backgroundColor: BG, bottom: 0, left: 0, position: 'absolute', right: 0, top: 0 },
+  background: { bottom: 0, left: 0, position: 'absolute', right: 0, top: 0 },
   screen: { alignItems: 'center', flex: 1, justifyContent: 'center' },
-  finalScreen: { backgroundColor: BG },
   overlay: { bottom: 0, left: 0, position: 'absolute', right: 0, top: 0, zIndex: 100 },
   handoffLogo: { height: LOGO_HEIGHT, position: 'absolute', width: LOGO_WIDTH },
   stage: { height: LOGO_HEIGHT, width: LOGO_WIDTH },
   grid: { height: LOGO_HEIGHT, left: 0, position: 'absolute', top: 0, width: GRID_WIDTH },
-  line: { backgroundColor: LINE, position: 'absolute' },
+  line: { position: 'absolute' },
   horizontalLine: { height: 1, width: CELL },
   verticalLine: { height: CELL, width: 1 },
   commaMark: {

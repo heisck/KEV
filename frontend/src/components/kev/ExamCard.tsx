@@ -30,7 +30,9 @@ export function ExamCard({ exam }: { exam: Exam }) {
           <SceneArt art={exam.art} />
         </View>
         <View style={styles.headings}>
-          <Text style={[styles.city, { color: p.ink }]}>{exam.course}</Text>
+          <Text ellipsizeMode="tail" numberOfLines={2} style={[styles.city, { color: p.ink }]}>
+            {exam.course}
+          </Text>
           <Text style={[styles.dates, { color: p.muted }]}>{exam.dates}</Text>
           {exam.status !== 'Past' ? <StatusChip status={exam.status} /> : null}
         </View>
@@ -60,7 +62,9 @@ export function ExamCard({ exam }: { exam: Exam }) {
               ) : (
                 <AlertIcon color={p.error} />
               )}
-              <Text style={[styles.checkLabel, { color: p.inkSoft }]}>{item.label}</Text>
+              <Text numberOfLines={2} style={[styles.checkLabel, { color: p.inkSoft }]}>
+                {item.label}
+              </Text>
             </View>
           ))}
         </View>
@@ -76,7 +80,7 @@ export function ExamCard({ exam }: { exam: Exam }) {
         ) : (
           <HapticPressable
             accessibilityRole="button"
-            onPress={() => router.push({ pathname: '/group-session', params: { exam: exam.id } })}
+            onPress={() => router.push({ pathname: '/exam/[id]', params: { id: exam.id } })}
             style={styles.guests}
           >
             <StudentsIcon color={p.ink} />
@@ -95,21 +99,29 @@ const styles = StyleSheet.create({
     gap: spacing.lg,
     padding: spacing.lg,
   },
-  topRow: { flexDirection: 'row', gap: spacing.md },
-  image: { borderRadius: radii.md, height: 96, overflow: 'hidden', width: 96 },
-  headings: { flex: 1, gap: 6 },
-  city: { fontSize: 22, fontWeight: '800' },
+  topRow: { alignItems: 'flex-start', flexDirection: 'row', gap: spacing.md },
+  image: { borderRadius: radii.md, flexShrink: 0, height: 96, overflow: 'hidden', width: 96 },
+  headings: { flex: 1, gap: 6, minWidth: 0 },
+  city: { flexShrink: 1, fontSize: 22, fontWeight: '800' },
   dates: { fontSize: 13, fontWeight: '500' },
-  bottomRow: { alignItems: 'flex-end', flexDirection: 'row', justifyContent: 'space-between' },
-  checklist: { gap: spacing.sm },
-  checkItem: { alignItems: 'center', flexDirection: 'row', gap: spacing.sm },
-  checkLabel: { fontSize: 13, fontWeight: '600' },
+  bottomRow: { alignItems: 'flex-end', flexDirection: 'row', flexWrap: 'wrap', gap: spacing.md },
+  checklist: { flex: 1, gap: spacing.sm, minWidth: 160 },
+  checkItem: { alignItems: 'center', flexDirection: 'row', gap: spacing.sm, minWidth: 0 },
+  checkLabel: { flex: 1, fontSize: 13, fontWeight: '600' },
   cta: {
+    flexShrink: 0,
     borderRadius: radii.pill,
     paddingHorizontal: spacing.xl,
     paddingVertical: spacing.md,
   },
   ctaText: { fontSize: 13, fontWeight: '700' },
-  guests: { alignItems: 'center', flexDirection: 'row', gap: 6, paddingVertical: spacing.xs },
+  guests: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    flexShrink: 0,
+    gap: 6,
+    marginLeft: 'auto',
+    paddingVertical: spacing.xs,
+  },
   guestsText: { fontSize: 13, fontWeight: '700' },
 });

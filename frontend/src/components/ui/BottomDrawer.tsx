@@ -64,11 +64,21 @@ export function BottomDrawer({ visible, onClose, title, children, testID }: Bott
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.root}
       >
-        <Animated.View style={[styles.backdrop, backdropStyle]}>
+        <Animated.View
+          style={[
+            styles.backdrop,
+            { backgroundColor: p.isDark ? 'rgba(0, 0, 0, 0.62)' : 'rgba(14, 27, 30, 0.45)' },
+            backdropStyle,
+          ]}
+        >
           <Pressable accessibilityRole="button" style={StyleSheet.absoluteFill} onPress={onClose} />
         </Animated.View>
         <Animated.View style={[styles.sheetClip, sheetStyle]}>
-          <GlassSurface intensity={70} style={styles.sheetGlass}>
+          <GlassSurface
+            fallbackColor={p.surface}
+            intensity={70}
+            testID={testID ? `${testID}-surface` : undefined}
+          >
             <View style={[styles.sheet, { paddingBottom: insets.bottom + spacing.xl }]}>
               <View style={[styles.grabber, { backgroundColor: p.hairline }]} />
               {title ? <Text style={[styles.title, { color: p.ink }]}>{title}</Text> : null}
@@ -85,15 +95,11 @@ const styles = StyleSheet.create({
   root: { flex: 1, justifyContent: 'flex-end' },
   backdrop: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(14, 27, 30, 0.45)',
   },
   sheetClip: {
     borderTopLeftRadius: radii.xl,
     borderTopRightRadius: radii.xl,
     overflow: 'hidden',
-  },
-  sheetGlass: {
-    backgroundColor: 'rgba(255, 255, 255, 0.72)',
   },
   sheet: {
     gap: spacing.lg,

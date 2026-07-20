@@ -10,12 +10,16 @@ import {
   FaceIdIcon,
   KeypadIcon,
   NfcIcon,
+  PencilIcon,
   RemindersTabIcon,
   ScanFrameIcon,
   StepsIcon,
   StudentsIcon,
 } from '@/components/kev/icons';
 import { HapticPressable } from '@/components/ui/HapticPressable';
+import { SessionAccessCard } from '@/components/session/SessionAccessCard';
+import { isPastSession, scanBlockMessage } from '@/lib/sessionLifecycle';
+import { toast } from '@/lib/toast';
 import { colors, radii, spacing, usePalette } from '@/theme';
 
 /** Session details (kev mockup screen 2). */
@@ -51,6 +55,10 @@ export function ExamDetailScreen() {
   const methods = METHODS.filter((m) => !allowed || allowed.includes(m.key));
 
   const isUpcoming = session?.status === 'UPCOMING';
+  const isPast = isPastSession(session?.status);
+  const scanMessage = session
+    ? scanBlockMessage(session.status)
+    : 'Session details are still loading';
   const hall = session?.title ?? session?.building ?? 'Main Exam Hall';
   const verified = detail?.attendance?.length ?? Number(session?.checkedInCount ?? 0);
   const studentsCount = isUpcoming ? 'Unknown' : verified + 10;
@@ -64,19 +72,37 @@ export function ExamDetailScreen() {
   const dateStr =
     session?.examDate ?? new Date(session?.startedAt ?? Date.now()).toLocaleDateString();
 
-  const openScanHub = () => router.push({ pathname: '/verify/index', params: { exam: examId } });
+  const openScanHub = () => {
+    if (scanMessage) return toast.info(scanMessage);
+    router.push({ pathname: '/group-session', params: { exam: examId } });
+  };
+
+  const openMethod = (path: (typeof METHODS)[number]['path']) => {
+    if (scanMessage) return toast.info(scanMessage);
+    router.push({ pathname: path, params: { exam: examId } });
+  };
 
   return (
     <View style={[styles.screen, { backgroundColor: p.bg, paddingTop: top + spacing.md }]}>
       <ScreenTopBar
         title="Session details"
-        onBack={() => router.back()}
+        onBack={() => router.replace('/(tabs)')}
         trailing={
-          !isUpcoming ? (
-            <CircleButton label="Scan" onPress={openScanHub}>
-              <ScanFrameIcon color={p.ink} />
+          <View style={styles.headerActions}>
+            {session && !isPast ? (
+              <CircleButton
+                label="Edit session"
+                onPress={() =>
+                  router.push({ pathname: '/room-setup', params: { sessionId: examId } })
+                }
+              >
+                <PencilIcon color={p.ink} size={18} />
+              </CircleButton>
+            ) : null}
+            <CircleButton label={scanMessage ?? 'Scan'} onPress={openScanHub}>
+              <ScanFrameIcon color={scanMessage ? p.muted : p.ink} />
             </CircleButton>
-          ) : null
+          </View>
         }
       />
 
@@ -136,15 +162,23 @@ export function ExamDetailScreen() {
           </View>
         </View>
 
+        {session ? (
+          <View style={styles.accessCard}>
+            <SessionAccessCard
+              code={session.sessionCode}
+              password={session.sessionPassword ?? session.sessionCode}
+            />
+          </View>
+        ) : null}
+
         <Text style={[styles.section, { color: p.ink }]}>Verification methods</Text>
-        <View style={[styles.amenities, isUpcoming && { opacity: 0.5 }]}>
+        <View style={[styles.amenities, scanMessage && { opacity: 0.5 }]}>
           {methods.map((m) => (
             <HapticPressable
               key={m.label}
-              disabled={isUpcoming}
               accessibilityRole="button"
               accessibilityLabel={`${m.label} verification`}
-              onPress={() => router.push({ pathname: m.path, params: { exam: examId } })}
+              onPress={() => openMethod(m.path)}
               style={styles.amenity}
             >
               <View style={[styles.amenityCircle, { backgroundColor: p.surfaceDim }]}>
@@ -177,12 +211,14 @@ export function ExamDetailScreen() {
 const styles = StyleSheet.create({
   screen: { backgroundColor: colors.white, flex: 1, paddingHorizontal: spacing.xl },
   body: { paddingBottom: spacing.xxxl, paddingTop: spacing.lg },
+  headerActions: { flexDirection: 'row', gap: spacing.sm },
   card: {
     backgroundColor: colors.surfaceDim,
     borderRadius: radii.lg,
     overflow: 'hidden',
   },
   cardBody: { padding: spacing.lg },
+  accessCard: { marginTop: spacing.lg },
   // Image runs edge to edge of the card; bottom edge softly curved (mockup).
   hero: {
     borderBottomLeftRadius: radii.md + 4,

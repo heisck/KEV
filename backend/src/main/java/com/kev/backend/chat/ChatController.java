@@ -4,6 +4,8 @@ import com.kev.backend.auth.Role;
 import com.kev.backend.auth.UserRepository;
 import com.kev.backend.auth.dto.UserDto;
 import com.kev.backend.common.ApiException;
+import com.kev.backend.notification.Notification;
+import com.kev.backend.notification.NotificationRepository;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import java.time.Instant;
@@ -29,11 +31,17 @@ public class ChatController {
     private final ConversationRepository conversations;
     private final MessageRepository messages;
     private final UserRepository users;
+    private final NotificationRepository notifications;
 
-    public ChatController(ConversationRepository conversations, MessageRepository messages, UserRepository users) {
+    public ChatController(
+            ConversationRepository conversations,
+            MessageRepository messages,
+            UserRepository users,
+            NotificationRepository notifications) {
         this.conversations = conversations;
         this.messages = messages;
         this.users = users;
+        this.notifications = notifications;
     }
 
     @GetMapping("/lecturers")
@@ -75,6 +83,8 @@ public class ChatController {
         if (principal == null) throw new ApiException(HttpStatus.UNAUTHORIZED, "Unauthorized");
         UUID userId = UUID.fromString(principal.getSubject());
         users.findById(peerId).orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Peer not found"));
+        var sender =
+                users.findById(userId).orElseThrow(() -> new ApiException(HttpStatus.UNAUTHORIZED, "Unauthorized"));
 
         Conversation conv = conversations.findByUsers(userId, peerId).orElseGet(() -> {
             Conversation c = new Conversation();
@@ -91,6 +101,18 @@ public class ChatController {
         msg.setSenderId(userId);
         msg.setContent(req.content().trim());
         Message saved = messages.save(msg);
+        if (!peerId.equals(userId)) {
+            Notification notification = new Notification();
+            notification.setUserId(peerId);
+            notification.setTitle("New message from " + senderName(sender.getDisplayName(), sender.getEmail()));
+            notification.setMessage(saved.getContent());
+            notification.setType("CHAT");
+            notifications.save(notification);
+        }
         return MessageDto.from(saved);
+    }
+
+    private static String senderName(String displayName, String email) {
+        return displayName == null || displayName.isBlank() ? email : displayName;
     }
 }

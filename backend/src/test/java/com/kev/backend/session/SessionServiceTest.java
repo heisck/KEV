@@ -11,6 +11,7 @@ import com.kev.backend.auth.UserRepository;
 import com.kev.backend.common.ApiException;
 import com.kev.backend.session.dto.CreateSessionRequest;
 import com.kev.backend.session.dto.SessionDto;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -60,6 +61,7 @@ class SessionServiceTest {
                         null, "JQB", "GF", "12", List.of("DCIT 301", "DCIT 305"), null, null, null, null, null, null));
 
         assertThat(dto.sessionCode()).matches("KEV-[2-9A-HJKMNP-Z]{4}");
+        assertThat(dto.sessionPassword()).matches("[2-9A-HJKMNP-Z]{6}");
         assertThat(dto.courseCodes()).containsExactly("DCIT 301", "DCIT 305");
         // No exam date set → treated as UPCOMING (unscheduled, just created).
         assertThat(dto.status()).isEqualTo("UPCOMING");
@@ -90,6 +92,78 @@ class SessionServiceTest {
     }
 
     @Test
+    void updateChangesEditableFieldsWithoutReplacingCredentials() {
+        ExamSession session = new ExamSession();
+        session.setId(3L);
+        session.setCreatedBy(creator);
+        session.setSessionCode("KEV-ABCD");
+        session.setSessionPassword("F7K9PX");
+        when(sessions.findById(3L)).thenReturn(Optional.of(session));
+        when(sessions.save(session)).thenReturn(session);
+
+        SessionDto dto = service.update(
+                creator,
+                3L,
+                new CreateSessionRequest(
+                        "Updated class",
+                        "New Building",
+                        "Floor 2",
+                        "18",
+                        List.of("DCIT 401", "DCIT 403"),
+                        "10000001",
+                        "10000100",
+                        null,
+                        "09:00",
+                        "12:00",
+                        List.of("NFC", "MANUAL")));
+
+        assertThat(dto.sessionCode()).isEqualTo("KEV-ABCD");
+        assertThat(dto.sessionPassword()).isEqualTo("F7K9PX");
+        assertThat(dto.building()).isEqualTo("New Building");
+        assertThat(dto.indexRangeStart()).isEqualTo("10000001");
+        assertThat(dto.verificationMethods()).containsExactly("NFC", "MANUAL");
+    }
+
+    @Test
+    void updateAllowsInvigilatorMembership() {
+        UUID member = UUID.randomUUID();
+        ExamSession session = editableSession();
+        when(sessions.findById(3L)).thenReturn(Optional.of(session));
+        when(invigilators.existsBySessionIdAndUserId(3L, member)).thenReturn(true);
+        when(sessions.save(session)).thenReturn(session);
+
+        SessionDto dto = service.update(member, 3L, updateRequest());
+
+        assertThat(dto.building()).isEqualTo("New Building");
+    }
+
+    @Test
+    void updateRejectsNonMember() {
+        ExamSession session = editableSession();
+        when(sessions.findById(3L)).thenReturn(Optional.of(session));
+
+        assertThatThrownBy(() -> service.update(UUID.randomUUID(), 3L, updateRequest()))
+                .isInstanceOf(ApiException.class)
+                .satisfies(e -> assertThat(((ApiException) e).getStatus()).isEqualTo(HttpStatus.FORBIDDEN));
+    }
+
+    @Test
+    void requireOngoingMemberExplainsUpcomingAndCompletedSessions() {
+        ExamSession session = editableSession();
+        session.setExamDate(LocalDate.now().plusDays(1));
+        when(sessions.findById(3L)).thenReturn(Optional.of(session));
+
+        assertThatThrownBy(() -> service.requireOngoingMember(creator, 3L))
+                .isInstanceOf(ApiException.class)
+                .hasMessageContaining("not started");
+
+        session.setExamDate(LocalDate.now().minusDays(1));
+        assertThatThrownBy(() -> service.requireOngoingMember(creator, 3L))
+                .isInstanceOf(ApiException.class)
+                .hasMessageContaining("closed");
+    }
+
+    @Test
     void requireMemberRejectsOutsider() {
         ExamSession session = new ExamSession();
         session.setId(4L);
@@ -98,5 +172,29 @@ class SessionServiceTest {
         when(invigilators.existsBySessionIdAndUserId(any(), any())).thenReturn(false);
 
         assertThatThrownBy(() -> service.requireMember(UUID.randomUUID(), 4L)).isInstanceOf(ApiException.class);
+    }
+
+    private ExamSession editableSession() {
+        ExamSession session = new ExamSession();
+        session.setId(3L);
+        session.setCreatedBy(creator);
+        session.setSessionCode("KEV-ABCD");
+        session.setSessionPassword("F7K9PX");
+        return session;
+    }
+
+    private CreateSessionRequest updateRequest() {
+        return new CreateSessionRequest(
+                "Updated class",
+                "New Building",
+                "Floor 2",
+                "18",
+                List.of("DCIT 401"),
+                "10000001",
+                "10000100",
+                null,
+                "09:00",
+                "12:00",
+                List.of("NFC"));
     }
 }

@@ -1,8 +1,11 @@
 # Environment & secrets
 
-**Never commit real secrets.** Only `*.env.example` files are tracked (and allow-listed in
-`.gitleaks.toml`). Locally, copy each `.env.example` to `.env`. In CI/prod, provide values via
-GitHub Actions secrets, EAS secrets, and your host's environment.
+**Never commit real secrets.** Only `.env.example` is tracked (and allow-listed in
+`.gitleaks.toml`). Locally, copy the single root `.env.example` → `.env`; all three services
+read it (frontend via `app.config.ts`, backend via `scripts/run-backend.mjs`, ml via
+`scripts/run-ml.mjs`). A service-local `.env` (e.g. `backend/.env`) is optional and overrides
+the root file if present. In CI/prod, provide values via GitHub Actions secrets, EAS secrets,
+and your host's environment.
 
 ## Where values come from
 
@@ -14,7 +17,9 @@ GitHub Actions secrets, EAS secrets, and your host's environment.
 | **Hugging Face** | Access token                        | huggingface.co → Settings → Access Tokens                                                                                                                   |
 | **Sentry**       | DSNs (per service), org, auth token | sentry.io → Project → Client Keys / Auth Tokens                                                                                                             |
 
-## Frontend (`frontend/.env`) — only `EXPO_PUBLIC_*` is bundled
+All vars below live in the **single root `.env`**. They're grouped by service for reference.
+
+## Frontend vars — only `EXPO_PUBLIC_*` is bundled
 
 | Var                                                                            | Required | Notes                                              |
 | ------------------------------------------------------------------------------ | -------- | -------------------------------------------------- |
@@ -25,7 +30,7 @@ GitHub Actions secrets, EAS secrets, and your host's environment.
 | `EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID`                                             | iOS      | Google iOS client ID                               |
 | `SENTRY_AUTH_TOKEN`, `SENTRY_ORG`, `SENTRY_PROJECT_FRONTEND`, `EAS_PROJECT_ID` | build    | EAS / source-map upload only (not bundled)         |
 
-## Backend (`backend/.env` or exported)
+## Backend vars
 
 | Var                                                 | Required | Notes                               |
 | --------------------------------------------------- | -------- | ----------------------------------- |
@@ -38,7 +43,7 @@ GitHub Actions secrets, EAS secrets, and your host's environment.
 | `APP_CORS_ALLOWED_ORIGINS`                          | no       | Comma-separated allowed origins     |
 | `SPRING_PROFILES_ACTIVE`                            | no       | `dev` / `prod` (defaults to base)   |
 
-## ML (`ml/.env`)
+## ML vars
 
 | Var                  | Required  | Notes                     |
 | -------------------- | --------- | ------------------------- |
