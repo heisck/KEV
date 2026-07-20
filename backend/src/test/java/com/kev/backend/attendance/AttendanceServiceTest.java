@@ -22,6 +22,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 
 @ExtendWith(MockitoExtension.class)
@@ -57,10 +58,10 @@ class AttendanceServiceTest {
 
     @Test
     void checkInCreatesRecord() {
-        when(sessions.requireMember(invigilator, 1L)).thenReturn(activeSession);
+        when(sessions.requireOngoingMember(invigilator, 1L)).thenReturn(activeSession);
         when(directory.findByIndexNumber("10953001")).thenReturn(Optional.of(student));
         when(records.findBySessionIdAndStudentId(1L, 7L)).thenReturn(Optional.empty());
-        when(records.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        when(records.saveAndFlush(any())).thenAnswer(inv -> inv.getArgument(0));
 
         AttendanceDto dto = service.checkIn(invigilator, 1L, "10953001", CheckInMethod.QR);
 
@@ -71,7 +72,7 @@ class AttendanceServiceTest {
 
     @Test
     void checkInConflictsWhenAlreadyCheckedIn() {
-        when(sessions.requireMember(invigilator, 1L)).thenReturn(activeSession);
+        when(sessions.requireOngoingMember(invigilator, 1L)).thenReturn(activeSession);
         when(directory.findByIndexNumber("10953001")).thenReturn(Optional.of(student));
         AttendanceRecord live = new AttendanceRecord();
         live.setId(5L);
@@ -85,7 +86,7 @@ class AttendanceServiceTest {
 
     @Test
     void checkInReactivatesRemovedRecord() {
-        when(sessions.requireMember(invigilator, 1L)).thenReturn(activeSession);
+        when(sessions.requireOngoingMember(invigilator, 1L)).thenReturn(activeSession);
         when(directory.findByIndexNumber("10953001")).thenReturn(Optional.of(student));
         AttendanceRecord removed = new AttendanceRecord();
         removed.setId(5L);
@@ -94,7 +95,7 @@ class AttendanceServiceTest {
         removed.setStatus(AttendanceStatus.REMOVED);
         removed.setRemovedBy(invigilator);
         when(records.findBySessionIdAndStudentId(1L, 7L)).thenReturn(Optional.of(removed));
-        when(records.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        when(records.saveAndFlush(any())).thenAnswer(inv -> inv.getArgument(0));
 
         AttendanceDto dto = service.checkIn(invigilator, 1L, "10953001", CheckInMethod.MANUAL);
 
@@ -104,9 +105,9 @@ class AttendanceServiceTest {
     }
 
     @Test
-    void checkInRejectsEndedSession() {
-        activeSession.setStatus(SessionStatus.ENDED);
-        when(sessions.requireMember(invigilator, 1L)).thenReturn(activeSession);
+    void checkInRejectsClosedSession() {
+        when(sessions.requireOngoingMember(invigilator, 1L))
+                .thenThrow(new ApiException(HttpStatus.CONFLICT, "Session is closed"));
 
         assertThatThrownBy(() -> service.checkIn(invigilator, 1L, "10953001", CheckInMethod.QR))
                 .isInstanceOf(ApiException.class)
@@ -114,8 +115,21 @@ class AttendanceServiceTest {
     }
 
     @Test
+    void concurrentDuplicateInsertReturnsConflictInsteadOfServerError() {
+        when(sessions.requireOngoingMember(invigilator, 1L)).thenReturn(activeSession);
+        when(directory.findByIndexNumber("10953001")).thenReturn(Optional.of(student));
+        when(records.findBySessionIdAndStudentId(1L, 7L)).thenReturn(Optional.empty());
+        when(records.saveAndFlush(any())).thenThrow(new DataIntegrityViolationException("duplicate"));
+
+        assertThatThrownBy(() -> service.checkIn(invigilator, 1L, "10953001", CheckInMethod.NFC))
+                .isInstanceOf(ApiException.class)
+                .hasMessage("Student already checked in")
+                .satisfies(e -> assertThat(((ApiException) e).getStatus()).isEqualTo(HttpStatus.CONFLICT));
+    }
+
+    @Test
     void removeThenRestoreFlipsStatus() {
-        when(sessions.requireMember(invigilator, 1L)).thenReturn(activeSession);
+        when(sessions.requireOngoingMember(invigilator, 1L)).thenReturn(activeSession);
         AttendanceRecord record = new AttendanceRecord();
         record.setId(9L);
         record.setSessionId(1L);
@@ -134,7 +148,7 @@ class AttendanceServiceTest {
 
     @Test
     void removeRejectsRecordFromOtherSession() {
-        when(sessions.requireMember(invigilator, 1L)).thenReturn(activeSession);
+        when(sessions.requireOngoingMember(invigilator, 1L)).thenReturn(activeSession);
         AttendanceRecord record = new AttendanceRecord();
         record.setId(9L);
         record.setSessionId(99L);

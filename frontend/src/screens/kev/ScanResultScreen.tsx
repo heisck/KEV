@@ -3,11 +3,12 @@ import { useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { useSessionDetail } from '@/api/hooks';
-import { CheckCircleIcon, ClockIcon, CloseIcon } from '@/components/kev/icons';
-import { Avatar, type PersonKey } from '@/components/kev/people';
+import { useRemoveAttendance, useSessionDetail } from '@/api/hooks';
+import { BackIcon, CheckCircleIcon, ClockIcon, CloseIcon } from '@/components/kev/icons';
+import { Avatar } from '@/components/kev/people';
 import { HapticPressable } from '@/components/ui/HapticPressable';
 import { studentRecordToScanned, type ScannedStudent } from '@/data/exams';
+import { toast } from '@/lib/toast';
 import { useSessionStore } from '@/store/sessionStore';
 import { radii, spacing, usePalette } from '@/theme';
 
@@ -29,36 +30,57 @@ export function ScanResultScreen() {
     student?: string;
     status?: Status;
     method?: string;
+    mode?: 'profile';
+    attendance?: string;
   }>();
-  const sessionId = params.exam ?? '1';
+  const lockedSessionId = useSessionStore((state) => state.lockedSessionId);
+  const sessionId = params.exam ?? lockedSessionId ?? '1';
   const addStudent = useSessionStore((s) => s.addStudent);
+  const removeStudent = useSessionStore((state) => state.removeStudent);
+  const localStudent = useSessionStore((state) =>
+    state.roster[sessionId]?.find((student) => student.id === params.student),
+  );
   const scanAgainRoute = METHOD_ROUTE[params.method ?? 'MANUAL'] ?? '/verify/manual';
+  const profileMode = params.mode === 'profile';
+  const removeMutation = useRemoveAttendance(Number(sessionId) || 1);
 
   const { data: detail } = useSessionDetail(Number(sessionId) || 1);
-  const studentRec = detail?.attendance?.find(
-    (a) => String(a.student.id) === params.student,
-  )?.student;
-  const student: ScannedStudent = studentRec
-    ? studentRecordToScanned(studentRec)
-    : {
+  const attendance = detail?.attendance?.find((a) => String(a.student.id) === params.student);
+  const student: ScannedStudent = attendance
+    ? studentRecordToScanned(attendance.student, attendance.method, attendance.id)
+    : (localStudent ?? {
         id: params.student ?? '1',
-        name: 'Ama Serwaa Boateng',
-        person: 'freja',
-        index: '10953001',
-        course: 'BSc Computer Science',
-      };
+        name: 'Student',
+        person: 'me',
+        index: 'Profile unavailable',
+        course: '',
+      });
 
-  const [status, setStatus] = useState<Status>(params.status ?? 'review');
+  const [statusOverride, setStatus] = useState<Status | null>(params.status ?? null);
+  const status = statusOverride ?? (attendance || localStudent ? 'added' : 'review');
   const banners: Record<Status, { text: string; color: string; soft: string }> = {
     added: { text: 'Added to the session', color: p.success, soft: p.successSoft },
-    already: { text: 'Student is already in this session', color: p.warn, soft: p.warnSoft },
-    review: { text: 'Scanned — review before adding', color: p.primary, soft: p.mint },
+    already: { text: 'Student already in this class', color: p.ink, soft: p.warnSoft },
+    review: { text: 'Scanned. Review before adding', color: p.primary, soft: p.mint },
   };
   const banner = banners[status];
+  const attendanceId = Number(params.attendance) || student.attendanceId;
 
   const addToClass = () => {
     addStudent(sessionId, student);
     setStatus('added');
+  };
+
+  const removeFromClass = async () => {
+    if (!attendanceId) return toast.error('Could not find this attendance record');
+    try {
+      await removeMutation.mutateAsync(attendanceId);
+      removeStudent(sessionId, student.id);
+      toast.success('Student removed from class');
+      router.back();
+    } catch {
+      toast.error('Could not remove student. Try again');
+    }
   };
 
   return (
@@ -69,10 +91,12 @@ export function ScanResultScreen() {
       ]}
     >
       <View style={styles.center}>
-        <Avatar person={student.person as PersonKey} size={112} verified={status === 'added'} />
+        <Avatar person={student.person} size={112} verified={status === 'added'} />
         <Text style={[styles.name, { color: p.ink }]}>{student.name}</Text>
         <Text style={[styles.meta, { color: p.muted }]}>{student.index}</Text>
-        <Text style={[styles.meta, { color: p.muted }]}>{student.course}</Text>
+        {student.course ? (
+          <Text style={[styles.meta, { color: p.muted }]}>{student.course}</Text>
+        ) : null}
 
         <View style={[styles.banner, { backgroundColor: banner.soft }]}>
           {status === 'review' ? (
@@ -93,27 +117,45 @@ export function ScanResultScreen() {
             <Text style={[styles.addButtonText, { color: p.onPrimary }]}>Add to class</Text>
           </HapticPressable>
         ) : null}
-
-        <HapticPressable
-          accessibilityRole="button"
-          haptic="select"
-          onPress={() => router.replace({ pathname: scanAgainRoute, params: { exam: sessionId } })}
-          style={[styles.scanAgain, { backgroundColor: p.primary12 }]}
-          testID="result-scan-again"
-        >
-          <Text style={[styles.scanAgainText, { color: p.primary }]}>Scan next student</Text>
-        </HapticPressable>
       </View>
 
-      <HapticPressable
-        accessibilityRole="button"
-        accessibilityLabel="Done scanning"
-        onPress={() => router.back()}
-        style={[styles.close, { backgroundColor: p.surfaceDim, borderColor: p.hairline }]}
-        testID="result-close"
-      >
-        <CloseIcon color={p.ink} />
-      </HapticPressable>
+      <View style={styles.actions}>
+        <HapticPressable
+          accessibilityRole="button"
+          accessibilityLabel={profileMode ? 'Back to session' : 'Done scanning'}
+          onPress={() => router.back()}
+          style={[styles.close, { backgroundColor: p.surfaceDim, borderColor: p.hairline }]}
+          testID="result-close"
+        >
+          {profileMode ? <BackIcon color={p.ink} /> : <CloseIcon color={p.ink} />}
+        </HapticPressable>
+        {profileMode ? (
+          <HapticPressable
+            accessibilityRole="button"
+            disabled={removeMutation.isPending}
+            haptic="warning"
+            onPress={removeFromClass}
+            style={[styles.scanAgain, { backgroundColor: p.error }]}
+            testID="result-remove"
+          >
+            <Text style={[styles.scanAgainText, { color: p.onPrimary }]}>
+              {removeMutation.isPending ? 'Removing...' : 'Remove from class'}
+            </Text>
+          </HapticPressable>
+        ) : (
+          <HapticPressable
+            accessibilityRole="button"
+            haptic="select"
+            onPress={() =>
+              router.replace({ pathname: scanAgainRoute, params: { exam: sessionId } })
+            }
+            style={[styles.scanAgain, { backgroundColor: p.primary }]}
+            testID="result-scan-again"
+          >
+            <Text style={[styles.scanAgainText, { color: p.onPrimary }]}>Next student</Text>
+          </HapticPressable>
+        )}
+      </View>
     </View>
   );
 }
@@ -138,20 +180,21 @@ const styles = StyleSheet.create({
     alignSelf: 'stretch',
     borderRadius: radii.pill,
     marginTop: spacing.xl,
-    paddingVertical: spacing.lg - 2,
+    height: 56,
+    justifyContent: 'center',
   },
   addButtonText: { fontSize: 15, fontWeight: '700' },
   scanAgain: {
     alignItems: 'center',
-    alignSelf: 'stretch',
     borderRadius: radii.pill,
-    marginTop: spacing.md,
-    paddingVertical: spacing.lg - 2,
+    flex: 1,
+    height: 56,
+    justifyContent: 'center',
   },
   scanAgainText: { fontSize: 15, fontWeight: '700' },
+  actions: { flexDirection: 'row', gap: spacing.md },
   close: {
     alignItems: 'center',
-    alignSelf: 'center',
     borderRadius: radii.pill,
     borderWidth: 1,
     height: 56,

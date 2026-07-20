@@ -19,6 +19,16 @@ const LOOKS: Record<PersonKey, Look> = {
 
 const isUrl = (v: string) => /^https?:\/\//i.test(v);
 
+export function initialsFor(displayName: string | null, email: string | null): string {
+  return (displayName ?? email ?? '?')
+    .split(/[\s.@]+/)
+    .filter(Boolean)
+    .map((part) => part[0])
+    .join('')
+    .slice(0, 2)
+    .toUpperCase();
+}
+
 /**
  * Illustrated portrait stand-in, or a real photo when `person` is a URL
  * (student records carry photo URLs). Unknown keys fall back to a default look.

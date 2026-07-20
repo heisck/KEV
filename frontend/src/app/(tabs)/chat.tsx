@@ -1,3 +1,10 @@
-import { ChatScreen } from '@/screens/kev/ChatScreen';
+import { TabSwipeNavigator } from '@/components/navigation/TabSwipeNavigator';
+import { ChatDirectoryScreen } from '@/screens/kev/ChatDirectoryScreen';
 
-export default ChatScreen;
+export default function ChatTab() {
+  return (
+    <TabSwipeNavigator tab="chat">
+      <ChatDirectoryScreen />
+    </TabSwipeNavigator>
+  );
+}

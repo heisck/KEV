@@ -1,4 +1,12 @@
 import type { ExpoConfig } from 'expo/config';
+// Root `.env` is the single source of truth for local dev. Expo only auto-loads
+// frontend/.env, so pull the root file in here; anything already set (shell or an
+// optional frontend/.env) wins, keeping the same precedence as the backend/ml launchers.
+import { loadEnv } from '../scripts/load-root-env.mjs';
+
+for (const [key, value] of Object.entries(loadEnv())) {
+  if (process.env[key] === undefined) process.env[key] = value;
+}
 
 /**
  * Dynamic, env-aware Expo config (replaces app.json).
@@ -48,6 +56,10 @@ const config: ExpoConfig = {
       'expo-splash-screen',
       {
         backgroundColor: '#FFFFFF',
+        dark: {
+          backgroundColor: '#0E0E12',
+          image: './assets/images/splash-start.png',
+        },
         image: './assets/images/splash-start.png',
         imageWidth: 160,
       },

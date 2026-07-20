@@ -3,7 +3,7 @@ import {
   Fraunces_600SemiBold_Italic,
   useFonts,
 } from '@expo-google-fonts/fraunces';
-import { DefaultTheme, ThemeProvider } from '@react-navigation/native';
+import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
@@ -16,12 +16,14 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { queryClient } from '@/api/queryClient';
 import { setOnAuthExpired } from '@/api/client';
 import { AppSplash } from '@/components/AppSplash';
+import { NotificationSync } from '@/components/notifications/NotificationSync';
 import { ToastHost } from '@/components/ui/ToastHost';
 import { logger } from '@/lib/logger';
 import { initSentry, Sentry } from '@/lib/sentry';
 import { useAuthStore } from '@/store/authStore';
+import { usePalette } from '@/theme';
 
-initSentry();
+const sentryEnabled = initSentry();
 
 // Refresh-token failure in the API client drops the app to signed-out so the
 // route guards send the user back to sign-in (instead of looping on 401s).
@@ -35,6 +37,7 @@ if (Platform.OS !== 'web') {
 const FONT_TIMEOUT_MS = 2_500;
 
 function RootLayout() {
+  const palette = usePalette();
   const hydrate = useAuthStore((s) => s.hydrate);
   const [fontsLoaded, fontError] = useFonts({
     Fraunces_600SemiBold,
@@ -77,15 +80,20 @@ function RootLayout() {
     <GestureHandlerRootView style={styles.root} onLayout={() => setIsRootLaidOut(true)}>
       <SafeAreaProvider>
         <QueryClientProvider client={queryClient}>
-          <ThemeProvider value={DefaultTheme}>
-            {/* File-based routes auto-register; only override presentation here. */}
-            <Stack screenOptions={{ headerShown: false }}>
+          <ThemeProvider value={palette.isDark ? DarkTheme : DefaultTheme}>
+            <NotificationSync />
+            {/* File-based routes auto-register; all stack pages support native back-swipe. */}
+            <Stack
+              screenOptions={{
+                fullScreenGestureEnabled: true,
+                gestureEnabled: true,
+                headerShown: false,
+              }}
+            >
               <Stack.Screen
                 name="room-setup"
                 options={{
                   presentation: 'card',
-                  gestureEnabled: true,
-                  fullScreenGestureEnabled: true,
                 }}
               />
               <Stack.Screen name="student-result" options={{ presentation: 'modal' }} />
@@ -107,4 +115,4 @@ const styles = StyleSheet.create({
   root: { flex: 1 },
 });
 
-export default Sentry.wrap(RootLayout);
+export default sentryEnabled ? Sentry.wrap(RootLayout) : RootLayout;

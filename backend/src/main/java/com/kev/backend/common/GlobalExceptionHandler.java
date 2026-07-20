@@ -10,6 +10,7 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 /** Translates exceptions into RFC 7807 {@link ProblemDetail} responses. */
 @RestControllerAdvice
@@ -36,6 +37,11 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(ConstraintViolationException.class)
     ProblemDetail handleConstraint(ConstraintViolationException ex) {
         return problem(HttpStatus.BAD_REQUEST, ex.getMessage());
+    }
+
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    ProblemDetail handleTypeMismatch(MethodArgumentTypeMismatchException ex) {
+        return problem(HttpStatus.BAD_REQUEST, "Invalid " + ex.getName());
     }
 
     /** Method-security denials (e.g. non-admins on /api/admin/**) are 403s, not 500s. */

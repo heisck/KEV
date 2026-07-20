@@ -42,7 +42,6 @@ export const authScreenStyles = StyleSheet.create({
     borderColor: 'transparent',
     borderRadius: 29,
     borderWidth: 1,
-    color: '#1B1B1D',
     fontSize: 16,
     height: 56,
     outlineColor: 'transparent',

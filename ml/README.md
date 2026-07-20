@@ -16,6 +16,9 @@ uv run uvicorn app.main:app --reload --port 8000
 # or from the repo root: npm run dev:ml
 ```
 
+> Env comes from the **single root `.env`** (loaded by `scripts/run-ml.mjs`) — no `ml/.env` needed.
+> An optional `ml/.env` overrides the root file if present.
+
 ## Test / lint / typecheck
 ```bash
 uv run pytest

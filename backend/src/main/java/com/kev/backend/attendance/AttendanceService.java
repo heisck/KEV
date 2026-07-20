@@ -4,15 +4,14 @@ import com.kev.backend.attendance.dto.AttendanceDto;
 import com.kev.backend.common.ApiException;
 import com.kev.backend.directory.UniversityDirectory;
 import com.kev.backend.directory.dto.StudentRecord;
-import com.kev.backend.session.ExamSession;
 import com.kev.backend.session.SessionService;
-import com.kev.backend.session.SessionStatus;
 import com.kev.backend.session.dto.SessionSummaryDto;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -59,7 +58,11 @@ public class AttendanceService {
         record.setCheckedInAt(Instant.now());
         record.setRemovedBy(null);
         record.setRemovedAt(null);
-        return AttendanceDto.from(records.save(record), student);
+        try {
+            return AttendanceDto.from(records.saveAndFlush(record), student);
+        } catch (DataIntegrityViolationException ex) {
+            throw new ApiException(HttpStatus.CONFLICT, "Student already checked in");
+        }
     }
 
     @Transactional
@@ -117,10 +120,7 @@ public class AttendanceService {
     }
 
     private void requireActiveMembership(UUID userId, Long sessionId) {
-        ExamSession session = sessions.requireMember(userId, sessionId);
-        if (session.getStatus() != SessionStatus.ACTIVE) {
-            throw new ApiException(HttpStatus.CONFLICT, "Session has ended");
-        }
+        sessions.requireOngoingMember(userId, sessionId);
     }
 
     private AttendanceRecord require(Long sessionId, Long attendanceId) {

@@ -21,7 +21,7 @@ public class DatabaseUniversityDirectory implements UniversityDirectory {
 
     @Override
     @Transactional(readOnly = true)
-    @Cacheable(cacheNames = "directory", key = "#indexNumber")
+    @Cacheable(cacheNames = "directory", key = "#indexNumber", unless = "#result == null")
     public Optional<StudentRecord> findByIndexNumber(String indexNumber) {
         return students.findByIndexNumber(indexNumber).map(StudentRecord::from);
     }
