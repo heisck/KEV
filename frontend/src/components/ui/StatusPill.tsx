@@ -1,6 +1,6 @@
 import { StyleSheet, Text, View } from 'react-native';
 
-import { colors, radii, spacing } from '@/theme';
+import { radii, spacing, usePalette } from '@/theme';
 
 export type StatusTone = 'success' | 'warn' | 'error' | 'neutral';
 
@@ -12,10 +12,19 @@ type StatusPillProps = {
 
 /** Small colored badge for eligibility / attendance states. */
 export function StatusPill({ label, tone, testID }: StatusPillProps) {
+  const p = usePalette();
+  const bg = {
+    success: p.successSoft,
+    warn: p.warnSoft,
+    error: p.errorSoft,
+    neutral: p.surfaceDim,
+  }[tone];
+  const dot = { success: p.success, warn: p.warn, error: p.error, neutral: p.muted }[tone];
+  const label_ = { success: p.success, warn: p.warn, error: p.error, neutral: p.inkSoft }[tone];
   return (
-    <View style={[styles.pill, tones[tone]]} testID={testID}>
-      <View style={[styles.dot, dots[tone]]} />
-      <Text style={[styles.label, labels[tone]]}>{label}</Text>
+    <View style={[styles.pill, { backgroundColor: bg }]} testID={testID}>
+      <View style={[styles.dot, { backgroundColor: dot }]} />
+      <Text style={[styles.label, { color: label_ }]}>{label}</Text>
     </View>
   );
 }
@@ -32,25 +41,4 @@ const styles = StyleSheet.create({
   },
   dot: { borderRadius: 3, height: 6, width: 6 },
   label: { fontSize: 12, fontWeight: '700' },
-});
-
-const tones = StyleSheet.create({
-  success: { backgroundColor: colors.successSoft },
-  warn: { backgroundColor: colors.warnSoft },
-  error: { backgroundColor: colors.errorSoft },
-  neutral: { backgroundColor: colors.surfaceDim },
-});
-
-const dots = StyleSheet.create({
-  success: { backgroundColor: colors.success },
-  warn: { backgroundColor: colors.warn },
-  error: { backgroundColor: colors.error },
-  neutral: { backgroundColor: colors.muted },
-});
-
-const labels = StyleSheet.create({
-  success: { color: colors.success },
-  warn: { color: colors.warn },
-  error: { color: colors.error },
-  neutral: { color: colors.inkSoft },
 });

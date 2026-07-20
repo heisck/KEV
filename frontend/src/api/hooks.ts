@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import * as admin from '@/api/admin';
 import * as attendance from '@/api/attendance';
+import * as chat from '@/api/chat';
 import * as directory from '@/api/directory';
 import * as sessions from '@/api/sessions';
 import * as verify from '@/api/verify';
@@ -11,6 +12,7 @@ const keys = {
   session: (id: number) => ['sessions', id] as const,
   summary: (id: number) => ['sessions', id, 'summary'] as const,
   directory: (indexNumber: string) => ['directory', indexNumber] as const,
+  lecturers: ['chat', 'lecturers'] as const,
   invigilators: ['admin', 'invigilators'] as const,
   adminSessions: ['admin', 'sessions'] as const,
   report: (id: number) => ['admin', 'sessions', id, 'report'] as const,
@@ -21,10 +23,12 @@ export function useSessions() {
 }
 
 export function useSessionDetail(id: number) {
+  const valid = Number.isInteger(id) && id > 0;
   return useQuery({
     queryKey: keys.session(id),
     queryFn: () => sessions.getSession(id),
-    refetchInterval: 5000,
+    enabled: valid,
+    refetchInterval: valid ? 5000 : false,
   });
 }
 
@@ -48,44 +52,11 @@ export function useJoinSession() {
   });
 }
 
-export function useEndSession(sessionId: number) {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: () => sessions.endSession(sessionId),
-    onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: keys.sessions });
-      void qc.invalidateQueries({ queryKey: keys.session(sessionId) });
-    },
-  });
-}
-
 export function useCheckIn(sessionId: number) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (input: { indexNumber: string; method: CheckInMethod }) =>
       attendance.checkIn(sessionId, input),
-    onSettled: () => {
-      void qc.invalidateQueries({ queryKey: keys.session(sessionId) });
-      void qc.invalidateQueries({ queryKey: keys.summary(sessionId) });
-    },
-  });
-}
-
-export function useRemoveAttendance(sessionId: number) {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: (attendanceId: number) => attendance.removeAttendance(sessionId, attendanceId),
-    onSettled: () => {
-      void qc.invalidateQueries({ queryKey: keys.session(sessionId) });
-      void qc.invalidateQueries({ queryKey: keys.summary(sessionId) });
-    },
-  });
-}
-
-export function useRestoreAttendance(sessionId: number) {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: (attendanceId: number) => attendance.restoreAttendance(sessionId, attendanceId),
     onSettled: () => {
       void qc.invalidateQueries({ queryKey: keys.session(sessionId) });
       void qc.invalidateQueries({ queryKey: keys.summary(sessionId) });
@@ -110,6 +81,11 @@ export function useFaceVerify() {
 
 export function useInvigilators() {
   return useQuery({ queryKey: keys.invigilators, queryFn: admin.listInvigilators });
+}
+
+/** Lecturer/admin directory for chat — any signed-in user (non-admin safe). */
+export function useLecturers() {
+  return useQuery({ queryKey: keys.lecturers, queryFn: () => chat.listLecturers() });
 }
 
 export function useAdminSessions() {

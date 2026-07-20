@@ -1,8 +1,8 @@
-import { StyleSheet, View } from 'react-native';
+import { Image, StyleSheet, View } from 'react-native';
 import Svg, { Circle, Defs, LinearGradient, Path, Rect, Stop } from 'react-native-svg';
 
 import { VerifiedBadgeIcon } from '@/components/kev/icons';
-import { colors } from '@/theme';
+import { usePalette } from '@/theme';
 
 export type PersonKey = 'me' | 'ben' | 'freja' | 'kofi' | 'milan' | 'anna';
 
@@ -17,28 +17,52 @@ const LOOKS: Record<PersonKey, Look> = {
   anna: { bg: ['#F6D8C8', '#DE8F6C'], skin: '#F0BE96', hair: '#6E3A24' },
 };
 
-/** Illustrated portrait stand-in (swap for real photos in assets/kev/). */
+const isUrl = (v: string) => /^https?:\/\//i.test(v);
+
+/**
+ * Illustrated portrait stand-in, or a real photo when `person` is a URL
+ * (student records carry photo URLs). Unknown keys fall back to a default look.
+ */
 export function Avatar({
   person,
   size,
   verified = false,
 }: {
-  person: PersonKey;
+  person: PersonKey | string;
   size: number;
   verified?: boolean;
 }) {
-  const { bg, skin, hair } = LOOKS[person];
+  const p = usePalette();
+
+  if (typeof person === 'string' && isUrl(person)) {
+    return (
+      <View style={{ width: size, height: size }}>
+        <Image
+          source={{ uri: person }}
+          style={[styles.clip, { borderRadius: size / 2, height: size, width: size }]}
+        />
+        {verified ? (
+          <View style={styles.badge}>
+            <VerifiedBadgeIcon color={p.ink} size={Math.round(size * 0.32)} />
+          </View>
+        ) : null}
+      </View>
+    );
+  }
+
+  const { bg, skin, hair } = LOOKS[person as PersonKey] ?? LOOKS.me;
+  const key = (person as string) in LOOKS ? (person as PersonKey) : 'me';
   return (
     <View style={{ width: size, height: size }}>
       <View style={[styles.clip, { borderRadius: size / 2 }]}>
         <Svg width="100%" height="100%" viewBox="0 0 100 100">
           <Defs>
-            <LinearGradient id={`av-${person}`} x1="0" y1="0" x2="0" y2="1">
+            <LinearGradient id={`av-${key}`} x1="0" y1="0" x2="0" y2="1">
               <Stop offset="0" stopColor={bg[0]} />
               <Stop offset="1" stopColor={bg[1]} />
             </LinearGradient>
           </Defs>
-          <Rect width={100} height={100} fill={`url(#av-${person})`} />
+          <Rect width={100} height={100} fill={`url(#av-${key})`} />
           <Path d="M18 100c4-24 16-36 32-36s28 12 32 36H18Z" fill={skin} />
           <Circle cx={50} cy={42} r={20} fill={skin} />
           <Path
@@ -49,7 +73,7 @@ export function Avatar({
       </View>
       {verified ? (
         <View style={styles.badge}>
-          <VerifiedBadgeIcon color={colors.ink} size={Math.round(size * 0.32)} />
+          <VerifiedBadgeIcon color={p.ink} size={Math.round(size * 0.32)} />
         </View>
       ) : null}
     </View>
@@ -60,8 +84,15 @@ export type FlagKey = 'be' | 'dk' | 'cz' | 'gb' | 'it';
 
 /** National flags in a rounded circle chip, per the mockup. */
 export function Flag({ flag, size = 20 }: { flag: FlagKey; size?: number }) {
+  const p = usePalette();
   return (
-    <View style={[styles.clip, styles.flag, { borderRadius: size / 2, height: size, width: size }]}>
+    <View
+      style={[
+        styles.clip,
+        styles.flag,
+        { borderColor: p.surface, borderRadius: size / 2, height: size, width: size },
+      ]}
+    >
       <Svg width="100%" height="100%" viewBox="0 0 30 30" preserveAspectRatio="xMidYMid slice">
         {flag === 'be' && (
           <>
@@ -107,6 +138,6 @@ export function Flag({ flag, size = 20 }: { flag: FlagKey; size?: number }) {
 
 const styles = StyleSheet.create({
   clip: { flex: 1, overflow: 'hidden' },
-  flag: { borderColor: colors.white, borderWidth: 1.5, flex: 0 },
+  flag: { borderWidth: 1.5, flex: 0 },
   badge: { bottom: -1, position: 'absolute', right: -1 },
 });

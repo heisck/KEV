@@ -14,23 +14,24 @@ import { HapticPressable } from '@/components/ui/HapticPressable';
 import type { Exam } from '@/data/exams';
 import { toast } from '@/lib/toast';
 import { useFavoritesStore } from '@/store/favoritesStore';
-import { colors, radii, spacing } from '@/theme';
+import { radii, spacing, usePalette } from '@/theme';
 
 /** Exam list card: image · course/date/status · favorite, then checklist + action. */
 export function ExamCard({ exam }: { exam: Exam }) {
   const router = useRouter();
+  const p = usePalette();
   const isFavorite = useFavoritesStore((s) => s.ids.has(exam.id));
   const toggleFavorite = useFavoritesStore((s) => s.toggle);
 
   return (
-    <View style={styles.card}>
+    <View style={[styles.card, { backgroundColor: p.surfaceDim }]}>
       <View style={styles.topRow}>
         <View style={styles.image}>
           <SceneArt art={exam.art} />
         </View>
         <View style={styles.headings}>
-          <Text style={styles.city}>{exam.course}</Text>
-          <Text style={styles.dates}>{exam.dates}</Text>
+          <Text style={[styles.city, { color: p.ink }]}>{exam.course}</Text>
+          <Text style={[styles.dates, { color: p.muted }]}>{exam.dates}</Text>
           {exam.status !== 'Past' ? <StatusChip status={exam.status} /> : null}
         </View>
         <HapticPressable
@@ -46,7 +47,7 @@ export function ExamCard({ exam }: { exam: Exam }) {
             toast.info(isFavorite ? 'Removed from favorites' : 'Added to favorites');
           }}
         >
-          <BookmarkIcon color={isFavorite ? colors.primary : colors.ink} />
+          <BookmarkIcon color={isFavorite ? p.primary : p.ink} />
         </HapticPressable>
       </View>
 
@@ -55,11 +56,11 @@ export function ExamCard({ exam }: { exam: Exam }) {
           {exam.checklist.map((item) => (
             <View key={item.label} style={styles.checkItem}>
               {item.kind === 'done' ? (
-                <CheckCircleIcon color={colors.success} />
+                <CheckCircleIcon color={p.success} />
               ) : (
-                <AlertIcon color={colors.error} />
+                <AlertIcon color={p.error} />
               )}
-              <Text style={styles.checkLabel}>{item.label}</Text>
+              <Text style={[styles.checkLabel, { color: p.inkSoft }]}>{item.label}</Text>
             </View>
           ))}
         </View>
@@ -68,9 +69,9 @@ export function ExamCard({ exam }: { exam: Exam }) {
           <HapticPressable
             accessibilityRole="button"
             onPress={() => router.push({ pathname: '/exam/[id]', params: { id: exam.id } })}
-            style={styles.cta}
+            style={[styles.cta, { backgroundColor: p.primary }]}
           >
-            <Text style={styles.ctaText}>Open session</Text>
+            <Text style={[styles.ctaText, { color: p.onPrimary }]}>Open session</Text>
           </HapticPressable>
         ) : (
           <HapticPressable
@@ -78,9 +79,9 @@ export function ExamCard({ exam }: { exam: Exam }) {
             onPress={() => router.push({ pathname: '/group-session', params: { exam: exam.id } })}
             style={styles.guests}
           >
-            <StudentsIcon color={colors.ink} />
-            <Text style={styles.guestsText}>{exam.action} students</Text>
-            <ChevronRightIcon color={colors.ink} />
+            <StudentsIcon color={p.ink} />
+            <Text style={[styles.guestsText, { color: p.ink }]}>{exam.action} students</Text>
+            <ChevronRightIcon color={p.ink} />
           </HapticPressable>
         )}
       </View>
@@ -90,7 +91,6 @@ export function ExamCard({ exam }: { exam: Exam }) {
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: colors.surfaceDim,
     borderRadius: radii.lg,
     gap: spacing.lg,
     padding: spacing.lg,
@@ -98,19 +98,18 @@ const styles = StyleSheet.create({
   topRow: { flexDirection: 'row', gap: spacing.md },
   image: { borderRadius: radii.md, height: 96, overflow: 'hidden', width: 96 },
   headings: { flex: 1, gap: 6 },
-  city: { color: colors.ink, fontSize: 22, fontWeight: '800' },
-  dates: { color: colors.muted, fontSize: 13, fontWeight: '500' },
+  city: { fontSize: 22, fontWeight: '800' },
+  dates: { fontSize: 13, fontWeight: '500' },
   bottomRow: { alignItems: 'flex-end', flexDirection: 'row', justifyContent: 'space-between' },
   checklist: { gap: spacing.sm },
   checkItem: { alignItems: 'center', flexDirection: 'row', gap: spacing.sm },
-  checkLabel: { color: colors.inkSoft, fontSize: 13, fontWeight: '600' },
+  checkLabel: { fontSize: 13, fontWeight: '600' },
   cta: {
-    backgroundColor: colors.primary,
     borderRadius: radii.pill,
     paddingHorizontal: spacing.xl,
     paddingVertical: spacing.md,
   },
-  ctaText: { color: colors.white, fontSize: 13, fontWeight: '700' },
+  ctaText: { fontSize: 13, fontWeight: '700' },
   guests: { alignItems: 'center', flexDirection: 'row', gap: 6, paddingVertical: spacing.xs },
-  guestsText: { color: colors.ink, fontSize: 13, fontWeight: '700' },
+  guestsText: { fontSize: 13, fontWeight: '700' },
 });

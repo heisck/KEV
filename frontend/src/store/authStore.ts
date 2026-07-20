@@ -34,6 +34,8 @@ type AuthState = {
   signInWithGoogleIdToken: (idToken: string) => Promise<void>;
   signInWithAppleIdToken: (identityToken: string, fullName?: string | null) => Promise<void>;
   signOut: () => Promise<void>;
+  /** Drop to signed-out after the API client's refresh path fails (tokens already cleared). */
+  sessionExpired: () => void;
   /** Restore auth status from secure storage on app start. */
   hydrate: () => Promise<void>;
 };
@@ -75,6 +77,13 @@ export const useAuthStore = create<AuthState>((set, get) => {
     async signOut() {
       await tokenStore.clear();
       set({ user: null, status: 'unauthenticated' });
+    },
+    sessionExpired() {
+      // Tokens are cleared by the client interceptor; just reflect the state so
+      // the route guards redirect to sign-in. No-op if already signed out.
+      if (get().status !== 'unauthenticated') {
+        set({ user: null, status: 'unauthenticated' });
+      }
     },
     async hydrate() {
       const access = await tokenStore.getAccess();

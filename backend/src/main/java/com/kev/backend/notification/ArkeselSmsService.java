@@ -16,13 +16,11 @@ public class ArkeselSmsService {
     private static final Logger log = LoggerFactory.getLogger(ArkeselSmsService.class);
     private final String apiKey;
     private final String senderId;
-    private final HttpClient httpClient = HttpClient.newBuilder()
-            .connectTimeout(Duration.ofSeconds(5))
-            .build();
+    private final HttpClient httpClient =
+            HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(5)).build();
 
     public ArkeselSmsService(
-            @Value("${ARKESEL_API_KEY:}") String apiKey,
-            @Value("${ARKESEL_SENDER_ID:KEV-EXAM}") String senderId) {
+            @Value("${ARKESEL_API_KEY:}") String apiKey, @Value("${ARKESEL_SENDER_ID:KEV-EXAM}") String senderId) {
         this.apiKey = apiKey;
         this.senderId = senderId;
     }
@@ -45,7 +43,8 @@ public class ArkeselSmsService {
                     .POST(HttpRequest.BodyPublishers.ofString(jsonPayload))
                     .build();
 
-            httpClient.sendAsync(request, HttpResponse.BodyHandlers.ofString())
+            httpClient
+                    .sendAsync(request, HttpResponse.BodyHandlers.ofString())
                     .thenAccept(response -> log.info("Arkesel SMS API status: {}", response.statusCode()))
                     .exceptionally(ex -> {
                         log.warn("Arkesel SMS dispatch failed: {}", ex.getMessage());
@@ -62,6 +61,9 @@ public class ArkeselSmsService {
 
     private String escapeJson(String s) {
         if (s == null) return "";
-        return s.replace("\\", "\\\\").replace("\"", "\\\"").replace("\n", "\\n").replace("\r", "");
+        return s.replace("\\", "\\\\")
+                .replace("\"", "\\\"")
+                .replace("\n", "\\n")
+                .replace("\r", "");
     }
 }

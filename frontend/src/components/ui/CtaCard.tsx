@@ -2,7 +2,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 
 import { GlassPressable } from '@/components/ui/GlassPressable';
-import { colors, radii, shadows, spacing } from '@/theme';
+import { colors, radii, shadows, spacing, usePalette } from '@/theme';
 
 type CtaCardProps = {
   title: string;
@@ -14,6 +14,7 @@ type CtaCardProps = {
 
 /** Liquid-glass dark CTA card with arrow chip. */
 export function CtaCard({ title, subtitle, onPress, icon, testID }: CtaCardProps) {
+  const p = usePalette();
   return (
     <GlassPressable
       onPress={onPress}
@@ -24,10 +25,10 @@ export function CtaCard({ title, subtitle, onPress, icon, testID }: CtaCardProps
       <View style={styles.row}>
         {icon}
         <View style={styles.body}>
-          <Text style={styles.title}>{title}</Text>
+          <Text style={[styles.title, { color: p.onPrimary }]}>{title}</Text>
           {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
         </View>
-        <View style={styles.arrow}>
+        <View style={[styles.arrow, { backgroundColor: p.onPrimary }]}>
           <Svg width={18} height={18} viewBox="0 0 24 24" fill="none">
             <Path
               d="M7 17 17 7m0 0H9m8 0v8"
@@ -56,11 +57,10 @@ const styles = StyleSheet.create({
     gap: spacing.lg,
   },
   body: { flex: 1, gap: 2 },
-  title: { color: colors.white, fontSize: 16, fontWeight: '700' },
+  title: { fontSize: 16, fontWeight: '700' },
   subtitle: { color: 'rgba(255,255,255,0.65)', fontSize: 13 },
   arrow: {
     alignItems: 'center',
-    backgroundColor: colors.white,
     borderRadius: radii.pill,
     height: 36,
     justifyContent: 'center',

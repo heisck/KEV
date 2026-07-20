@@ -9,27 +9,30 @@ import { Avatar, type PersonKey } from '@/components/kev/people';
 import { HapticPressable } from '@/components/ui/HapticPressable';
 import { studentRecordToScanned, type ScannedStudent } from '@/data/exams';
 import { useSessionStore } from '@/store/sessionStore';
-import { colors, radii, spacing } from '@/theme';
+import { radii, spacing, usePalette } from '@/theme';
 
 type Status = 'added' | 'already' | 'review';
 
-const BANNERS: Record<Status, { text: string; color: string; soft: string }> = {
-  added: { text: 'Added to the session', color: colors.success, soft: colors.successSoft },
-  already: {
-    text: 'Student is already in this session',
-    color: colors.warn,
-    soft: colors.warnSoft,
-  },
-  review: { text: 'Scanned — review before adding', color: colors.primary, soft: colors.mint },
+const METHOD_ROUTE: Record<string, '/verify/face' | '/verify/nfc' | '/verify/manual'> = {
+  FACE: '/verify/face',
+  NFC: '/verify/nfc',
+  MANUAL: '/verify/manual',
 };
 
-/** Scan result — student identity with add/close actions (X closes, bottom center). */
+/** Scan result — student identity with add / scan-again / close actions. */
 export function ScanResultScreen() {
+  const p = usePalette();
   const router = useRouter();
   const { top, bottom } = useSafeAreaInsets();
-  const params = useLocalSearchParams<{ exam?: string; student?: string; status?: Status }>();
+  const params = useLocalSearchParams<{
+    exam?: string;
+    student?: string;
+    status?: Status;
+    method?: string;
+  }>();
   const sessionId = params.exam ?? '1';
   const addStudent = useSessionStore((s) => s.addStudent);
+  const scanAgainRoute = METHOD_ROUTE[params.method ?? 'MANUAL'] ?? '/verify/manual';
 
   const { data: detail } = useSessionDetail(Number(sessionId) || 1);
   const studentRec = detail?.attendance?.find(
@@ -46,7 +49,12 @@ export function ScanResultScreen() {
       };
 
   const [status, setStatus] = useState<Status>(params.status ?? 'review');
-  const banner = BANNERS[status];
+  const banners: Record<Status, { text: string; color: string; soft: string }> = {
+    added: { text: 'Added to the session', color: p.success, soft: p.successSoft },
+    already: { text: 'Student is already in this session', color: p.warn, soft: p.warnSoft },
+    review: { text: 'Scanned — review before adding', color: p.primary, soft: p.mint },
+  };
+  const banner = banners[status];
 
   const addToClass = () => {
     addStudent(sessionId, student);
@@ -55,13 +63,16 @@ export function ScanResultScreen() {
 
   return (
     <View
-      style={[styles.screen, { paddingBottom: bottom + spacing.xl, paddingTop: top + spacing.xl }]}
+      style={[
+        styles.screen,
+        { backgroundColor: p.bg, paddingBottom: bottom + spacing.xl, paddingTop: top + spacing.xl },
+      ]}
     >
       <View style={styles.center}>
         <Avatar person={student.person as PersonKey} size={112} verified={status === 'added'} />
-        <Text style={styles.name}>{student.name}</Text>
-        <Text style={styles.meta}>{student.index}</Text>
-        <Text style={styles.meta}>{student.course}</Text>
+        <Text style={[styles.name, { color: p.ink }]}>{student.name}</Text>
+        <Text style={[styles.meta, { color: p.muted }]}>{student.index}</Text>
+        <Text style={[styles.meta, { color: p.muted }]}>{student.course}</Text>
 
         <View style={[styles.banner, { backgroundColor: banner.soft }]}>
           {status === 'review' ? (
@@ -76,32 +87,42 @@ export function ScanResultScreen() {
           <HapticPressable
             accessibilityRole="button"
             onPress={addToClass}
-            style={styles.addButton}
+            style={[styles.addButton, { backgroundColor: p.primary }]}
             testID="result-add"
           >
-            <Text style={styles.addButtonText}>Add to class</Text>
+            <Text style={[styles.addButtonText, { color: p.onPrimary }]}>Add to class</Text>
           </HapticPressable>
         ) : null}
+
+        <HapticPressable
+          accessibilityRole="button"
+          haptic="select"
+          onPress={() => router.replace({ pathname: scanAgainRoute, params: { exam: sessionId } })}
+          style={[styles.scanAgain, { backgroundColor: p.primary12 }]}
+          testID="result-scan-again"
+        >
+          <Text style={[styles.scanAgainText, { color: p.primary }]}>Scan next student</Text>
+        </HapticPressable>
       </View>
 
       <HapticPressable
         accessibilityRole="button"
-        accessibilityLabel="Close"
+        accessibilityLabel="Done scanning"
         onPress={() => router.back()}
-        style={styles.close}
+        style={[styles.close, { backgroundColor: p.surfaceDim, borderColor: p.hairline }]}
         testID="result-close"
       >
-        <CloseIcon color={colors.ink} />
+        <CloseIcon color={p.ink} />
       </HapticPressable>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: { backgroundColor: colors.white, flex: 1, paddingHorizontal: spacing.xl },
+  screen: { flex: 1, paddingHorizontal: spacing.xl },
   center: { alignItems: 'center', flex: 1, gap: 6, justifyContent: 'center' },
-  name: { color: colors.ink, fontSize: 24, fontWeight: '800', marginTop: spacing.lg },
-  meta: { color: colors.muted, fontSize: 14, fontWeight: '500' },
+  name: { fontSize: 24, fontWeight: '800', marginTop: spacing.lg },
+  meta: { fontSize: 14, fontWeight: '500' },
   banner: {
     alignItems: 'center',
     borderRadius: radii.pill,
@@ -115,17 +136,22 @@ const styles = StyleSheet.create({
   addButton: {
     alignItems: 'center',
     alignSelf: 'stretch',
-    backgroundColor: colors.primary,
     borderRadius: radii.pill,
     marginTop: spacing.xl,
     paddingVertical: spacing.lg - 2,
   },
-  addButtonText: { color: colors.white, fontSize: 15, fontWeight: '700' },
+  addButtonText: { fontSize: 15, fontWeight: '700' },
+  scanAgain: {
+    alignItems: 'center',
+    alignSelf: 'stretch',
+    borderRadius: radii.pill,
+    marginTop: spacing.md,
+    paddingVertical: spacing.lg - 2,
+  },
+  scanAgainText: { fontSize: 15, fontWeight: '700' },
   close: {
     alignItems: 'center',
     alignSelf: 'center',
-    backgroundColor: colors.surfaceDim,
-    borderColor: colors.hairline,
     borderRadius: radii.pill,
     borderWidth: 1,
     height: 56,

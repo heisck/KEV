@@ -37,7 +37,18 @@ class AuthControllerTest {
 
     @Test
     void googleLoginReturnsTokens() throws Exception {
-        UserDto user = new UserDto(UUID.randomUUID(), "rebecca@example.com", "Rebecca", null, "USER", "FREE");
+        UserDto user = new UserDto(
+                UUID.randomUUID(),
+                "rebecca@example.com",
+                "Rebecca",
+                null,
+                "USER",
+                "FREE",
+                null,
+                null,
+                null,
+                "ACTIVE",
+                true);
         when(authService.loginWithGoogle(any())).thenReturn(new AuthResponse("access-tok", "refresh-tok", user));
 
         mockMvc.perform(post("/api/auth/google")

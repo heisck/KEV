@@ -23,18 +23,20 @@ public class MockUitsDirectory implements UniversityDirectory {
     @Transactional(readOnly = true)
     @Cacheable(cacheNames = "directory", key = "#indexNumber")
     public Optional<StudentRecord> findByIndexNumber(String indexNumber) {
-        return students.findByIndexNumber(indexNumber).map(StudentRecord::from);
+        return students.findByIndexNumberWithCourses(indexNumber).map(StudentRecord::from);
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<StudentRecord> findAll() {
-        return students.findAll().stream().map(StudentRecord::from).toList();
+        return students.findAllWithCourses().stream().map(StudentRecord::from).toList();
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<StudentRecord> search(String query) {
-        return students.search(query).stream().map(StudentRecord::from).toList();
+        return students.searchWithCourses(query).stream()
+                .map(StudentRecord::from)
+                .toList();
     }
 }

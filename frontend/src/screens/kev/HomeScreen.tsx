@@ -11,7 +11,7 @@ import { ExamCard } from '@/components/kev/ExamCard';
 import { HapticPressable } from '@/components/ui/HapticPressable';
 import { sessionToExam, type ExamStatus } from '@/data/exams';
 import { useAuthStore } from '@/store/authStore';
-import { colors, radii, spacing } from '@/theme';
+import { radii, spacing, usePalette } from '@/theme';
 
 const FILTERS = ['All', 'Upcoming', 'Ongoing', 'Past'] as const;
 type Filter = (typeof FILTERS)[number];
@@ -19,6 +19,7 @@ type Filter = (typeof FILTERS)[number];
 /** Home — welcome header, session search, exam filters, exam cards (kev mockup screen 1). */
 export function HomeScreen() {
   const router = useRouter();
+  const p = usePalette();
   const user = useAuthStore((s) => s.user);
   const { top } = useSafeAreaInsets();
   const [filter, setFilter] = useState<Filter>('All');
@@ -35,7 +36,7 @@ export function HomeScreen() {
   }, [rawSessions, filter, query]);
 
   return (
-    <View style={[styles.screen, { paddingTop: top + spacing.md }]}>
+    <View style={[styles.screen, { backgroundColor: p.bg, paddingTop: top + spacing.md }]}>
       <View style={styles.header}>
         <HapticPressable
           accessibilityRole="button"
@@ -46,28 +47,28 @@ export function HomeScreen() {
           <Avatar person="me" size={44} />
         </HapticPressable>
         <View style={styles.welcome}>
-          <Text style={styles.welcomeLabel}>Welcome back</Text>
-          <Text style={styles.name}>{user?.displayName ?? 'Invigilator'}</Text>
+          <Text style={[styles.welcomeLabel, { color: p.muted }]}>Welcome back</Text>
+          <Text style={[styles.name, { color: p.ink }]}>{user?.displayName ?? 'Invigilator'}</Text>
         </View>
         <CircleButton label="Notifications" onPress={() => router.push('/(tabs)/reminders')}>
-          <BellIcon color={colors.ink} />
+          <BellIcon color={p.ink} />
         </CircleButton>
       </View>
 
-      <View style={styles.search}>
-        <SearchIcon color={colors.muted} />
+      <View style={[styles.search, { backgroundColor: p.surfaceDim }]}>
+        <SearchIcon color={p.muted} />
         <TextInput
           value={query}
           onChangeText={setQuery}
           placeholder="Search sessions by class"
-          placeholderTextColor={colors.muted}
+          placeholderTextColor={p.muted}
           autoCapitalize="none"
-          style={styles.searchInput}
+          style={[styles.searchInput, { color: p.ink }]}
           testID="home-search"
         />
       </View>
 
-      <View style={styles.filters}>
+      <View style={[styles.filters, { borderBottomColor: p.hairline }]}>
         {FILTERS.map((f) => {
           const active = f === filter;
           return (
@@ -77,9 +78,17 @@ export function HomeScreen() {
               accessibilityState={{ selected: active }}
               haptic="select"
               onPress={() => setFilter(f)}
-              style={[styles.filterTab, active && styles.filterTabActive]}
+              style={[styles.filterTab, active && { borderBottomColor: p.primary }]}
             >
-              <Text style={[styles.filterLabel, active && styles.filterLabelActive]}>{f}</Text>
+              <Text
+                style={[
+                  styles.filterLabel,
+                  { color: p.muted },
+                  active && { color: p.ink, fontWeight: '700' },
+                ]}
+              >
+                {f}
+              </Text>
             </HapticPressable>
           );
         })}
@@ -95,7 +104,7 @@ export function HomeScreen() {
 }
 
 const styles = StyleSheet.create({
-  screen: { backgroundColor: colors.white, flex: 1, paddingHorizontal: spacing.xl },
+  screen: { flex: 1, paddingHorizontal: spacing.xl },
   header: {
     alignItems: 'center',
     flexDirection: 'row',
@@ -103,20 +112,18 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.sm,
   },
   welcome: { flex: 1, gap: 2 },
-  welcomeLabel: { color: colors.muted, fontSize: 12, fontWeight: '500' },
-  name: { color: colors.ink, fontSize: 16, fontWeight: '700' },
+  welcomeLabel: { fontSize: 12, fontWeight: '500' },
+  name: { fontSize: 16, fontWeight: '700' },
   search: {
     alignItems: 'center',
-    backgroundColor: colors.surfaceDim,
     borderRadius: radii.pill,
     flexDirection: 'row',
     gap: spacing.sm,
     marginTop: spacing.md,
     paddingHorizontal: spacing.lg,
   },
-  searchInput: { color: colors.ink, flex: 1, fontSize: 14, paddingVertical: spacing.md },
+  searchInput: { flex: 1, fontSize: 14, paddingVertical: spacing.md },
   filters: {
-    borderBottomColor: colors.hairline,
     borderBottomWidth: 1,
     flexDirection: 'row',
     gap: spacing.xxl,
@@ -130,8 +137,6 @@ const styles = StyleSheet.create({
     borderBottomWidth: 2.5,
     paddingBottom: spacing.sm + 2,
   },
-  filterTabActive: { borderBottomColor: colors.primary },
-  filterLabel: { color: colors.muted, fontSize: 14, fontWeight: '600' },
-  filterLabelActive: { color: colors.ink, fontWeight: '700' },
+  filterLabel: { fontSize: 14, fontWeight: '600' },
   list: { gap: spacing.lg, paddingBottom: spacing.xl, paddingTop: spacing.xl },
 });

@@ -1,6 +1,6 @@
 import { StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 
-import { colors, radii, shadows, spacing } from '@/theme';
+import { radii, shadows, spacing, usePalette } from '@/theme';
 
 type CardProps = {
   children: React.ReactNode;
@@ -11,8 +11,10 @@ type CardProps = {
 };
 
 export function Card({ children, variant = 'surface', style, testID }: CardProps) {
+  const p = usePalette();
+  const variantColor = { surface: p.surface, mint: p.mint, ink: p.ink };
   return (
-    <View style={[styles.base, variantStyles[variant], style]} testID={testID}>
+    <View style={[styles.base, { backgroundColor: variantColor[variant] }, style]} testID={testID}>
       {children}
     </View>
   );
@@ -24,10 +26,4 @@ const styles = StyleSheet.create({
     padding: spacing.xl,
     ...shadows.card,
   },
-});
-
-const variantStyles = StyleSheet.create({
-  surface: { backgroundColor: colors.surface },
-  mint: { backgroundColor: colors.mint },
-  ink: { backgroundColor: colors.black },
 });

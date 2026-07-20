@@ -47,7 +47,10 @@ public class SessionService {
         ExamSession session = new ExamSession();
         session.setSessionCode(uniqueCode());
         session.setSessionPassword(uniquePassword());
-        session.setTitle(req.title() != null && !req.title().isBlank() ? req.title().trim() : (req.building() + " " + (req.room() != null ? req.room() : "")).trim());
+        session.setTitle(
+                req.title() != null && !req.title().isBlank()
+                        ? req.title().trim()
+                        : (req.building() + " " + (req.room() != null ? req.room() : "")).trim());
         session.setCourseCodes(req.courseCodes() != null ? String.join(",", req.courseCodes()) : "");
         session.setBuilding(req.building());
         session.setFloor(req.floor());
@@ -60,7 +63,7 @@ public class SessionService {
         if (req.verificationMethods() != null && !req.verificationMethods().isEmpty()) {
             session.setVerificationMethods(String.join(",", req.verificationMethods()));
         } else {
-            session.setVerificationMethods("FACE,QR,MANUAL");
+            session.setVerificationMethods("FACE,NFC,MANUAL");
         }
         session.setCreatedBy(userId);
         ExamSession saved = sessions.save(session);
@@ -70,7 +73,8 @@ public class SessionService {
 
     @Transactional
     public SessionDto join(UUID userId, String sessionCodeOrPassword) {
-        String query = sessionCodeOrPassword != null ? sessionCodeOrPassword.trim().toUpperCase() : "";
+        String query =
+                sessionCodeOrPassword != null ? sessionCodeOrPassword.trim().toUpperCase() : "";
         ExamSession session = sessions.findBySessionCodeOrSessionPassword(query, query)
                 .or(() -> sessions.findBySessionCode(query))
                 .or(() -> sessions.findBySessionPassword(query))
@@ -155,7 +159,9 @@ public class SessionService {
     public SessionDto toDto(ExamSession session) {
         long checkedIn = attendance.countBySessionIdAndStatus(session.getId(), AttendanceStatus.CHECKED_IN);
         long members = invigilators.countBySessionId(session.getId());
-        return SessionDto.from(session, checkedIn, members);
+        String status = SessionStatusCalculator.resolve(session, java.time.LocalDateTime.now())
+                .name();
+        return SessionDto.from(session, status, checkedIn, members);
     }
 
     private InvigilatorDto toInvigilatorDto(SessionInvigilator membership) {

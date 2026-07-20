@@ -4,27 +4,31 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { GlassSurface } from '@/components/ui/GlassSurface';
 import { HapticPressable } from '@/components/ui/HapticPressable';
-import { colors, spacing } from '@/theme';
+import { spacing, usePalette } from '@/theme';
 
 /** Only these routes appear in the bottom nav. Everything else is excluded. */
-const TAB_BAR_ROUTES = new Set(['index', 'reminders', 'exams', 'chat', 'profile']);
+const TAB_BAR_ROUTES = new Set(['index', 'reminders', 'create', 'chat', 'profile']);
 
 /** Bottom bar with glass surface; selection haptic on tab change. */
 export function KevTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
   const insets = useSafeAreaInsets();
+  const p = usePalette();
 
   return (
     <GlassSurface
       glassEffectStyle="regular"
-      fallbackColor={colors.white}
-      style={[styles.bar, { paddingBottom: Math.max(insets.bottom, spacing.sm) }]}
+      fallbackColor={p.surface}
+      style={[
+        styles.bar,
+        { borderTopColor: p.hairline, paddingBottom: Math.max(insets.bottom, spacing.sm) },
+      ]}
     >
       {state.routes.map((route, index) => {
         if (!TAB_BAR_ROUTES.has(route.name)) return null;
 
         const { options } = descriptors[route.key];
         const isFocused = state.index === index;
-        const tint = isFocused ? colors.primary : colors.muted;
+        const tint = isFocused ? p.primary : p.muted;
 
         const onPress = () => {
           const event = navigation.emit({
@@ -59,7 +63,6 @@ export function KevTabBar({ state, descriptors, navigation }: BottomTabBarProps)
 
 const styles = StyleSheet.create({
   bar: {
-    borderTopColor: colors.hairline,
     borderTopWidth: StyleSheet.hairlineWidth,
     flexDirection: 'row',
     paddingHorizontal: spacing.md,

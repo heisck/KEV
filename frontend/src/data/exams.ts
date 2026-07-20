@@ -17,6 +17,8 @@ export type Exam = {
 };
 
 export function sessionToExam(s: SessionDto): Exam {
+  // Backend computes UPCOMING/ONGOING/COMPLETED from the schedule; ACTIVE is the
+  // legacy "live" value and CANCELLED/ENDED are treated as past.
   const isOngoing = s.status === 'ONGOING' || s.status === 'ACTIVE';
   const isEnded = s.status === 'ENDED' || s.status === 'COMPLETED' || s.status === 'CANCELLED';
   const status: ExamStatus = isEnded ? 'Past' : isOngoing ? 'Ongoing' : 'Upcoming';

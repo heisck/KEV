@@ -6,6 +6,12 @@ jest.mock('@/components/SystemStatusBar', () => ({
   SystemStatusBar: () => null,
 }));
 
+jest.mock('@react-native-async-storage/async-storage', () =>
+  require('@react-native-async-storage/async-storage/jest/async-storage-mock'),
+);
+
+jest.mock('@react-native-community/datetimepicker', () => 'DateTimePicker');
+
 jest.mock('expo-secure-store', () => ({
   getItemAsync: jest.fn(async () => null),
   setItemAsync: jest.fn(async () => undefined),

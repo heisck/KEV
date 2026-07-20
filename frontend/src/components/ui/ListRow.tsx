@@ -2,7 +2,7 @@ import { Image } from 'expo-image';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { HapticPressable } from '@/components/ui/HapticPressable';
-import { colors, radii, spacing } from '@/theme';
+import { radii, spacing, usePalette } from '@/theme';
 
 type ListRowProps = {
   title: string;
@@ -26,6 +26,7 @@ export function ListRow({
   dimmed = false,
   testID,
 }: ListRowProps) {
+  const p = usePalette();
   return (
     <HapticPressable
       accessibilityRole={onPress ? 'button' : undefined}
@@ -33,22 +34,24 @@ export function ListRow({
       haptic={onPress ? 'select' : 'none'}
       onPress={onPress}
       onLongPress={onLongPress}
-      style={[styles.row, dimmed && styles.dimmed]}
+      style={[styles.row, { backgroundColor: p.surface }, dimmed && styles.dimmed]}
       testID={testID}
     >
       {avatarUrl ? (
         <Image source={{ uri: avatarUrl }} style={styles.avatar} contentFit="cover" />
       ) : (
-        <View style={[styles.avatar, styles.avatarFallback]}>
-          <Text style={styles.avatarInitial}>{title.charAt(0).toUpperCase()}</Text>
+        <View style={[styles.avatar, styles.avatarFallback, { backgroundColor: p.primary20 }]}>
+          <Text style={[styles.avatarInitial, { color: p.primaryDeep }]}>
+            {title.charAt(0).toUpperCase()}
+          </Text>
         </View>
       )}
       <View style={styles.body}>
-        <Text numberOfLines={1} style={styles.title}>
+        <Text numberOfLines={1} style={[styles.title, { color: p.ink }]}>
           {title}
         </Text>
         {subtitle ? (
-          <Text numberOfLines={1} style={styles.subtitle}>
+          <Text numberOfLines={1} style={[styles.subtitle, { color: p.muted }]}>
             {subtitle}
           </Text>
         ) : null}
@@ -61,7 +64,6 @@ export function ListRow({
 const styles = StyleSheet.create({
   row: {
     alignItems: 'center',
-    backgroundColor: colors.surface,
     borderRadius: radii.md,
     flexDirection: 'row',
     gap: spacing.md,
@@ -71,11 +73,10 @@ const styles = StyleSheet.create({
   avatar: { borderRadius: radii.pill, height: 44, width: 44 },
   avatarFallback: {
     alignItems: 'center',
-    backgroundColor: colors.primary20,
     justifyContent: 'center',
   },
-  avatarInitial: { color: colors.primaryDeep, fontSize: 18, fontWeight: '700' },
+  avatarInitial: { fontSize: 18, fontWeight: '700' },
   body: { flex: 1, gap: 2 },
-  title: { color: colors.ink, fontSize: 15, fontWeight: '600' },
-  subtitle: { color: colors.muted, fontSize: 13 },
+  title: { fontSize: 15, fontWeight: '600' },
+  subtitle: { fontSize: 13 },
 });

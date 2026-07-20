@@ -28,4 +28,15 @@ describe('authStore', () => {
     expect(state.status).toBe('unauthenticated');
     expect(state.user).toBeNull();
   });
+
+  it('sessionExpired drops an authenticated session to signed-out', () => {
+    useAuthStore.setState({
+      user: { id: '1', email: 'a@b.com', role: 'USER', plan: 'FREE' },
+      status: 'authenticated',
+    });
+    useAuthStore.getState().sessionExpired();
+    const state = useAuthStore.getState();
+    expect(state.status).toBe('unauthenticated');
+    expect(state.user).toBeNull();
+  });
 });

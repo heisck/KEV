@@ -27,13 +27,15 @@ public record SessionDto(
         long checkedInCount,
         long invigilatorCount) {
 
-    public static SessionDto from(ExamSession s, long checkedInCount, long invigilatorCount) {
-        String methods = s.getVerificationMethods() == null ? "FACE,QR,MANUAL" : s.getVerificationMethods();
+    public static SessionDto from(ExamSession s, String status, long checkedInCount, long invigilatorCount) {
+        String methods = s.getVerificationMethods() == null ? "FACE,NFC,MANUAL" : s.getVerificationMethods();
         return new SessionDto(
                 s.getId(),
                 s.getSessionCode(),
                 s.getSessionPassword() != null ? s.getSessionPassword() : s.getSessionCode(),
-                s.getTitle() != null ? s.getTitle() : (s.getBuilding() + " " + (s.getRoom() != null ? s.getRoom() : "")).trim(),
+                s.getTitle() != null
+                        ? s.getTitle()
+                        : (s.getBuilding() + " " + (s.getRoom() != null ? s.getRoom() : "")).trim(),
                 s.getBuilding(),
                 s.getFloor(),
                 s.getRoom(),
@@ -46,8 +48,11 @@ public record SessionDto(
                 s.getExamDate(),
                 s.getStartTime(),
                 s.getEndTime(),
-                Arrays.stream(methods.split(",")).map(String::trim).filter(m -> !m.isEmpty()).toList(),
-                s.getStatus().name(),
+                Arrays.stream(methods.split(","))
+                        .map(String::trim)
+                        .filter(m -> !m.isEmpty())
+                        .toList(),
+                status,
                 s.getStartedAt(),
                 s.getEndedAt(),
                 checkedInCount,

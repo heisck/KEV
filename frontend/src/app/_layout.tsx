@@ -14,6 +14,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { queryClient } from '@/api/queryClient';
+import { setOnAuthExpired } from '@/api/client';
 import { AppSplash } from '@/components/AppSplash';
 import { ToastHost } from '@/components/ui/ToastHost';
 import { logger } from '@/lib/logger';
@@ -21,6 +22,10 @@ import { initSentry, Sentry } from '@/lib/sentry';
 import { useAuthStore } from '@/store/authStore';
 
 initSentry();
+
+// Refresh-token failure in the API client drops the app to signed-out so the
+// route guards send the user back to sign-in (instead of looping on 401s).
+setOnAuthExpired(() => useAuthStore.getState().sessionExpired());
 
 // Native only — web has no OS splash; waiting on hideAsync stalls the intro.
 if (Platform.OS !== 'web') {
@@ -75,9 +80,17 @@ function RootLayout() {
           <ThemeProvider value={DefaultTheme}>
             {/* File-based routes auto-register; only override presentation here. */}
             <Stack screenOptions={{ headerShown: false }}>
-              <Stack.Screen name="room-setup" options={{ presentation: 'modal' }} />
+              <Stack.Screen
+                name="room-setup"
+                options={{
+                  presentation: 'card',
+                  gestureEnabled: true,
+                  fullScreenGestureEnabled: true,
+                }}
+              />
               <Stack.Screen name="student-result" options={{ presentation: 'modal' }} />
               <Stack.Screen name="upgrade" options={{ presentation: 'modal' }} />
+              <Stack.Screen name="edit-profile" options={{ presentation: 'modal' }} />
             </Stack>
             <ToastHost />
             {showSplash ? (

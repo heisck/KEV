@@ -13,6 +13,7 @@ import com.kev.backend.directory.dto.StudentRecord;
 import com.kev.backend.session.ExamSession;
 import com.kev.backend.session.SessionService;
 import com.kev.backend.session.SessionStatus;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
@@ -42,8 +43,8 @@ class AttendanceServiceTest {
     AttendanceService service;
 
     private final UUID invigilator = UUID.randomUUID();
-    private final StudentRecord student =
-            new StudentRecord(7L, "10953001", "Ama Boateng", "BSc CS", 300, "url", true, FeesStatus.PAID, true);
+    private final StudentRecord student = new StudentRecord(
+            7L, "10953001", "Ama Boateng", "BSc CS", 300, "url", true, FeesStatus.PAID, true, List.of());
 
     private ExamSession activeSession;
 

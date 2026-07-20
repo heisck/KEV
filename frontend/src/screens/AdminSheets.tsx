@@ -5,13 +5,15 @@ import { StyleSheet, Text, View } from 'react-native';
 import { useAssignInvigilator, useInvigilators, useSessionReport } from '@/api/hooks';
 import { getProblemDetail, isPlanLimitError } from '@/api/schemas';
 import { AppButton, ListRow, StatusPill } from '@/components/ui';
-import { colors, spacing } from '@/theme';
+import { spacing, usePalette } from '@/theme';
 
 /** Per-session report: check-in counts by method plus the most recent scans. */
 export function ReportSheet({ sessionId }: { sessionId: number }) {
+  const p = usePalette();
   const { data: report, isLoading } = useSessionReport(sessionId);
 
-  if (isLoading || !report) return <Text style={styles.muted}>Loading report…</Text>;
+  if (isLoading || !report)
+    return <Text style={[styles.muted, { color: p.muted }]}>Loading report…</Text>;
 
   return (
     <View style={styles.body}>
@@ -21,11 +23,11 @@ export function ReportSheet({ sessionId }: { sessionId: number }) {
       </View>
       {Object.entries(report.byMethod).map(([method, count]) => (
         <View key={method} style={styles.methodRow}>
-          <Text style={styles.methodLabel}>{method}</Text>
-          <Text style={styles.methodCount}>{count}</Text>
+          <Text style={[styles.methodLabel, { color: p.inkSoft }]}>{method}</Text>
+          <Text style={[styles.methodCount, { color: p.ink }]}>{count}</Text>
         </View>
       ))}
-      <Text style={styles.sectionLabel}>Recent</Text>
+      <Text style={[styles.sectionLabel, { color: p.muted }]}>Recent</Text>
       {report.recent.map((a) => (
         <ListRow
           key={a.id}
@@ -41,6 +43,7 @@ export function ReportSheet({ sessionId }: { sessionId: number }) {
 
 /** Assign an invigilator to a session; plan-limit rejections route to the upgrade modal. */
 export function AssignSheet({ sessionId, onClose }: { sessionId: number; onClose: () => void }) {
+  const p = usePalette();
   const { data: invigilators, isLoading } = useInvigilators();
   const assign = useAssignInvigilator(sessionId);
   const [error, setError] = useState<string | null>(null);
@@ -63,11 +66,12 @@ export function AssignSheet({ sessionId, onClose }: { sessionId: number; onClose
     });
   };
 
-  if (isLoading || !invigilators) return <Text style={styles.muted}>Loading invigilators…</Text>;
+  if (isLoading || !invigilators)
+    return <Text style={[styles.muted, { color: p.muted }]}>Loading invigilators…</Text>;
 
   return (
     <View style={styles.body}>
-      {error ? <Text style={styles.error}>{error}</Text> : null}
+      {error ? <Text style={[styles.error, { color: p.error }]}>{error}</Text> : null}
       {invigilators.map((user) => (
         <ListRow
           key={user.id}
@@ -85,7 +89,7 @@ export function AssignSheet({ sessionId, onClose }: { sessionId: number; onClose
         />
       ))}
       {invigilators.length === 0 ? (
-        <Text style={styles.muted}>No invigilators available to assign.</Text>
+        <Text style={[styles.muted, { color: p.muted }]}>No invigilators available to assign.</Text>
       ) : null}
     </View>
   );
@@ -95,15 +99,14 @@ const styles = StyleSheet.create({
   body: { gap: spacing.md },
   statRow: { flexDirection: 'row', gap: spacing.sm },
   methodRow: { flexDirection: 'row', justifyContent: 'space-between' },
-  methodLabel: { color: colors.inkSoft, fontSize: 14, fontWeight: '600' },
-  methodCount: { color: colors.ink, fontSize: 14, fontWeight: '800' },
+  methodLabel: { fontSize: 14, fontWeight: '600' },
+  methodCount: { fontSize: 14, fontWeight: '800' },
   sectionLabel: {
-    color: colors.muted,
     fontSize: 12,
     fontWeight: '700',
     marginTop: spacing.sm,
     textTransform: 'uppercase',
   },
-  muted: { color: colors.muted, fontSize: 14, textAlign: 'center' },
-  error: { color: colors.error, fontSize: 13, textAlign: 'center' },
+  muted: { fontSize: 14, textAlign: 'center' },
+  error: { fontSize: 13, textAlign: 'center' },
 });

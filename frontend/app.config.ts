@@ -18,7 +18,7 @@ const config: ExpoConfig = {
   orientation: 'portrait',
   icon: './assets/images/icon.png',
   scheme: 'kev',
-  userInterfaceStyle: 'light',
+  userInterfaceStyle: 'automatic',
   ios: {
     icon: './assets/images/icon.png',
     bundleIdentifier: 'com.kev.app',
@@ -43,6 +43,7 @@ const config: ExpoConfig = {
   plugins: [
     'expo-router',
     'expo-secure-store',
+    '@react-native-community/datetimepicker',
     [
       'expo-splash-screen',
       {

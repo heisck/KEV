@@ -16,24 +16,39 @@ import {
   StudentsIcon,
 } from '@/components/kev/icons';
 import { HapticPressable } from '@/components/ui/HapticPressable';
-import { colors, radii, spacing } from '@/theme';
-
-const METHODS = [
-  { label: 'Face', icon: <FaceIdIcon color={colors.pink} />, path: '/verify/face' as const },
-  { label: 'NFC', icon: <NfcIcon color={colors.blue} />, path: '/verify/nfc' as const },
-  { label: 'Manual', icon: <KeypadIcon color={colors.inkSoft} />, path: '/verify/manual' as const },
-] as const;
+import { colors, radii, spacing, usePalette } from '@/theme';
 
 /** Session details (kev mockup screen 2). */
 export function ExamDetailScreen() {
+  const p = usePalette();
   const router = useRouter();
   const { top } = useSafeAreaInsets();
   const { id } = useLocalSearchParams<{ id?: string }>();
   const examId = id ?? '1';
 
+  const METHODS = [
+    {
+      key: 'FACE',
+      label: 'Face',
+      icon: <FaceIdIcon color={p.pink} />,
+      path: '/verify/face' as const,
+    },
+    { key: 'NFC', label: 'NFC', icon: <NfcIcon color={p.blue} />, path: '/verify/nfc' as const },
+    {
+      key: 'MANUAL',
+      label: 'Manual',
+      icon: <KeypadIcon color={p.inkSoft} />,
+      path: '/verify/manual' as const,
+    },
+  ] as const;
+
   const { data: detail } = useSessionDetail(Number(examId) || 1);
   const { data: allSessions } = useSessions();
   const session = detail?.session ?? allSessions?.find((s) => String(s.id) === examId);
+
+  // Only the methods this session enabled (fall back to all when unset).
+  const allowed = session?.verificationMethods?.length ? session.verificationMethods : null;
+  const methods = METHODS.filter((m) => !allowed || allowed.includes(m.key));
 
   const isUpcoming = session?.status === 'UPCOMING';
   const hall = session?.title ?? session?.building ?? 'Main Exam Hall';
@@ -52,78 +67,78 @@ export function ExamDetailScreen() {
   const openScanHub = () => router.push({ pathname: '/verify/index', params: { exam: examId } });
 
   return (
-    <View style={[styles.screen, { paddingTop: top + spacing.md }]}>
+    <View style={[styles.screen, { backgroundColor: p.bg, paddingTop: top + spacing.md }]}>
       <ScreenTopBar
         title="Session details"
         onBack={() => router.back()}
         trailing={
           !isUpcoming ? (
             <CircleButton label="Scan" onPress={openScanHub}>
-              <ScanFrameIcon color={colors.ink} />
+              <ScanFrameIcon color={p.ink} />
             </CircleButton>
           ) : null
         }
       />
 
       <ScrollView contentContainerStyle={styles.body} showsVerticalScrollIndicator={false}>
-        <View style={styles.card}>
+        <View style={[styles.card, { backgroundColor: p.surfaceDim }]}>
           <View style={styles.hero}>
             <SceneArt art="hall" />
           </View>
           {!isUpcoming ? (
-            <View style={styles.ratingBadge}>
-              <Text style={styles.ratingBadgeText}>{score}</Text>
+            <View style={[styles.ratingBadge, { backgroundColor: p.surface }]}>
+              <Text style={[styles.ratingBadgeText, { color: p.ink }]}>{score}</Text>
             </View>
           ) : null}
 
           <View style={styles.cardBody}>
-            <Text style={styles.hotel}>{hall}</Text>
+            <Text style={[styles.hotel, { color: p.ink }]}>{hall}</Text>
             <View style={styles.ratingRow}>
               {!isUpcoming ? (
                 <View style={styles.stars}>
                   {[1, 2, 3, 4, 5].map((i) => (
-                    <CheckCircleIcon key={i} color={colors.success} size={15} />
+                    <CheckCircleIcon key={i} color={p.success} size={15} />
                   ))}
-                  <Text style={styles.ratingText}>{verified} verified</Text>
+                  <Text style={[styles.ratingText, { color: p.inkSoft }]}>{verified} verified</Text>
                 </View>
               ) : (
-                <Text style={styles.ratingText}>Upcoming Exam</Text>
+                <Text style={[styles.ratingText, { color: p.inkSoft }]}>Upcoming Exam</Text>
               )}
               <BlueChip
                 label="Open room map"
-                icon={<StepsIcon color={colors.blue} />}
+                icon={<StepsIcon color={p.blue} />}
                 onPress={() => router.push('/room-setup')}
               />
             </View>
 
             <View style={styles.datesRow}>
-              <View style={styles.dateBox}>
-                <Text style={styles.dateLabel}>Starts</Text>
-                <Text style={styles.dateValue}>{starts}</Text>
+              <View style={[styles.dateBox, { backgroundColor: p.surface }]}>
+                <Text style={[styles.dateLabel, { color: p.muted }]}>Starts</Text>
+                <Text style={[styles.dateValue, { color: p.ink }]}>{starts}</Text>
               </View>
-              <View style={styles.dateBox}>
-                <Text style={styles.dateLabel}>Ends</Text>
-                <Text style={styles.dateValue}>{ends}</Text>
+              <View style={[styles.dateBox, { backgroundColor: p.surface }]}>
+                <Text style={[styles.dateLabel, { color: p.muted }]}>Ends</Text>
+                <Text style={[styles.dateValue, { color: p.ink }]}>{ends}</Text>
               </View>
             </View>
 
-            <View style={styles.divider} />
+            <View style={[styles.divider, { backgroundColor: p.hairline }]} />
             <View style={styles.metaRow}>
               <View style={styles.metaItem}>
-                <RemindersTabIcon color={colors.ink} size={18} />
-                <Text style={styles.metaText}>{String(dateStr)}</Text>
+                <RemindersTabIcon color={p.ink} size={18} />
+                <Text style={[styles.metaText, { color: p.ink }]}>{String(dateStr)}</Text>
               </View>
               <View style={styles.metaItem}>
-                <StudentsIcon color={colors.ink} />
-                <Text style={styles.metaText}>{studentsCount} students</Text>
+                <StudentsIcon color={p.ink} />
+                <Text style={[styles.metaText, { color: p.ink }]}>{studentsCount} students</Text>
               </View>
             </View>
           </View>
         </View>
 
-        <Text style={styles.section}>Verification methods</Text>
+        <Text style={[styles.section, { color: p.ink }]}>Verification methods</Text>
         <View style={[styles.amenities, isUpcoming && { opacity: 0.5 }]}>
-          {METHODS.map((m) => (
+          {methods.map((m) => (
             <HapticPressable
               key={m.label}
               disabled={isUpcoming}
@@ -132,8 +147,10 @@ export function ExamDetailScreen() {
               onPress={() => router.push({ pathname: m.path, params: { exam: examId } })}
               style={styles.amenity}
             >
-              <View style={styles.amenityCircle}>{m.icon}</View>
-              <Text style={styles.amenityLabel}>{m.label}</Text>
+              <View style={[styles.amenityCircle, { backgroundColor: p.surfaceDim }]}>
+                {m.icon}
+              </View>
+              <Text style={[styles.amenityLabel, { color: p.inkSoft }]}>{m.label}</Text>
             </HapticPressable>
           ))}
         </View>
@@ -141,14 +158,14 @@ export function ExamDetailScreen() {
         {!isUpcoming ? (
           <>
             <View style={styles.priceRow}>
-              <Text style={styles.section}>Attendance</Text>
-              <Text style={styles.price}>
+              <Text style={[styles.section, { color: p.ink }]}>Attendance</Text>
+              <Text style={[styles.price, { color: p.ink }]}>
                 {verified}/{studentsCount}
               </Text>
             </View>
             <View style={styles.priceRow}>
-              <Text style={styles.taxLabel}>Flagged</Text>
-              <Text style={styles.tax}>0</Text>
+              <Text style={[styles.taxLabel, { color: p.muted }]}>Flagged</Text>
+              <Text style={[styles.tax, { color: p.ink }]}>0</Text>
             </View>
           </>
         ) : null}

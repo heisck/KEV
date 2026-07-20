@@ -4,7 +4,7 @@ import { StyleSheet, Text, View } from 'react-native';
 
 import { useFaceVerify } from '@/api/hooks';
 import { AppButton, ProgressRing, StatusPill } from '@/components/ui';
-import { colors, radii, spacing } from '@/theme';
+import { colors, radii, spacing, usePalette } from '@/theme';
 
 type FaceVerifyPanelProps = {
   indexNumber: string;
@@ -18,6 +18,7 @@ export function FaceVerifyPanel({ indexNumber, onMatch }: FaceVerifyPanelProps) 
   const cameraRef = useRef<CameraView>(null);
   const faceVerify = useFaceVerify();
   const result = faceVerify.data;
+  const p = usePalette();
 
   const capture = async () => {
     const photo = await cameraRef.current?.takePictureAsync();
@@ -32,7 +33,7 @@ export function FaceVerifyPanel({ indexNumber, onMatch }: FaceVerifyPanelProps) 
   if (!permission.granted) {
     return (
       <View style={styles.panel}>
-        <Text style={styles.hint}>Face verification needs the camera.</Text>
+        <Text style={[styles.hint, { color: p.muted }]}>Face verification needs the camera.</Text>
         <AppButton label="Allow camera" variant="ghost" onPress={() => void requestPermission()} />
       </View>
     );
@@ -61,7 +62,7 @@ export function FaceVerifyPanel({ indexNumber, onMatch }: FaceVerifyPanelProps) 
         <CameraView ref={cameraRef} facing="front" style={StyleSheet.absoluteFill} />
       </View>
       {faceVerify.isError ? (
-        <Text style={styles.error}>Verification failed. Try again.</Text>
+        <Text style={[styles.error, { color: p.error }]}>Verification failed. Try again.</Text>
       ) : null}
       <AppButton
         label={faceVerify.isPending ? 'Verifying…' : 'Capture & verify'}
@@ -82,6 +83,6 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     width: '70%',
   },
-  hint: { color: colors.muted, fontSize: 13, textAlign: 'center' },
-  error: { color: colors.error, fontSize: 13, textAlign: 'center' },
+  hint: { fontSize: 13, textAlign: 'center' },
+  error: { fontSize: 13, textAlign: 'center' },
 });
