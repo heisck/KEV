@@ -4,6 +4,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { ChatDirectoryScreen } from '@/screens/kev/ChatDirectoryScreen';
 import { parseMessages } from '@/lib/chatMessages';
 import { ChatScreen } from '@/screens/kev/ChatScreen';
+import { useAuthStore } from '@/store/authStore';
 import { useChatStore } from '@/store/chatStore';
 
 const mockBack = jest.fn();
@@ -15,7 +16,10 @@ jest.mock('expo-router', () => ({
 }));
 jest.mock('@/api/hooks', () => ({
   useLecturers: () => ({
-    data: [{ id: 'l1', displayName: 'Ada Mensah', email: 'ada@example.com', role: 'LECTURER' }],
+    data: [
+      { id: 'me', displayName: 'Signed In', email: 'me@example.com', role: 'LECTURER' },
+      { id: 'l1', displayName: 'Ada Mensah', email: 'ada@example.com', role: 'LECTURER' },
+    ],
   }),
 }));
 jest.mock('@/api/client', () => ({
@@ -42,15 +46,30 @@ describe('chat navigation', () => {
   beforeEach(() => {
     mockBack.mockClear();
     mockPush.mockClear();
-    useChatStore.getState().closeThread();
+    useAuthStore.setState({
+      status: 'authenticated',
+      user: { id: 'me', email: 'me@example.com', role: 'LECTURER', plan: 'FREE' },
+    });
+    useChatStore.setState({ activeLecturerId: null, threads: {} });
   });
 
   it('opens a thread in the root stack', () => {
-    const { getByLabelText } = renderScreen(<ChatDirectoryScreen />);
+    const { getByLabelText, queryByLabelText } = renderScreen(<ChatDirectoryScreen />);
+
+    expect(queryByLabelText('Chat with Signed In')).toBeNull();
 
     fireEvent.press(getByLabelText('Chat with Ada Mensah'));
 
     expect(mockPush).toHaveBeenCalledWith({ pathname: '/chat/[id]', params: { id: 'l1' } });
+  });
+
+  it('keeps one copy of a server message in its peer thread', () => {
+    const message = { id: '7', text: 'Hello', mine: true, at: '12:00' };
+
+    useChatStore.getState().appendMessage('l1', message);
+    useChatStore.getState().appendMessage('l1', message);
+
+    expect(useChatStore.getState().threads.l1).toEqual([message]);
   });
 
   it('uses clean empty copy and returns through stack navigation', () => {

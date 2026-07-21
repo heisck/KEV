@@ -1,12 +1,15 @@
 package com.kev.backend.chat;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import com.kev.backend.auth.User;
 import com.kev.backend.auth.UserRepository;
+import com.kev.backend.common.ApiException;
 import com.kev.backend.notification.Notification;
 import com.kev.backend.notification.NotificationRepository;
 import java.util.Optional;
@@ -60,6 +63,27 @@ class ChatControllerTest {
         assertThat(notification.getTitle()).isEqualTo("New message from Dr. Sender");
         assertThat(notification.getMessage()).isEqualTo("Hello there");
         assertThat(notification.getType()).isEqualTo("CHAT");
+    }
+
+    @Test
+    void lecturerDirectoryExcludesTheSignedInLecturer() {
+        UUID senderId = UUID.randomUUID();
+        User sender = user(senderId, "Dr. Sender", "sender@kev.app");
+        User peer = user(UUID.randomUUID(), "Dr. Peer", "peer@kev.app");
+        when(users.findAll()).thenReturn(java.util.List.of(sender, peer));
+
+        var result = controller.listLecturers(jwt(senderId), null);
+
+        assertThat(result).extracting(com.kev.backend.auth.dto.UserDto::id).containsExactly(peer.getId());
+    }
+
+    @Test
+    void sendingToYourselfIsRejected() {
+        UUID senderId = UUID.randomUUID();
+
+        assertThatThrownBy(() -> controller.sendMessage(jwt(senderId), senderId, new SendMessageRequest("Hello")))
+                .isInstanceOf(ApiException.class);
+        verifyNoInteractions(conversations, messages, notifications);
     }
 
     private static User user(UUID id, String name, String email) {

@@ -1,7 +1,6 @@
 import { useRouter } from 'expo-router';
 import { StyleSheet, Text, View } from 'react-native';
 
-import { SceneArt } from '@/components/kev/art';
 import { StatusChip } from '@/components/kev/chrome';
 import {
   AlertIcon,
@@ -11,8 +10,10 @@ import {
   StudentsIcon,
 } from '@/components/kev/icons';
 import { HapticPressable } from '@/components/ui/HapticPressable';
+import { SessionArtwork } from '@/components/session/SessionArtwork';
 import type { Exam } from '@/data/exams';
 import { toast } from '@/lib/toast';
+import { useAuthStore } from '@/store/authStore';
 import { useFavoritesStore } from '@/store/favoritesStore';
 import { radii, spacing, usePalette } from '@/theme';
 
@@ -20,14 +21,17 @@ import { radii, spacing, usePalette } from '@/theme';
 export function ExamCard({ exam }: { exam: Exam }) {
   const router = useRouter();
   const p = usePalette();
-  const isFavorite = useFavoritesStore((s) => s.ids.has(exam.id));
+  const userId = useAuthStore((state) => state.user?.id);
+  const isFavorite = useFavoritesStore((state) =>
+    userId ? (state.byUser[userId] ?? []).includes(exam.id) : false,
+  );
   const toggleFavorite = useFavoritesStore((s) => s.toggle);
 
   return (
     <View style={[styles.card, { backgroundColor: p.surfaceDim }]}>
       <View style={styles.topRow}>
         <View style={styles.image}>
-          <SceneArt art={exam.art} />
+          <SessionArtwork seed={exam.id} />
         </View>
         <View style={styles.headings}>
           <Text ellipsizeMode="tail" numberOfLines={2} style={[styles.city, { color: p.ink }]}>
@@ -45,11 +49,12 @@ export function ExamCard({ exam }: { exam: Exam }) {
           hitSlop={8}
           haptic="select"
           onPress={() => {
-            toggleFavorite(exam.id);
+            if (!userId) return;
+            toggleFavorite(userId, exam.id);
             toast.info(isFavorite ? 'Removed from favorites' : 'Added to favorites');
           }}
         >
-          <BookmarkIcon color={isFavorite ? p.primary : p.ink} />
+          <BookmarkIcon color={isFavorite ? p.primary : p.ink} filled={isFavorite} />
         </HapticPressable>
       </View>
 

@@ -5,17 +5,19 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useSessions } from '@/api/hooks';
 import { CircleButton } from '@/components/kev/chrome';
-import { BellIcon, SearchIcon } from '@/components/kev/icons';
+import { ClearSessionsIcon, SearchIcon } from '@/components/kev/icons';
 import { Avatar } from '@/components/kev/people';
 import { ExamCard } from '@/components/kev/ExamCard';
 import { HapticPressable } from '@/components/ui/HapticPressable';
-import { JoinSessionButton } from '@/components/session/JoinSessionButton';
-import { matchesExamQuery, sessionToExam, type ExamStatus } from '@/data/exams';
+import { LoadingSkeleton } from '@/components/ui/LoadingSkeleton';
+import { filterHomeExams, sessionToExam, type HomeExamFilter } from '@/data/exams';
 import { useAuthStore } from '@/store/authStore';
+import { useClearedSessionsStore } from '@/store/clearedSessionsStore';
+import { useFavoritesStore } from '@/store/favoritesStore';
 import { radii, spacing, usePalette } from '@/theme';
 
-const FILTERS = ['All', 'Upcoming', 'Ongoing', 'Past'] as const;
-type Filter = (typeof FILTERS)[number];
+const FILTERS = ['All', 'Upcoming', 'Ongoing', 'Past', 'Favorites'] as const;
+const EMPTY_CLEARED: string[] = [];
 
 /** Home — welcome header, session search, exam filters, exam cards (kev mockup screen 1). */
 export function HomeScreen() {
@@ -23,17 +25,33 @@ export function HomeScreen() {
   const p = usePalette();
   const user = useAuthStore((s) => s.user);
   const { top } = useSafeAreaInsets();
-  const [filter, setFilter] = useState<Filter>('All');
+  const [filter, setFilter] = useState<HomeExamFilter>('All');
   const [query, setQuery] = useState('');
+  const favoriteIdList = useFavoritesStore((state) =>
+    user ? (state.byUser[user.id] ?? EMPTY_CLEARED) : EMPTY_CLEARED,
+  );
+  const clearedIds = useClearedSessionsStore((state) =>
+    user ? (state.byUser[user.id] ?? EMPTY_CLEARED) : EMPTY_CLEARED,
+  );
+  const clearSessions = useClearedSessionsStore((state) => state.clear);
 
-  const { data: rawSessions } = useSessions();
+  const { data: rawSessions, isLoading } = useSessions();
   const exams = useMemo(() => {
     const list = rawSessions?.map(sessionToExam) ?? [];
-    return list.filter(
-      (e) =>
-        (filter === 'All' || e.status === (filter as ExamStatus)) && matchesExamQuery(e, query),
+    const matched = filterHomeExams(list, filter, query, new Set(favoriteIdList));
+    if (query.trim()) return matched;
+    const cleared = new Set(clearedIds);
+    return matched.filter((exam) => !cleared.has(exam.id));
+  }, [clearedIds, favoriteIdList, filter, query, rawSessions]);
+
+  const clearVisible = () => {
+    if (!user || exams.length === 0) return;
+    clearSessions(
+      user.id,
+      exams.map((exam) => exam.id),
     );
-  }, [rawSessions, filter, query]);
+    setQuery('');
+  };
 
   return (
     <View style={[styles.screen, { backgroundColor: p.bg, paddingTop: top + spacing.md }]}>
@@ -50,8 +68,8 @@ export function HomeScreen() {
           <Text style={[styles.welcomeLabel, { color: p.muted }]}>Welcome back</Text>
           <Text style={[styles.name, { color: p.ink }]}>{user?.displayName ?? 'Invigilator'}</Text>
         </View>
-        <CircleButton label="Notifications" onPress={() => router.push('/(tabs)/reminders')}>
-          <BellIcon color={p.ink} />
+        <CircleButton label="Clear filtered sessions" onPress={clearVisible}>
+          <ClearSessionsIcon color={p.ink} />
         </CircleButton>
       </View>
 
@@ -67,8 +85,6 @@ export function HomeScreen() {
           testID="home-search"
         />
       </View>
-      <JoinSessionButton />
-
       <View style={[styles.filters, { borderBottomColor: p.hairline }]}>
         {FILTERS.map((f) => {
           const active = f === filter;
@@ -96,9 +112,11 @@ export function HomeScreen() {
       </View>
 
       <ScrollView contentContainerStyle={styles.list} showsVerticalScrollIndicator={false}>
-        {exams.map((exam) => (
-          <ExamCard key={exam.id} exam={exam} />
-        ))}
+        {isLoading && !rawSessions ? (
+          <LoadingSkeleton testID="home-skeleton" variant="cards" />
+        ) : (
+          exams.map((exam) => <ExamCard key={exam.id} exam={exam} />)
+        )}
       </ScrollView>
     </View>
   );
@@ -127,7 +145,7 @@ const styles = StyleSheet.create({
   filters: {
     borderBottomWidth: 1,
     flexDirection: 'row',
-    gap: spacing.xxl,
+    justifyContent: 'space-between',
     // Divider runs edge to edge, past the screen padding (mockup).
     marginHorizontal: -spacing.xl,
     marginTop: spacing.lg,

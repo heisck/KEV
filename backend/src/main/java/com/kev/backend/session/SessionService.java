@@ -11,8 +11,13 @@ import com.kev.backend.session.dto.InvigilatorDto;
 import com.kev.backend.session.dto.SessionDetailDto;
 import com.kev.backend.session.dto.SessionDto;
 import java.security.SecureRandom;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -73,11 +78,27 @@ public class SessionService {
                 .or(() -> sessions.findBySessionCode(query))
                 .or(() -> sessions.findBySessionPassword(query))
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "No session matches that code or password"));
-        if (session.getStatus() == SessionStatus.ENDED || session.getStatus() == SessionStatus.CANCELLED) {
-            throw new ApiException(HttpStatus.CONFLICT, "Session is ended or cancelled");
+        if (isPast(session)) {
+            throw new ApiException(HttpStatus.CONFLICT, "Session is closed");
         }
         if (!invigilators.existsBySessionIdAndUserId(session.getId(), userId)) {
             addMember(session.getId(), userId, null, "INVIGILATOR");
+        }
+        return toDto(session);
+    }
+
+    @Transactional
+    public SessionDto joinByPassword(UUID userId, Long sessionId, String password) {
+        ExamSession session = require(sessionId);
+        if (isPast(session)) {
+            throw new ApiException(HttpStatus.CONFLICT, "Session is closed");
+        }
+        String supplied = password != null ? password.trim().toUpperCase() : "";
+        if (!supplied.equals(session.getSessionPassword())) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "Incorrect session password");
+        }
+        if (!invigilators.existsBySessionIdAndUserId(sessionId, userId)) {
+            addMember(sessionId, userId, null, "INVIGILATOR");
         }
         return toDto(session);
     }
@@ -97,7 +118,19 @@ public class SessionService {
 
     @Transactional(readOnly = true)
     public List<SessionDto> listForUser(UUID userId) {
-        return sessions.findAllForUser(userId).stream().map(this::toDto).toList();
+        List<ExamSession> all = sessions.findAll(Sort.by("startedAt").descending());
+        if (all.isEmpty()) return List.of();
+        Set<Long> joinedIds = new HashSet<>(invigilators.findSessionIdsByUserId(userId));
+        List<Long> ids = all.stream().map(ExamSession::getId).toList();
+        Map<Long, Long> checkedIn = countMap(attendance.countCheckedInBySessionIds(ids));
+        Map<Long, Long> members = countMap(invigilators.countBySessionIds(ids));
+        return all.stream()
+                .map(session -> toDto(
+                        session,
+                        isJoined(session, userId, joinedIds),
+                        checkedIn.getOrDefault(session.getId(), 0L),
+                        members.getOrDefault(session.getId(), 0L)))
+                .toList();
     }
 
     /** All sessions, newest first — admin overview. */
@@ -130,6 +163,12 @@ public class SessionService {
             throw new ApiException(HttpStatus.FORBIDDEN, "Not an invigilator of this session");
         }
         return session;
+    }
+
+    /** Loads a session exposed by the lecturer session list, without requiring membership. */
+    @Transactional(readOnly = true)
+    public ExamSession requireVisible(Long sessionId) {
+        return require(sessionId);
     }
 
     @Transactional(readOnly = true)
@@ -167,7 +206,26 @@ public class SessionService {
         long checkedIn = attendance.countBySessionIdAndStatus(session.getId(), AttendanceStatus.CHECKED_IN);
         long members = invigilators.countBySessionId(session.getId());
         String status = resolvedStatus(session).name();
-        return SessionDto.from(session, status, checkedIn, members);
+        return SessionDto.from(session, status, checkedIn, members, true);
+    }
+
+    private SessionDto toDto(ExamSession session, boolean joined, long checkedIn, long members) {
+        return SessionDto.from(session, resolvedStatus(session).name(), checkedIn, members, joined);
+    }
+
+    private Map<Long, Long> countMap(List<SessionCount> counts) {
+        Map<Long, Long> result = new HashMap<>();
+        counts.forEach(count -> result.put(count.sessionId(), count.count()));
+        return result;
+    }
+
+    private boolean isPast(ExamSession session) {
+        SessionStatus status = resolvedStatus(session);
+        return status == SessionStatus.COMPLETED || status == SessionStatus.CANCELLED;
+    }
+
+    private boolean isJoined(ExamSession session, UUID userId, Set<Long> joinedIds) {
+        return userId.equals(session.getCreatedBy()) || joinedIds.contains(session.getId());
     }
 
     private SessionStatus resolvedStatus(ExamSession session) {

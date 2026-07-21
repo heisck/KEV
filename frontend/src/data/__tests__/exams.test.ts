@@ -1,5 +1,5 @@
 import type { SessionDto } from '@/api/schemas';
-import { matchesExamQuery, sessionToExam } from '@/data/exams';
+import { filterHomeExams, matchesExamQuery, sessionToExam } from '@/data/exams';
 
 const session = {
   id: 42,
@@ -21,4 +21,27 @@ it('matches home sessions by their session code', () => {
   const exam = sessionToExam(session);
   expect(matchesExamQuery(exam, 'f7k9')).toBe(true);
   expect(matchesExamQuery(exam, 'dcit')).toBe(true);
+});
+
+it('shows only saved sessions in the Favorites filter', () => {
+  const favorite = sessionToExam(session);
+  const other = sessionToExam({ ...session, id: 43, sessionCode: 'KEV-OTHER' });
+
+  expect(filterHomeExams([favorite, other], 'Favorites', '', new Set([favorite.id]))).toEqual([
+    favorite,
+  ]);
+});
+
+it('shows configured verification methods instead of a scanner warning for past sessions', () => {
+  const exam = sessionToExam({
+    ...session,
+    status: 'COMPLETED',
+    verificationMethods: ['NFC', 'MANUAL'],
+  });
+
+  expect(exam.checklist).toEqual([
+    { label: 'Room assigned: JQB', kind: 'done' },
+    { label: 'NFC verification', kind: 'done' },
+    { label: 'Manual verification', kind: 'done' },
+  ]);
 });

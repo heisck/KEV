@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//c/tmp/**)",
+      "Bash(ls -la)",
+      "Bash(ls \"c:\\\\Users\\\\Lenovo\\\\Downloads\\\\synapse\\\\KEV\\\\KEV\")",
+      "Bash(git check-ignore *)",
+      "Bash(echo \"exit: $?\")",
+      "Bash(grep -n \"claude\" .gitignore)",
+      "Bash(git reset *)"
+    ]
+  }
+}

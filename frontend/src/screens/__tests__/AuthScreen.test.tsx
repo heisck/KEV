@@ -88,4 +88,10 @@ describe('AuthScreen', () => {
     expect(emailInput.props.placeholderTextColor).toBe(darkPalette.muted);
     expect(StyleSheet.flatten(emailInput.props.style).color).toBe(darkPalette.ink);
   });
+
+  it('uses the bundled auth image without a network URI', () => {
+    expect(AUTH_HERO_DARK_IMAGE).toBe(
+      require('../../../assets/images/campus-landscape-terrace.jpg'),
+    );
+  });
 });

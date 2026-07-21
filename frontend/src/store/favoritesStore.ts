@@ -1,21 +1,28 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { create } from 'zustand';
+import { createJSONStorage, persist } from 'zustand/middleware';
 
 type FavoritesState = {
-  /** Exam ids the user has bookmarked. */
-  ids: Set<string>;
-  isFavorite: (examId: string) => boolean;
-  toggle: (examId: string) => void;
+  byUser: Record<string, string[]>;
+  toggle: (userId: string, examId: string) => void;
 };
 
-/** Local favorites until a backend bookmark API exists. */
-export const useFavoritesStore = create<FavoritesState>((set, get) => ({
-  ids: new Set<string>(),
-  isFavorite: (examId) => get().ids.has(examId),
-  toggle: (examId) =>
-    set((s) => {
-      const next = new Set(s.ids);
-      if (next.has(examId)) next.delete(examId);
-      else next.add(examId);
-      return { ids: next };
+/** Per-lecturer favorites persisted across app restarts. */
+export const useFavoritesStore = create<FavoritesState>()(
+  persist(
+    (set) => ({
+      byUser: {},
+      toggle: (userId, examId) =>
+        set((state) => {
+          const ids = new Set(state.byUser[userId] ?? []);
+          if (ids.has(examId)) ids.delete(examId);
+          else ids.add(examId);
+          return { byUser: { ...state.byUser, [userId]: [...ids] } };
+        }),
     }),
-}));
+    {
+      name: 'kev-favorites-v1',
+      storage: createJSONStorage(() => AsyncStorage),
+    },
+  ),
+);

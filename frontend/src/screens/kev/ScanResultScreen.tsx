@@ -4,12 +4,15 @@ import { StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useRemoveAttendance, useSessionDetail } from '@/api/hooks';
-import { BackIcon, CheckCircleIcon, ClockIcon, CloseIcon } from '@/components/kev/icons';
+import { BackIcon, CheckCircleIcon, ClockIcon, CloseIcon, DocIcon } from '@/components/kev/icons';
 import { Avatar } from '@/components/kev/people';
+import { StudentReportDrawer } from '@/components/reports/StudentReportDrawer';
 import { HapticPressable } from '@/components/ui/HapticPressable';
 import { studentRecordToScanned, type ScannedStudent } from '@/data/exams';
 import { toast } from '@/lib/toast';
+import { allowedScanMethods } from '@/lib/scanMethods';
 import { useSessionStore } from '@/store/sessionStore';
+import { useSettingsStore } from '@/store/settingsStore';
 import { radii, spacing, usePalette } from '@/theme';
 
 type Status = 'added' | 'already' | 'review';
@@ -40,11 +43,21 @@ export function ScanResultScreen() {
   const localStudent = useSessionStore((state) =>
     state.roster[sessionId]?.find((student) => student.id === params.student),
   );
-  const scanAgainRoute = METHOD_ROUTE[params.method ?? 'MANUAL'] ?? '/verify/manual';
+  const preferredMethod = useSettingsStore((state) => state.defaultScanMethod);
+  const useAllScanMethods = useSettingsStore((state) => state.useAllScanMethods);
   const profileMode = params.mode === 'profile';
   const removeMutation = useRemoveAttendance(Number(sessionId) || 1);
 
   const { data: detail } = useSessionDetail(Number(sessionId) || 1);
+  const allowed = allowedScanMethods(
+    detail?.session.verificationMethods,
+    useAllScanMethods,
+    preferredMethod,
+  );
+  const nextMethod = allowed.includes(params.method as (typeof allowed)[number])
+    ? params.method
+    : allowed[0];
+  const scanAgainRoute = nextMethod ? METHOD_ROUTE[nextMethod] : '/verify';
   const attendance = detail?.attendance?.find((a) => String(a.student.id) === params.student);
   const student: ScannedStudent = attendance
     ? studentRecordToScanned(attendance.student, attendance.method, attendance.id)
@@ -57,6 +70,7 @@ export function ScanResultScreen() {
       });
 
   const [statusOverride, setStatus] = useState<Status | null>(params.status ?? null);
+  const [reportOpen, setReportOpen] = useState(false);
   const status = statusOverride ?? (attendance || localStudent ? 'added' : 'review');
   const banners: Record<Status, { text: string; color: string; soft: string }> = {
     added: { text: 'Added to the session', color: p.success, soft: p.successSoft },
@@ -90,6 +104,15 @@ export function ScanResultScreen() {
         { backgroundColor: p.bg, paddingBottom: bottom + spacing.xl, paddingTop: top + spacing.xl },
       ]}
     >
+      <HapticPressable
+        accessibilityLabel="Make a report about this student"
+        accessibilityRole="button"
+        haptic="select"
+        onPress={() => setReportOpen(true)}
+        style={[styles.reportButton, { backgroundColor: p.surfaceDim }]}
+      >
+        <DocIcon color={p.primary} size={20} />
+      </HapticPressable>
       <View style={styles.center}>
         <Avatar person={student.person} size={112} verified={status === 'added'} />
         <Text style={[styles.name, { color: p.ink }]}>{student.name}</Text>
@@ -156,6 +179,14 @@ export function ScanResultScreen() {
           </HapticPressable>
         )}
       </View>
+      {reportOpen ? (
+        <StudentReportDrawer
+          visible
+          onClose={() => setReportOpen(false)}
+          sessionId={sessionId}
+          student={student}
+        />
+      ) : null}
     </View>
   );
 }
@@ -200,5 +231,16 @@ const styles = StyleSheet.create({
     height: 56,
     justifyContent: 'center',
     width: 56,
+  },
+  reportButton: {
+    alignItems: 'center',
+    borderRadius: radii.pill,
+    height: 44,
+    justifyContent: 'center',
+    position: 'absolute',
+    right: spacing.xl,
+    top: spacing.xl,
+    width: 44,
+    zIndex: 1,
   },
 });

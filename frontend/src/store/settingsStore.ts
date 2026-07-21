@@ -13,6 +13,10 @@ type SettingsState = {
   /** Verification method the scan hub opens with. */
   defaultScanMethod: CheckInMethod;
   setDefaultScanMethod: (value: CheckInMethod) => void;
+  useAllScanMethods: boolean;
+  setUseAllScanMethods: (value: boolean) => void;
+  hapticsEnabled: boolean;
+  setHapticsEnabled: (value: boolean) => void;
   /** When true, a scan opens the full result page; off = instant toast + haptic. */
   showSuccessPage: boolean;
   setShowSuccessPage: (value: boolean) => void;
@@ -28,6 +32,10 @@ export const useSettingsStore = create<SettingsState>()(
       setTheme: (theme) => set({ theme }),
       defaultScanMethod: 'FACE',
       setDefaultScanMethod: (defaultScanMethod) => set({ defaultScanMethod }),
+      useAllScanMethods: true,
+      setUseAllScanMethods: (useAllScanMethods) => set({ useAllScanMethods }),
+      hapticsEnabled: true,
+      setHapticsEnabled: (hapticsEnabled) => set({ hapticsEnabled }),
       showSuccessPage: true,
       setShowSuccessPage: (showSuccessPage) => set({ showSuccessPage }),
       notificationsEnabled: true,
@@ -36,14 +44,18 @@ export const useSettingsStore = create<SettingsState>()(
     {
       name: 'kev-settings',
       storage: createJSONStorage(() => AsyncStorage),
-      version: 1,
+      version: 2,
       // v0 stored a `darkMode` boolean; map it onto the new `theme` field.
       migrate: (state, version) => {
-        if (version === 0 && state && typeof state === 'object') {
-          const { darkMode, ...rest } = state as { darkMode?: boolean };
-          return { ...rest, theme: darkMode ? 'dark' : 'light' } as SettingsState;
-        }
-        return state as SettingsState;
+        if (!state || typeof state !== 'object') return state as SettingsState;
+        const prior = state as Partial<SettingsState> & { darkMode?: boolean };
+        const theme = version === 0 ? (prior.darkMode ? 'dark' : 'light') : prior.theme;
+        return {
+          ...prior,
+          theme,
+          hapticsEnabled: prior.hapticsEnabled ?? true,
+          useAllScanMethods: prior.useAllScanMethods ?? true,
+        } as SettingsState;
       },
     },
   ),
