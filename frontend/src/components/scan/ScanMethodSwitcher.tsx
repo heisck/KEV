@@ -19,9 +19,11 @@ const LABELS = { FACE: 'Face', NFC: 'NFC', MANUAL: 'Manual' } as const;
 export function ScanMethodSwitcher({
   active,
   sessionId,
+  allowedMethods,
 }: {
   active: ScanMethod;
   sessionId: string;
+  allowedMethods?: readonly ScanMethod[];
 }) {
   const p = usePalette();
   const router = useRouter();
@@ -33,28 +35,30 @@ export function ScanMethodSwitcher({
 
   return (
     <View style={[styles.row, { backgroundColor: p.surfaceDim }]}>
-      {(Object.keys(ROUTES) as ScanMethod[]).map((method) => {
-        const selected = method === active;
-        return (
-          <HapticPressable
-            key={method}
-            accessibilityLabel={`Switch to ${LABELS[method]} verification`}
-            accessibilityRole="button"
-            accessibilityState={{ selected }}
-            disabled={selected}
-            haptic="select"
-            onPress={() =>
-              router.replace({ pathname: ROUTES[method], params: { exam: sessionId } })
-            }
-            style={[styles.method, selected && { backgroundColor: p.primary }]}
-          >
-            {icons[method]}
-            <Text style={[styles.label, { color: selected ? p.onPrimary : p.inkSoft }]}>
-              {LABELS[method]}
-            </Text>
-          </HapticPressable>
-        );
-      })}
+      {(Object.keys(ROUTES) as ScanMethod[])
+        .filter((method) => !allowedMethods || allowedMethods.includes(method))
+        .map((method) => {
+          const selected = method === active;
+          return (
+            <HapticPressable
+              key={method}
+              accessibilityLabel={`Switch to ${LABELS[method]} verification`}
+              accessibilityRole="button"
+              accessibilityState={{ selected }}
+              disabled={selected}
+              haptic="select"
+              onPress={() =>
+                router.replace({ pathname: ROUTES[method], params: { exam: sessionId } })
+              }
+              style={[styles.method, selected && { backgroundColor: p.primary }]}
+            >
+              {icons[method]}
+              <Text style={[styles.label, { color: selected ? p.onPrimary : p.inkSoft }]}>
+                {LABELS[method]}
+              </Text>
+            </HapticPressable>
+          );
+        })}
     </View>
   );
 }

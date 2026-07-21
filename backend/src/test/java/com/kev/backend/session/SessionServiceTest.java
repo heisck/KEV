@@ -20,6 +20,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 
 @ExtendWith(MockitoExtension.class)
@@ -77,6 +78,56 @@ class SessionServiceTest {
         assertThatThrownBy(() -> service.join(creator, "kev-abcd"))
                 .isInstanceOf(ApiException.class)
                 .satisfies(e -> assertThat(((ApiException) e).getStatus()).isEqualTo(HttpStatus.CONFLICT));
+    }
+
+    @Test
+    void joinRejectsSessionWhoseScheduledTimeHasPassed() {
+        ExamSession completed = editableSession();
+        completed.setExamDate(LocalDate.now().minusDays(1));
+        when(sessions.findBySessionCode("KEV-ABCD")).thenReturn(Optional.of(completed));
+
+        assertThatThrownBy(() -> service.join(creator, "KEV-ABCD"))
+                .isInstanceOf(ApiException.class)
+                .satisfies(e -> assertThat(((ApiException) e).getStatus()).isEqualTo(HttpStatus.CONFLICT));
+    }
+
+    @Test
+    void joinByIdRequiresTheMatchingSessionPassword() {
+        ExamSession session = editableSession();
+        when(sessions.findById(3L)).thenReturn(Optional.of(session));
+
+        assertThatThrownBy(() -> service.joinByPassword(creator, 3L, "wrong"))
+                .isInstanceOf(ApiException.class)
+                .satisfies(e -> assertThat(((ApiException) e).getStatus()).isEqualTo(HttpStatus.FORBIDDEN));
+    }
+
+    @Test
+    void listIncludesFutureOngoingAndPastSessionsButHidesCredentialsUntilJoined() {
+        ExamSession joined = editableSession();
+        ExamSession discoverable = editableSession();
+        discoverable.setId(4L);
+        discoverable.setCreatedBy(UUID.randomUUID());
+        discoverable.setSessionCode("KEV-WXYZ");
+        discoverable.setSessionPassword("ABC789");
+        discoverable.setExamDate(LocalDate.now().minusDays(1));
+        ExamSession ongoing = editableSession();
+        ongoing.setId(5L);
+        ongoing.setCreatedBy(UUID.randomUUID());
+        ongoing.setStatus(SessionStatus.ACTIVE);
+        when(sessions.findAll(any(Sort.class))).thenReturn(List.of(joined, ongoing, discoverable));
+        when(invigilators.findSessionIdsByUserId(creator)).thenReturn(List.of(3L));
+        when(attendance.countCheckedInBySessionIds(List.of(3L, 5L, 4L))).thenReturn(List.of());
+        when(invigilators.countBySessionIds(List.of(3L, 5L, 4L))).thenReturn(List.of());
+
+        List<SessionDto> result = service.listForUser(creator);
+
+        assertThat(result).extracting(SessionDto::id).containsExactly(3L, 5L, 4L);
+        assertThat(result.get(0).joined()).isTrue();
+        assertThat(result.get(0).sessionPassword()).isEqualTo("F7K9PX");
+        assertThat(result.get(1).joined()).isFalse();
+        assertThat(result.get(1).sessionPassword()).isNull();
+        assertThat(result.get(2).joined()).isFalse();
+        assertThat(result.get(2).sessionPassword()).isNull();
     }
 
     @Test
@@ -172,6 +223,16 @@ class SessionServiceTest {
         when(invigilators.existsBySessionIdAndUserId(any(), any())).thenReturn(false);
 
         assertThatThrownBy(() -> service.requireMember(UUID.randomUUID(), 4L)).isInstanceOf(ApiException.class);
+    }
+
+    @Test
+    void requireVisibleAllowsPastSessionWithoutMembership() {
+        ExamSession session = editableSession();
+        session.setCreatedBy(creator);
+        session.setExamDate(LocalDate.now().minusDays(1));
+        when(sessions.findById(3L)).thenReturn(Optional.of(session));
+
+        assertThat(service.requireVisible(3L)).isSameAs(session);
     }
 
     private ExamSession editableSession() {

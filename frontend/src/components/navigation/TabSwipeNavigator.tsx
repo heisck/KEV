@@ -1,6 +1,6 @@
 import { useRouter } from 'expo-router';
 import { type ReactNode, useCallback } from 'react';
-import { useWindowDimensions } from 'react-native';
+import { StyleSheet, useWindowDimensions, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { runOnJS, useSharedValue } from 'react-native-reanimated';
 
@@ -39,5 +39,13 @@ export function TabSwipeNavigator({ tab, children }: { tab: SwipeTab; children: 
       }
     });
 
-  return <GestureDetector gesture={pan}>{children}</GestureDetector>;
+  return (
+    <GestureDetector gesture={pan}>
+      <View collapsable={false} style={styles.screen}>
+        {children}
+      </View>
+    </GestureDetector>
+  );
 }
+
+const styles = StyleSheet.create({ screen: { flex: 1 } });

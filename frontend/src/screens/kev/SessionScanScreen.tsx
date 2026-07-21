@@ -1,6 +1,6 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { type ReactNode } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { type ReactNode, useState } from 'react';
+import { Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useSessionDetail } from '@/api/hooks';
@@ -8,6 +8,7 @@ import type { CheckInMethod } from '@/api/schemas';
 import { ScreenTopBar } from '@/components/kev/chrome';
 import { FaceIdIcon, KeypadIcon, NfcIcon } from '@/components/kev/icons';
 import { Avatar, initialsFor } from '@/components/kev/people';
+import { StudentReportDrawer, type ReportStudent } from '@/components/reports/StudentReportDrawer';
 import { ScanResultPreference } from '@/components/scan/ScanResultPreference';
 import { SessionLockButton } from '@/components/scan/SessionLockButton';
 import { StudentRosterControls } from '@/components/scan/StudentRosterControls';
@@ -16,6 +17,7 @@ import { studentRecordToScanned } from '@/data/exams';
 import { useScanNavigation } from '@/hooks/useScanNavigation';
 import { useStudentRosterFilters } from '@/hooks/useStudentRosterFilters';
 import { isPastSession, scanBlockMessage } from '@/lib/sessionLifecycle';
+import { allowedScanMethods } from '@/lib/scanMethods';
 import { toast } from '@/lib/toast';
 import { useSessionStore } from '@/store/sessionStore';
 import { useSettingsStore } from '@/store/settingsStore';
@@ -46,6 +48,7 @@ export function SessionScanScreen() {
   const { data: detail } = useSessionDetail(Number(sessionId) || 1);
   const scanned = useSessionStore((s) => s.roster[sessionId]);
   const defaultScanMethod = useSettingsStore((s) => s.defaultScanMethod);
+  const useAllScanMethods = useSettingsStore((s) => s.useAllScanMethods);
   const roster = Array.from(
     new Map(
       [
@@ -59,13 +62,16 @@ export function SessionScanScreen() {
     ).values(),
   );
   const { students, controls } = useStudentRosterFilters(roster);
+  const [reportStudent, setReportStudent] = useState<ReportStudent | null>(null);
 
   // Only the methods this session enabled (fall back to all when unset).
-  const allowed = detail?.session.verificationMethods?.length
-    ? detail.session.verificationMethods
-    : null;
+  const allowed = allowedScanMethods(
+    detail?.session.verificationMethods,
+    useAllScanMethods,
+    defaultScanMethod,
+  );
   const methods = buildMethods(p)
-    .filter((m) => !allowed || allowed.includes(m.key))
+    .filter((m) => allowed.includes(m.key as (typeof allowed)[number]))
     // Surface the user's default method first.
     .sort((a, b) => Number(b.key === defaultScanMethod) - Number(a.key === defaultScanMethod));
   const scanMessage = detail
@@ -77,6 +83,28 @@ export function SessionScanScreen() {
     if (scanMessage) return toast.info(scanMessage);
     router.push({ pathname: path as never, params: { exam: sessionId } });
   };
+
+  const viewStudent = (student: ReportStudent & { attendanceId?: number; method?: string }) =>
+    router.push({
+      pathname: '/verify/result',
+      params: {
+        attendance: String(student.attendanceId ?? ''),
+        exam: sessionId,
+        method: student.method,
+        mode: 'profile',
+        status: 'added',
+        student: student.id,
+      },
+    });
+
+  const showStudentActions = (
+    student: ReportStudent & { attendanceId?: number; method?: string },
+  ) =>
+    Alert.alert(student.name, 'Choose an action', [
+      { text: 'View student details', onPress: () => viewStudent(student) },
+      { text: 'Make report', onPress: () => setReportStudent(student) },
+      { text: 'Cancel', style: 'cancel' },
+    ]);
 
   return (
     <View style={[styles.screen, { backgroundColor: p.bg, paddingTop: top + spacing.md }]}>
@@ -118,19 +146,8 @@ export function SessionScanScreen() {
               key={s.id}
               accessibilityRole="button"
               accessibilityLabel={`${s.name} result`}
-              onPress={() =>
-                router.push({
-                  pathname: '/verify/result',
-                  params: {
-                    attendance: String(s.attendanceId ?? ''),
-                    exam: sessionId,
-                    method: s.method,
-                    mode: 'profile',
-                    status: 'added',
-                    student: s.id,
-                  },
-                })
-              }
+              onLongPress={() => showStudentActions(s)}
+              onPress={() => viewStudent(s)}
               style={styles.student}
             >
               <Avatar person={s.person} size={44} />
@@ -160,7 +177,20 @@ export function SessionScanScreen() {
             </HapticPressable>
           ))}
         </View>
+        {detail && methods.length === 0 ? (
+          <Text style={[styles.noMethods, { color: p.muted }]}>
+            Your preferred method is not enabled for this session. Change it in Profile.
+          </Text>
+        ) : null}
       </ScrollView>
+      {reportStudent ? (
+        <StudentReportDrawer
+          visible
+          onClose={() => setReportStudent(null)}
+          sessionId={sessionId}
+          student={reportStudent}
+        />
+      ) : null}
     </View>
   );
 }
@@ -202,4 +232,5 @@ const styles = StyleSheet.create({
   },
   methodLabel: { color: colors.inkSoft, fontSize: 11, fontWeight: '600' },
   methodDefault: { color: colors.primary, fontSize: 9, fontWeight: '800', letterSpacing: 0.4 },
+  noMethods: { fontSize: 12, lineHeight: 18, textAlign: 'center' },
 });

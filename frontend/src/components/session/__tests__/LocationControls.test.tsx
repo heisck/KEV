@@ -8,8 +8,8 @@ let mockPanStart: (() => void) | undefined;
 let mockPanUpdate: ((event: { translationX: number }) => void) | undefined;
 
 jest.mock('react-native-gesture-handler', () => {
-  const React = require('react');
-  const { View } = require('react-native');
+  const React = jest.requireActual<typeof import('react')>('react');
+  const { View } = jest.requireActual<typeof import('react-native')>('react-native');
   const pan = {
     onStart(callback: () => void) {
       mockPanStart = callback;
@@ -28,7 +28,7 @@ jest.mock('react-native-gesture-handler', () => {
 });
 
 jest.mock('react-native-reanimated', () => {
-  const { View } = require('react-native');
+  const { View } = jest.requireActual<typeof import('react-native')>('react-native');
   return {
     __esModule: true,
     default: { View },

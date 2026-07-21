@@ -5,6 +5,7 @@ import { radii, spacing, type Palette } from '@/theme';
 export const makeGroupSessionStyles = (p: Palette) =>
   StyleSheet.create({
     screen: { backgroundColor: p.bg, flex: 1, paddingHorizontal: spacing.xl },
+    loading: { paddingTop: spacing.xl },
     body: { gap: spacing.lg, paddingBottom: spacing.xxxl, paddingTop: spacing.xl },
     rosterHeader: { alignItems: 'center', flexDirection: 'row', gap: spacing.sm },
     rosterSection: { gap: spacing.lg },
@@ -34,6 +35,14 @@ export const makeGroupSessionStyles = (p: Palette) =>
     },
     methodLabel: { color: p.inkSoft, fontSize: 11, fontWeight: '600' },
     joinPrompt: { gap: spacing.lg, paddingVertical: spacing.xxl },
+    closedPill: {
+      backgroundColor: p.surfaceDim,
+      borderRadius: radii.pill,
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.sm,
+    },
+    closedText: { color: p.muted, fontSize: 12, fontWeight: '700' },
+    closedHint: { color: p.muted, fontSize: 13, fontWeight: '500' },
     rowCard: {
       alignItems: 'center',
       backgroundColor: p.surfaceDim,

@@ -3,6 +3,7 @@ import type { CheckInMethod, SessionDto, StudentRecord } from '@/api/schemas';
 import { env } from '@/config/env';
 
 export type ExamStatus = 'Upcoming' | 'Ongoing' | 'Past';
+export type HomeExamFilter = 'All' | ExamStatus | 'Favorites';
 
 export type ChecklistItem = { label: string; kind: 'done' | 'pending' };
 
@@ -34,9 +35,25 @@ export function sessionToExam(s: SessionDto): Exam {
   const arts: ArtKey[] = ['campus', 'city', 'harbor'];
   const art: ArtKey = arts[Math.abs(Number(s.id) || 0) % arts.length];
   const action = isOngoing ? Number(s.checkedInCount || 0) : 'session';
+  const methodLabels: Record<string, string> = {
+    FACE: 'Face',
+    MANUAL: 'Manual',
+    NFC: 'NFC',
+  };
+  const statusItems: ChecklistItem[] = isEnded
+    ? (s.verificationMethods ?? ['FACE', 'NFC', 'MANUAL']).map((method) => ({
+        label: `${methodLabels[method] ?? method} verification`,
+        kind: 'done',
+      }))
+    : [
+        {
+          label: isOngoing ? 'Roster active' : 'Scanner ready',
+          kind: isOngoing ? 'done' : 'pending',
+        },
+      ];
   const checklist: ChecklistItem[] = [
     { label: 'Room assigned: ' + s.building, kind: 'done' },
-    { label: isOngoing ? 'Roster active' : 'Scanner ready', kind: isOngoing ? 'done' : 'pending' },
+    ...statusItems,
   ];
   return {
     id: String(s.id),
@@ -55,6 +72,20 @@ export function matchesExamQuery(exam: Exam, query: string): boolean {
   return (
     exam.course.toLowerCase().includes(normalized) ||
     exam.sessionCode.toLowerCase().includes(normalized)
+  );
+}
+
+export function filterHomeExams(
+  exams: Exam[],
+  filter: HomeExamFilter,
+  query: string,
+  favoriteIds: ReadonlySet<string>,
+): Exam[] {
+  return exams.filter(
+    (exam) =>
+      (filter === 'All' ||
+        (filter === 'Favorites' ? favoriteIds.has(exam.id) : exam.status === filter)) &&
+      matchesExamQuery(exam, query),
   );
 }
 

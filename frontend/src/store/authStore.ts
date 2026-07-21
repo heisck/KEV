@@ -33,6 +33,11 @@ type AuthState = {
   signInWithPassword: (email: string, password: string) => Promise<void>;
   signInWithGoogleIdToken: (idToken: string) => Promise<void>;
   signInWithAppleIdToken: (identityToken: string, fullName?: string | null) => Promise<void>;
+  updateCredentials: (input: {
+    currentPassword: string;
+    email?: string;
+    newPassword?: string;
+  }) => Promise<void>;
   signOut: () => Promise<void>;
   /** Drop to signed-out after the API client's refresh path fails (tokens already cleared). */
   sessionExpired: () => void;
@@ -73,6 +78,11 @@ export const useAuthStore = create<AuthState>((set, get) => {
     },
     async signInWithAppleIdToken(identityToken, fullName) {
       await applyAuth(await authApi.loginWithApple(identityToken, fullName));
+    },
+    async updateCredentials(input) {
+      const updated = await authApi.updateCredentials(input);
+      const current = get().user;
+      if (current) set({ user: { ...current, email: updated.email } });
     },
     async signOut() {
       await tokenStore.clear();

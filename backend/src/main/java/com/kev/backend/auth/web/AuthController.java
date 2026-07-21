@@ -7,6 +7,7 @@ import com.kev.backend.auth.dto.GoogleLoginRequest;
 import com.kev.backend.auth.dto.PasswordLoginRequest;
 import com.kev.backend.auth.dto.RefreshRequest;
 import com.kev.backend.auth.dto.TokenResponse;
+import com.kev.backend.auth.dto.UpdateCredentialsRequest;
 import com.kev.backend.auth.dto.UserDto;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -15,6 +16,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -53,5 +55,11 @@ public class AuthController {
     @GetMapping("/me")
     public UserDto me(@AuthenticationPrincipal Jwt principal) {
         return auth.me(UUID.fromString(principal.getSubject()));
+    }
+
+    @PutMapping("/credentials")
+    public UserDto updateCredentials(
+            @AuthenticationPrincipal Jwt principal, @Valid @RequestBody UpdateCredentialsRequest request) {
+        return auth.updateCredentials(UUID.fromString(principal.getSubject()), request);
     }
 }

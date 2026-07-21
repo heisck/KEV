@@ -99,6 +99,8 @@ function RootLayout() {
               <Stack.Screen name="student-result" options={{ presentation: 'modal' }} />
               <Stack.Screen name="upgrade" options={{ presentation: 'modal' }} />
               <Stack.Screen name="edit-profile" options={{ presentation: 'modal' }} />
+              <Stack.Screen name="account-credentials" options={{ presentation: 'card' }} />
+              <Stack.Screen name="reports" options={{ presentation: 'card' }} />
             </Stack>
             <ToastHost />
             {showSplash ? (

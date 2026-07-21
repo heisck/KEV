@@ -6,8 +6,10 @@ import { lookupStudent } from '@/api/directory';
 import { ScreenTopBar } from '@/components/kev/chrome';
 import { ScanMethodSwitcher } from '@/components/scan/ScanMethodSwitcher';
 import { SessionLockButton } from '@/components/scan/SessionLockButton';
+import { HapticPressable } from '@/components/ui/HapticPressable';
 import { studentRecordToScanned } from '@/data/exams';
 import { useMockScan } from '@/hooks/useMockScan';
+import { useScanMethodGuard } from '@/hooks/useScanMethodGuard';
 import { useScanNavigation } from '@/hooks/useScanNavigation';
 import { useScanSessionId } from '@/hooks/useScanSession';
 import { radii, spacing, usePalette } from '@/theme';
@@ -19,17 +21,22 @@ export function ManualEntryScreen() {
   const sessionId = useScanSessionId();
   const { goBack } = useScanNavigation(sessionId);
   const completeScan = useMockScan(sessionId, 'MANUAL');
+  const { allowedMethods, canUse } = useScanMethodGuard(sessionId, 'MANUAL');
 
   const [index, setIndex] = useState('');
   const [notFound, setNotFound] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
   const submit = async () => {
-    if (!index.trim()) return;
+    if (!canUse || !index.trim() || submitting) return;
+    setSubmitting(true);
     try {
       const student = await lookupStudent(index.trim());
       await completeScan(studentRecordToScanned(student));
     } catch {
       setNotFound(true);
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -54,11 +61,9 @@ export function ManualEntryScreen() {
             setIndex(t);
             setNotFound(false);
           }}
-          onSubmitEditing={submit}
           placeholder="e.g. 4211020"
           placeholderTextColor={p.muted}
           keyboardType="number-pad"
-          returnKeyType="go"
           autoFocus
           style={[
             styles.input,
@@ -73,7 +78,24 @@ export function ManualEntryScreen() {
           </Text>
         ) : null}
       </View>
-      <ScanMethodSwitcher active="MANUAL" sessionId={sessionId} />
+      <HapticPressable
+        accessibilityRole="button"
+        accessibilityState={{ disabled: !canUse || submitting || !index.trim() }}
+        disabled={!canUse || submitting || !index.trim()}
+        haptic="select"
+        onPress={submit}
+        style={[
+          styles.sendButton,
+          { backgroundColor: p.primary },
+          (!canUse || submitting || !index.trim()) && styles.disabled,
+        ]}
+        testID="manual-send"
+      >
+        <Text style={[styles.sendText, { color: p.onPrimary }]}>
+          {submitting ? 'Sending…' : 'Send'}
+        </Text>
+      </HapticPressable>
+      <ScanMethodSwitcher active="MANUAL" sessionId={sessionId} allowedMethods={allowedMethods} />
     </View>
   );
 }
@@ -91,4 +113,12 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.lg - 2,
   },
   errorText: { fontSize: 12, fontWeight: '600' },
+  sendButton: {
+    alignItems: 'center',
+    borderRadius: radii.pill,
+    marginBottom: spacing.lg,
+    paddingVertical: spacing.md,
+  },
+  sendText: { fontSize: 15, fontWeight: '700' },
+  disabled: { opacity: 0.45 },
 });
