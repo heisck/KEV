@@ -1,6 +1,8 @@
 import * as Haptics from 'expo-haptics';
 import { Platform } from 'react-native';
 
+import { useSettingsStore } from '@/store/settingsStore';
+
 export type HapticKind = 'tap' | 'select' | 'success' | 'warning' | 'error' | 'none';
 
 /**
@@ -9,7 +11,9 @@ export type HapticKind = 'tap' | 'select' | 'success' | 'warning' | 'error' | 'n
  * Android: mapped equivalents. Web: no-op.
  */
 export function haptic(kind: HapticKind = 'tap'): void {
-  if (kind === 'none' || Platform.OS === 'web') return;
+  if (kind === 'none' || Platform.OS === 'web' || !useSettingsStore.getState().hapticsEnabled) {
+    return;
+  }
 
   switch (kind) {
     case 'select':

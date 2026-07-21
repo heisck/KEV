@@ -2,8 +2,10 @@ package com.kev.backend.auth;
 
 import com.kev.backend.auth.dto.AuthResponse;
 import com.kev.backend.auth.dto.TokenResponse;
+import com.kev.backend.auth.dto.UpdateCredentialsRequest;
 import com.kev.backend.auth.dto.UserDto;
 import com.kev.backend.common.ApiException;
+import java.util.Locale;
 import java.util.UUID;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -122,5 +124,36 @@ public class AuthService {
         return users.findById(userId)
                 .map(UserDto::from)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "User not found"));
+    }
+
+    @Transactional
+    public UserDto updateCredentials(UUID userId, UpdateCredentialsRequest request) {
+        User user = users.findById(userId).orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "User not found"));
+        if (user.getPasswordHash() == null
+                || !passwordEncoder.matches(request.currentPassword(), user.getPasswordHash())) {
+            throw new ApiException(HttpStatus.UNAUTHORIZED, "Current password is incorrect");
+        }
+        String email = normalized(request.email());
+        String password = normalized(request.newPassword());
+        if (email == null && password == null) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Provide a new email or password");
+        }
+        if (email != null) updateEmail(user, email);
+        if (password != null) user.setPasswordHash(passwordEncoder.encode(password));
+        return UserDto.from(users.save(user));
+    }
+
+    private void updateEmail(User user, String email) {
+        String normalized = email.toLowerCase(Locale.ROOT);
+        users.findByEmail(normalized)
+                .filter(existing -> !existing.getId().equals(user.getId()))
+                .ifPresent(existing -> {
+                    throw new ApiException(HttpStatus.CONFLICT, "Email is already in use");
+                });
+        user.setEmail(normalized);
+    }
+
+    private String normalized(String value) {
+        return value != null && !value.isBlank() ? value.trim() : null;
     }
 }

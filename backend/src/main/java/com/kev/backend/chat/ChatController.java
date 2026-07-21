@@ -46,9 +46,12 @@ public class ChatController {
 
     @GetMapping("/lecturers")
     @Transactional(readOnly = true)
-    public List<UserDto> listLecturers(@RequestParam(required = false) String q) {
+    public List<UserDto> listLecturers(
+            @AuthenticationPrincipal Jwt principal, @RequestParam(required = false) String q) {
+        UUID userId = principal != null ? UUID.fromString(principal.getSubject()) : null;
         return users.findAll().stream()
                 .filter(u -> u.getRole() == Role.LECTURER || u.getRole() == Role.ADMIN)
+                .filter(u -> userId == null || !userId.equals(u.getId()))
                 .filter(u -> q == null
                         || q.isBlank()
                         || (u.getDisplayName() != null
@@ -82,6 +85,9 @@ public class ChatController {
             @Valid @RequestBody SendMessageRequest req) {
         if (principal == null) throw new ApiException(HttpStatus.UNAUTHORIZED, "Unauthorized");
         UUID userId = UUID.fromString(principal.getSubject());
+        if (peerId.equals(userId)) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "You cannot message yourself");
+        }
         users.findById(peerId).orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Peer not found"));
         var sender =
                 users.findById(userId).orElseThrow(() -> new ApiException(HttpStatus.UNAUTHORIZED, "Unauthorized"));

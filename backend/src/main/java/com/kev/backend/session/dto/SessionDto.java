@@ -25,14 +25,16 @@ public record SessionDto(
         Instant startedAt,
         Instant endedAt,
         long checkedInCount,
-        long invigilatorCount) {
+        long invigilatorCount,
+        boolean joined) {
 
-    public static SessionDto from(ExamSession s, String status, long checkedInCount, long invigilatorCount) {
+    public static SessionDto from(
+            ExamSession s, String status, long checkedInCount, long invigilatorCount, boolean joined) {
         String methods = s.getVerificationMethods() == null ? "FACE,NFC,MANUAL" : s.getVerificationMethods();
         return new SessionDto(
                 s.getId(),
                 s.getSessionCode(),
-                s.getSessionPassword() != null ? s.getSessionPassword() : s.getSessionCode(),
+                joined ? (s.getSessionPassword() != null ? s.getSessionPassword() : s.getSessionCode()) : null,
                 s.getTitle() != null
                         ? s.getTitle()
                         : (s.getBuilding() + " " + (s.getRoom() != null ? s.getRoom() : "")).trim(),
@@ -56,6 +58,7 @@ public record SessionDto(
                 s.getStartedAt(),
                 s.getEndedAt(),
                 checkedInCount,
-                invigilatorCount);
+                invigilatorCount,
+                joined);
     }
 }

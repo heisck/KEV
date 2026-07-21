@@ -42,6 +42,15 @@ const INITIAL_ITEMS = [
     icon: 'reminder' as const,
     read: false,
   },
+  {
+    id: 'n2',
+    title: 'Read message',
+    body: 'Done',
+    at: 'Yesterday',
+    day: 'yesterday' as const,
+    icon: 'complete' as const,
+    read: true,
+  },
 ];
 
 function renderScreen() {
@@ -60,7 +69,10 @@ function renderScreen() {
 describe('NotificationsScreen', () => {
   beforeEach(() => {
     useSettingsStore.setState({ theme: 'dark' });
-    useNotificationsStore.setState({ items: INITIAL_ITEMS.map((item) => ({ ...item })) });
+    useNotificationsStore.setState({
+      items: INITIAL_ITEMS.map((item) => ({ ...item })),
+      loaded: true,
+    });
   });
 
   it('uses a readable active filter in dark mode', () => {
@@ -68,19 +80,24 @@ describe('NotificationsScreen', () => {
     const palette = getPalette(true);
 
     expect(StyleSheet.flatten(getByTestId('notification-filter-today').props.style)).toEqual(
-      expect.objectContaining({ backgroundColor: palette.primary }),
+      expect.objectContaining({ backgroundColor: palette.primary, height: 32 }),
     );
     expect(StyleSheet.flatten(getByText('Today').props.style).color).toBe(palette.onPrimary);
   });
 
-  it('keeps unread state visible when changing filters', () => {
-    const { getByTestId, queryByTestId } = renderScreen();
+  it('keeps only one notification filter selected', () => {
+    const { getByTestId, getByText, queryByText } = renderScreen();
 
     expect(getByTestId('notification-unread-n1')).toBeTruthy();
     fireEvent.press(getByTestId('notification-filter-yesterday'));
-    expect(queryByTestId('notification-unread-n1')).toBeNull();
-    fireEvent.press(getByTestId('notification-filter-today'));
-    expect(getByTestId('notification-unread-n1')).toBeTruthy();
+    expect(getByText('Read message')).toBeTruthy();
+    fireEvent.press(getByTestId('notification-filter-unread'));
+    expect(getByTestId('notification-filter-yesterday').props.accessibilityState.selected).toBe(
+      false,
+    );
+    expect(getByTestId('notification-filter-unread').props.accessibilityState.selected).toBe(true);
+    expect(queryByText('Read message')).toBeNull();
+    expect(getByText('New message')).toBeTruthy();
   });
 
   it('marks every notification read from the header', () => {

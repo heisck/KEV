@@ -12,8 +12,9 @@ import {
   toCreateInput,
   type WizardValues,
 } from '@/components/session/sessionForm';
-import { useSessionDraft } from '@/hooks/useSessionDraft';
+import { getSessionDraftKey, useSessionDraft } from '@/hooks/useSessionDraft';
 import { CreateSessionWizard } from '@/screens/CreateSessionWizard';
+import { useAuthStore } from '@/store/authStore';
 import { radii, spacing, usePalette } from '@/theme';
 
 /** Modal hosting the 5-step create-session wizard; submits straight to the DB. */
@@ -23,10 +24,11 @@ export default function RoomSetupModal() {
   const editing = Number.isInteger(sessionId) && sessionId > 0;
   const { top } = useSafeAreaInsets();
   const p = usePalette();
+  const userId = useAuthStore((state) => state.user?.id ?? 'signed-out');
   const sessionQuery = useSessionDetail(editing ? sessionId : 0);
   const createSession = useCreateSession();
   const updateSession = useUpdateSession(sessionId);
-  const draftKey = editing ? `session-draft:edit:${sessionId}` : 'session-draft:create';
+  const draftKey = getSessionDraftKey(userId, editing ? sessionId : undefined);
   const { clear, draft, ready, save } = useSessionDraft(draftKey);
   const [error, setError] = useState<string | null>(null);
 

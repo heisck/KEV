@@ -10,14 +10,16 @@ import { useSettingsStore } from '@/store/settingsStore';
 export function NotificationSync() {
   const userId = useAuthStore((state) => state.user?.id);
   const enabled = useSettingsStore((state) => state.notificationsEnabled);
+  const reset = useNotificationsStore((state) => state.reset);
   const replace = useNotificationsStore((state) => state.replace);
   const seen = useRef(new Set<string>());
-  const { data } = useNotifications(Boolean(userId) && enabled);
+  const { data, isError } = useNotifications(Boolean(userId) && enabled);
 
   useEffect(() => {
     seen.current.clear();
-    replace([]);
-  }, [replace, userId]);
+    reset();
+    if (!userId || !enabled) replace([]);
+  }, [enabled, replace, reset, userId]);
 
   useEffect(() => {
     if (!data) return;
@@ -26,6 +28,10 @@ export function NotificationSync() {
     replace(data);
     if (preview) toast.info(`${preview.title}: ${preview.body}`);
   }, [data, replace]);
+
+  useEffect(() => {
+    if (isError && !data) replace([]);
+  }, [data, isError, replace]);
 
   return null;
 }

@@ -1,6 +1,7 @@
-import Svg, { Circle, Path, Rect } from 'react-native-svg';
+import Svg, { Circle, ClipPath, Defs, Path, Rect } from 'react-native-svg';
 
 type IconProps = { color: string; size?: number };
+type FillableIconProps = IconProps & { filled?: boolean };
 
 /* ---------- Tab bar ---------- */
 
@@ -139,11 +140,12 @@ export function SearchIcon({ color, size = 18 }: IconProps) {
   );
 }
 
-export function BookmarkIcon({ color, size = 20 }: IconProps) {
+export function BookmarkIcon({ color, filled = false, size = 20 }: FillableIconProps) {
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
       <Path
         d="M6.5 4.5h11a.5.5 0 0 1 .5.5v15l-6-4.2L6 20V5a.5.5 0 0 1 .5-.5Z"
+        fill={filled ? color : 'none'}
         stroke={color}
         strokeWidth={1.7}
         strokeLinejoin="round"
@@ -159,6 +161,59 @@ export function ClockIcon({ color, size = 13 }: IconProps) {
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
       <Circle cx={12} cy={12} r={9} fill={color} />
       <Path d="M12 7.5V12l3 2" stroke="#FFF" strokeWidth={2} strokeLinecap="round" />
+    </Svg>
+  );
+}
+
+export function PhoneIcon({ color, size = 18 }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Rect x={6.5} y={2.5} width={11} height={19} rx={2.5} stroke={color} strokeWidth={1.8} />
+      <Path d="M10 5h4M11 18.5h2" stroke={color} strokeLinecap="round" strokeWidth={1.6} />
+    </Svg>
+  );
+}
+
+export function AppearanceContrastIcon({ color, size = 18 }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Defs>
+        <ClipPath id="appearance-contrast-circle">
+          <Circle cx={12} cy={12} r={8.5} />
+        </ClipPath>
+      </Defs>
+      <Rect
+        x={3.5}
+        y={3.5}
+        width={8.5}
+        height={17}
+        fill="#111114"
+        clipPath="url(#appearance-contrast-circle)"
+      />
+      <Rect
+        x={12}
+        y={3.5}
+        width={8.5}
+        height={17}
+        fill="#FFFFFF"
+        clipPath="url(#appearance-contrast-circle)"
+      />
+      <Circle cx={12} cy={12} r={8.5} stroke={color} strokeWidth={1.5} />
+      <Path d="M12 3.5v17" stroke={color} strokeWidth={1.2} />
+    </Svg>
+  );
+}
+
+export function ClearSessionsIcon({ color, size = 20 }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path
+        d="m14.5 4 5.5 5.5-9.5 9.5H5l-2-2 11.5-13Z"
+        stroke={color}
+        strokeLinejoin="round"
+        strokeWidth={1.7}
+      />
+      <Path d="m10.5 19 3 3M4 22h16" stroke={color} strokeLinecap="round" strokeWidth={1.7} />
     </Svg>
   );
 }

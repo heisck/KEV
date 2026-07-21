@@ -23,3 +23,12 @@ export async function me(): Promise<UserDto> {
   const res = await api.get('/api/auth/me');
   return UserDtoSchema.parse(res.data);
 }
+
+export async function updateCredentials(input: {
+  currentPassword: string;
+  email?: string;
+  newPassword?: string;
+}): Promise<UserDto> {
+  const res = await api.put('/api/auth/credentials', input);
+  return UserDtoSchema.parse(res.data);
+}

@@ -4,6 +4,7 @@ import * as attendance from '@/api/attendance';
 import * as chat from '@/api/chat';
 import * as directory from '@/api/directory';
 import * as notifications from '@/api/notifications';
+import * as reports from '@/api/reports';
 import * as sessions from '@/api/sessions';
 import * as verify from '@/api/verify';
 import type { CheckInMethod } from '@/api/schemas';
@@ -19,6 +20,7 @@ const keys = {
   adminSessions: ['admin', 'sessions'] as const,
   report: (id: number) => ['admin', 'sessions', id, 'report'] as const,
   notifications: ['notifications'] as const,
+  reports: ['reports'] as const,
 };
 
 export function useSessions() {
@@ -30,14 +32,14 @@ export function useSessions() {
   });
 }
 
-export function useSessionDetail(id: number) {
+export function useSessionDetail(id: number, enabled = true) {
   const userId = useAuthStore((state) => state.user?.id);
   const valid = Number.isInteger(id) && id > 0;
   return useQuery({
     queryKey: [...keys.session(id), userId],
     queryFn: () => sessions.getSession(id),
-    enabled: valid && Boolean(userId),
-    refetchInterval: valid && userId ? 5000 : false,
+    enabled: enabled && valid && Boolean(userId),
+    refetchInterval: enabled && valid && userId ? 5000 : false,
   });
 }
 
@@ -73,6 +75,17 @@ export function useJoinSession() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (code: string) => sessions.joinSession(code),
+    onSuccess: (session) => {
+      void qc.invalidateQueries({ queryKey: keys.sessions });
+      void qc.invalidateQueries({ queryKey: keys.session(session.id) });
+    },
+  });
+}
+
+export function useJoinSessionById(id: number) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (password: string) => sessions.joinSessionById(id, password),
     onSuccess: (session) => {
       void qc.invalidateQueries({ queryKey: keys.sessions });
       void qc.invalidateQueries({ queryKey: keys.session(session.id) });
@@ -134,6 +147,43 @@ export function useNotifications(enabled = true) {
     queryFn: notifications.listNotifications,
     enabled: enabled && Boolean(userId),
     refetchInterval: enabled && userId ? 3_000 : false,
+  });
+}
+
+export function useReports() {
+  const userId = useAuthStore((state) => state.user?.id);
+  return useQuery({
+    queryKey: [...keys.reports, userId],
+    queryFn: reports.listReports,
+    enabled: Boolean(userId),
+    refetchInterval: userId ? 5_000 : false,
+  });
+}
+
+export function useCreateReport() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: reports.createReport,
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: keys.reports });
+      void qc.invalidateQueries({ queryKey: keys.notifications });
+    },
+  });
+}
+
+export function useMarkReportRead() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: reports.markReportRead,
+    onSuccess: () => void qc.invalidateQueries({ queryKey: keys.reports }),
+  });
+}
+
+export function useMarkReportsRead() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: reports.markReportsRead,
+    onSuccess: () => void qc.invalidateQueries({ queryKey: keys.reports }),
   });
 }
 

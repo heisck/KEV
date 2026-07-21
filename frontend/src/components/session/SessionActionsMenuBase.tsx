@@ -8,7 +8,7 @@ import { GlassSurface } from '@/components/ui/GlassSurface';
 import { HapticPressable } from '@/components/ui/HapticPressable';
 import { radii, spacing, usePalette } from '@/theme';
 
-type Props = {
+export type SessionActionsMenuProps = {
   code?: string;
   password?: string;
   lecturers: InvigilatorDto[];
@@ -17,7 +17,13 @@ type Props = {
 };
 
 /** Compact context overlay anchored below the top-right session action. */
-export function SessionActionsMenu({ code, password, lecturers, joined, onJoin }: Props) {
+export function SessionActionsMenu({
+  code,
+  password,
+  lecturers,
+  joined,
+  onJoin,
+}: SessionActionsMenuProps) {
   const p = usePalette();
   const [visible, setVisible] = useState(false);
   const close = () => setVisible(false);

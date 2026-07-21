@@ -1,26 +1,32 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useState } from 'react';
+import { ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useSessionDetail, useSessions } from '@/api/hooks';
-import { SceneArt } from '@/components/kev/art';
-import { BlueChip, CircleButton, ScreenTopBar } from '@/components/kev/chrome';
+import { CircleButton, ScreenTopBar } from '@/components/kev/chrome';
 import {
   CheckCircleIcon,
   FaceIdIcon,
   KeypadIcon,
   NfcIcon,
   PencilIcon,
+  PlusIcon,
   RemindersTabIcon,
   ScanFrameIcon,
-  StepsIcon,
   StudentsIcon,
 } from '@/components/kev/icons';
 import { HapticPressable } from '@/components/ui/HapticPressable';
+import { LoadingSkeleton } from '@/components/ui/LoadingSkeleton';
+import { SessionArtwork } from '@/components/session/SessionArtwork';
 import { SessionAccessCard } from '@/components/session/SessionAccessCard';
+import { SessionJoinDrawer } from '@/components/session/SessionJoinDrawer';
 import { isPastSession, scanBlockMessage } from '@/lib/sessionLifecycle';
+import { allowedScanMethods } from '@/lib/scanMethods';
 import { toast } from '@/lib/toast';
-import { colors, radii, spacing, usePalette } from '@/theme';
+import { spacing, usePalette } from '@/theme';
+import { useSettingsStore } from '@/store/settingsStore';
+import { examDetailStyles as styles } from '@/screens/kev/examDetailStyles';
 
 /** Session details (kev mockup screen 2). */
 export function ExamDetailScreen() {
@@ -29,6 +35,11 @@ export function ExamDetailScreen() {
   const { top } = useSafeAreaInsets();
   const { id } = useLocalSearchParams<{ id?: string }>();
   const examId = id ?? '1';
+  const numericExamId = Number(examId) || 1;
+  const [joinOpen, setJoinOpen] = useState(false);
+  const [joinedLocally, setJoinedLocally] = useState(false);
+  const preferredMethod = useSettingsStore((state) => state.defaultScanMethod);
+  const useAllScanMethods = useSettingsStore((state) => state.useAllScanMethods);
 
   const METHODS = [
     {
@@ -46,13 +57,19 @@ export function ExamDetailScreen() {
     },
   ] as const;
 
-  const { data: detail } = useSessionDetail(Number(examId) || 1);
-  const { data: allSessions } = useSessions();
-  const session = detail?.session ?? allSessions?.find((s) => String(s.id) === examId);
+  const { data: allSessions, isLoading: sessionsLoading } = useSessions();
+  const listedSession = allSessions?.find((s) => String(s.id) === examId);
+  const joined = joinedLocally || listedSession?.joined === true;
+  const { data: detail, isLoading: detailLoading } = useSessionDetail(numericExamId, joined);
+  const session = detail?.session ?? listedSession;
 
   // Only the methods this session enabled (fall back to all when unset).
-  const allowed = session?.verificationMethods?.length ? session.verificationMethods : null;
-  const methods = METHODS.filter((m) => !allowed || allowed.includes(m.key));
+  const allowed = allowedScanMethods(
+    session?.verificationMethods,
+    useAllScanMethods,
+    preferredMethod,
+  );
+  const methods = METHODS.filter((method) => allowed.includes(method.key));
 
   const isUpcoming = session?.status === 'UPCOMING';
   const isPast = isPastSession(session?.status);
@@ -73,14 +90,25 @@ export function ExamDetailScreen() {
     session?.examDate ?? new Date(session?.startedAt ?? Date.now()).toLocaleDateString();
 
   const openScanHub = () => {
+    if (!joined) return setJoinOpen(true);
     if (scanMessage) return toast.info(scanMessage);
     router.push({ pathname: '/group-session', params: { exam: examId } });
   };
 
   const openMethod = (path: (typeof METHODS)[number]['path']) => {
+    if (!joined) return setJoinOpen(true);
     if (scanMessage) return toast.info(scanMessage);
     router.push({ pathname: path, params: { exam: examId } });
   };
+
+  if (!session && (sessionsLoading || detailLoading)) {
+    return (
+      <View style={[styles.screen, { backgroundColor: p.bg, paddingTop: top + spacing.md }]}>
+        <ScreenTopBar title="Session details" onBack={() => router.replace('/(tabs)')} />
+        <LoadingSkeleton style={styles.loading} testID="session-detail-skeleton" variant="detail" />
+      </View>
+    );
+  }
 
   return (
     <View style={[styles.screen, { backgroundColor: p.bg, paddingTop: top + spacing.md }]}>
@@ -88,28 +116,41 @@ export function ExamDetailScreen() {
         title="Session details"
         onBack={() => router.replace('/(tabs)')}
         trailing={
-          <View style={styles.headerActions}>
-            {session && !isPast ? (
+          isPast ? (
+            <View style={[styles.closedPill, { backgroundColor: p.surfaceDim }]}>
+              <Text style={[styles.closedText, { color: p.muted }]}>Closed</Text>
+            </View>
+          ) : (
+            <View style={styles.headerActions}>
+              {session && joined ? (
+                <CircleButton
+                  label="Edit session"
+                  onPress={() =>
+                    router.push({ pathname: '/room-setup', params: { sessionId: examId } })
+                  }
+                >
+                  <PencilIcon color={p.ink} size={18} />
+                </CircleButton>
+              ) : null}
               <CircleButton
-                label="Edit session"
-                onPress={() =>
-                  router.push({ pathname: '/room-setup', params: { sessionId: examId } })
-                }
+                label={joined ? (scanMessage ?? 'Scan') : 'Join session'}
+                onPress={openScanHub}
               >
-                <PencilIcon color={p.ink} size={18} />
+                {joined ? (
+                  <ScanFrameIcon color={scanMessage ? p.muted : p.ink} />
+                ) : (
+                  <PlusIcon color={p.ink} />
+                )}
               </CircleButton>
-            ) : null}
-            <CircleButton label={scanMessage ?? 'Scan'} onPress={openScanHub}>
-              <ScanFrameIcon color={scanMessage ? p.muted : p.ink} />
-            </CircleButton>
-          </View>
+            </View>
+          )
         }
       />
 
       <ScrollView contentContainerStyle={styles.body} showsVerticalScrollIndicator={false}>
         <View style={[styles.card, { backgroundColor: p.surfaceDim }]}>
           <View style={styles.hero}>
-            <SceneArt art="hall" />
+            <SessionArtwork seed={examId} variant="feature" />
           </View>
           {!isUpcoming ? (
             <View style={[styles.ratingBadge, { backgroundColor: p.surface }]}>
@@ -130,11 +171,6 @@ export function ExamDetailScreen() {
               ) : (
                 <Text style={[styles.ratingText, { color: p.inkSoft }]}>Upcoming Exam</Text>
               )}
-              <BlueChip
-                label="Open room map"
-                icon={<StepsIcon color={p.blue} />}
-                onPress={() => router.push('/room-setup')}
-              />
             </View>
 
             <View style={styles.datesRow}>
@@ -162,7 +198,7 @@ export function ExamDetailScreen() {
           </View>
         </View>
 
-        {session ? (
+        {session && joined ? (
           <View style={styles.accessCard}>
             <SessionAccessCard
               code={session.sessionCode}
@@ -172,12 +208,13 @@ export function ExamDetailScreen() {
         ) : null}
 
         <Text style={[styles.section, { color: p.ink }]}>Verification methods</Text>
-        <View style={[styles.amenities, scanMessage && { opacity: 0.5 }]}>
+        <View style={[styles.amenities, isPast && { opacity: 0.5 }]}>
           {methods.map((m) => (
             <HapticPressable
               key={m.label}
               accessibilityRole="button"
               accessibilityLabel={`${m.label} verification`}
+              disabled={isPast}
               onPress={() => openMethod(m.path)}
               style={styles.amenity}
             >
@@ -204,84 +241,14 @@ export function ExamDetailScreen() {
           </>
         ) : null}
       </ScrollView>
+      {!isPast ? (
+        <SessionJoinDrawer
+          sessionId={numericExamId}
+          visible={joinOpen}
+          onClose={() => setJoinOpen(false)}
+          onJoined={() => setJoinedLocally(true)}
+        />
+      ) : null}
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  screen: { backgroundColor: colors.white, flex: 1, paddingHorizontal: spacing.xl },
-  body: { paddingBottom: spacing.xxxl, paddingTop: spacing.lg },
-  headerActions: { flexDirection: 'row', gap: spacing.sm },
-  card: {
-    backgroundColor: colors.surfaceDim,
-    borderRadius: radii.lg,
-    overflow: 'hidden',
-  },
-  cardBody: { padding: spacing.lg },
-  accessCard: { marginTop: spacing.lg },
-  // Image runs edge to edge of the card; bottom edge softly curved (mockup).
-  hero: {
-    borderBottomLeftRadius: radii.md + 4,
-    borderBottomRightRadius: radii.md + 4,
-    height: 200,
-    overflow: 'hidden',
-  },
-  ratingBadge: {
-    alignItems: 'center',
-    backgroundColor: colors.white,
-    borderRadius: radii.pill,
-    height: 58,
-    justifyContent: 'center',
-    position: 'absolute',
-    right: spacing.lg,
-    top: 200 - 29,
-    width: 58,
-  },
-  ratingBadgeText: { color: colors.ink, fontSize: 17, fontWeight: '800' },
-  hotel: { color: colors.ink, fontSize: 22, fontWeight: '800' },
-  ratingRow: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: spacing.sm,
-  },
-  stars: { alignItems: 'center', flexDirection: 'row', gap: 3 },
-  ratingText: { color: colors.inkSoft, fontSize: 13, fontWeight: '600', marginLeft: 5 },
-  datesRow: { flexDirection: 'row', gap: spacing.md, marginTop: spacing.lg },
-  dateBox: {
-    backgroundColor: colors.white,
-    borderRadius: radii.sm,
-    flex: 1,
-    gap: 3,
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.lg - 2,
-  },
-  dateLabel: { color: colors.muted, fontSize: 12, fontWeight: '500' },
-  dateValue: { color: colors.ink, fontSize: 18, fontWeight: '700' },
-  // Full-bleed across the card, past its padding (mockup).
-  divider: {
-    backgroundColor: colors.hairline,
-    height: 1,
-    marginHorizontal: -spacing.lg,
-    marginVertical: spacing.lg,
-  },
-  metaRow: { flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: spacing.xs },
-  metaItem: { alignItems: 'center', flexDirection: 'row', gap: spacing.sm },
-  metaText: { color: colors.ink, fontSize: 13, fontWeight: '600' },
-  section: { color: colors.ink, fontSize: 18, fontWeight: '800', marginTop: spacing.xl },
-  amenities: { flexDirection: 'row', justifyContent: 'space-between', marginTop: spacing.lg },
-  amenity: { alignItems: 'center', gap: spacing.sm },
-  amenityCircle: {
-    alignItems: 'center',
-    backgroundColor: colors.surfaceDim,
-    borderRadius: radii.pill,
-    height: 62,
-    justifyContent: 'center',
-    width: 62,
-  },
-  amenityLabel: { color: colors.inkSoft, fontSize: 11, fontWeight: '600' },
-  priceRow: { alignItems: 'baseline', flexDirection: 'row', justifyContent: 'space-between' },
-  price: { color: colors.ink, fontSize: 18, fontWeight: '800' },
-  taxLabel: { color: colors.muted, fontSize: 14, fontWeight: '500', marginTop: spacing.md },
-  tax: { color: colors.ink, fontSize: 15, fontWeight: '700' },
-});

@@ -7,7 +7,9 @@ import { useLecturers } from '@/api/hooks';
 import { SearchIcon } from '@/components/kev/icons';
 import { Avatar } from '@/components/kev/people';
 import { HapticPressable } from '@/components/ui/HapticPressable';
+import { LoadingSkeleton } from '@/components/ui/LoadingSkeleton';
 import { useChatStore } from '@/store/chatStore';
+import { useAuthStore } from '@/store/authStore';
 import { radii, spacing, usePalette } from '@/theme';
 
 /** Lecturer inbox; threads live in the root stack so they cover the tab bar. */
@@ -16,11 +18,14 @@ export function ChatDirectoryScreen() {
   const p = usePalette();
   const { top } = useSafeAreaInsets();
   const threads = useChatStore((state) => state.threads);
+  const currentUserId = useAuthStore((state) => state.user?.id);
   const [query, setQuery] = useState('');
-  const { data: lecturers } = useLecturers();
+  const { data: lecturers, isLoading } = useLecturers();
   const normalizedQuery = query.trim().toLowerCase();
-  const filtered = (lecturers ?? []).filter((lecturer) =>
-    (lecturer.displayName || lecturer.email).toLowerCase().includes(normalizedQuery),
+  const filtered = (lecturers ?? []).filter(
+    (lecturer) =>
+      lecturer.id !== currentUserId &&
+      (lecturer.displayName || lecturer.email).toLowerCase().includes(normalizedQuery),
   );
 
   return (
@@ -44,30 +49,34 @@ export function ChatDirectoryScreen() {
       </View>
 
       <ScrollView contentContainerStyle={styles.inbox} showsVerticalScrollIndicator={false}>
-        {filtered.map((lecturer) => {
-          const last = threads[lecturer.id]?.at(-1);
-          const name = lecturer.displayName || lecturer.email;
-          return (
-            <HapticPressable
-              key={lecturer.id}
-              accessibilityLabel={`Chat with ${name}`}
-              accessibilityRole="button"
-              haptic="select"
-              onPress={() => router.push({ pathname: '/chat/[id]', params: { id: lecturer.id } })}
-              style={[styles.row, { backgroundColor: p.surfaceDim }]}
-              testID={`chat-row-${lecturer.id}`}
-            >
-              <Avatar person="freja" size={48} verified />
-              <View style={styles.rowText}>
-                <Text style={[styles.rowName, { color: p.ink }]}>{name}</Text>
-                <Text style={[styles.rowPreview, { color: p.muted }]} numberOfLines={1}>
-                  {last?.text ?? 'Tap to start conversation'}
-                </Text>
-              </View>
-              {last ? <Text style={[styles.rowTime, { color: p.muted }]}>{last.at}</Text> : null}
-            </HapticPressable>
-          );
-        })}
+        {isLoading && !lecturers ? (
+          <LoadingSkeleton testID="chat-directory-skeleton" variant="rows" />
+        ) : (
+          filtered.map((lecturer) => {
+            const last = threads[lecturer.id]?.at(-1);
+            const name = lecturer.displayName || lecturer.email;
+            return (
+              <HapticPressable
+                key={lecturer.id}
+                accessibilityLabel={`Chat with ${name}`}
+                accessibilityRole="button"
+                haptic="select"
+                onPress={() => router.push({ pathname: '/chat/[id]', params: { id: lecturer.id } })}
+                style={[styles.row, { backgroundColor: p.surfaceDim }]}
+                testID={`chat-row-${lecturer.id}`}
+              >
+                <Avatar person="freja" size={48} verified />
+                <View style={styles.rowText}>
+                  <Text style={[styles.rowName, { color: p.ink }]}>{name}</Text>
+                  <Text style={[styles.rowPreview, { color: p.muted }]} numberOfLines={1}>
+                    {last?.text ?? 'Tap to start conversation'}
+                  </Text>
+                </View>
+                {last ? <Text style={[styles.rowTime, { color: p.muted }]}>{last.at}</Text> : null}
+              </HapticPressable>
+            );
+          })
+        )}
       </ScrollView>
     </View>
   );

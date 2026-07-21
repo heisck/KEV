@@ -23,6 +23,22 @@ export const StudentRecordSchema = z.object({
 });
 export type StudentRecord = z.infer<typeof StudentRecordSchema>;
 
+export const StudentReportSchema = z.object({
+  id: z.number(),
+  sessionId: z.number(),
+  sessionTitle: z.string(),
+  sessionCode: z.string(),
+  examDate: z.string().nullable(),
+  authorId: z.string().uuid(),
+  authorName: z.string(),
+  authorEmail: z.string().email(),
+  student: StudentRecordSchema.nullable(),
+  message: z.string(),
+  createdAt: z.string(),
+  read: z.boolean(),
+});
+export type StudentReport = z.infer<typeof StudentReportSchema>;
+
 export const UserDtoSchema = z.object({
   id: z.string(),
   email: z.string(),
@@ -65,6 +81,7 @@ export const SessionDtoSchema = z.object({
   endedAt: z.string().nullable(),
   checkedInCount: z.number(),
   invigilatorCount: z.number(),
+  joined: z.boolean().optional(),
 });
 export type SessionDto = z.infer<typeof SessionDtoSchema>;
 

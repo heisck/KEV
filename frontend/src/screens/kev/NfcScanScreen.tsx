@@ -15,6 +15,7 @@ import { NfcIcon } from '@/components/kev/icons';
 import { ScanMethodSwitcher } from '@/components/scan/ScanMethodSwitcher';
 import { SessionLockButton } from '@/components/scan/SessionLockButton';
 import { useMockScan } from '@/hooks/useMockScan';
+import { useScanMethodGuard } from '@/hooks/useScanMethodGuard';
 import { useScanNavigation } from '@/hooks/useScanNavigation';
 import { useScanSessionId } from '@/hooks/useScanSession';
 import { radii, shadows, spacing, usePalette } from '@/theme';
@@ -28,10 +29,12 @@ export function NfcScanScreen() {
   const sessionId = useScanSessionId();
   const { goBack } = useScanNavigation(sessionId);
   const completeScan = useMockScan(sessionId, 'NFC');
+  const { allowedMethods, canUse } = useScanMethodGuard(sessionId, 'NFC');
 
   const drift = useSharedValue(0);
 
   useEffect(() => {
+    if (!canUse) return undefined;
     drift.value = withRepeat(
       withSequence(
         withTiming(1, { duration: 900, easing: Easing.inOut(Easing.quad) }),
@@ -42,8 +45,7 @@ export function NfcScanScreen() {
     // Simulated tag detection until react-native-nfc-manager is wired here.
     const timer = setTimeout(completeScan, SCAN_DELAY_MS);
     return () => clearTimeout(timer);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [canUse, completeScan, drift]);
 
   const cardStyle = useAnimatedStyle(() => ({
     transform: [{ translateY: drift.value * -84 }, { rotate: `${-8 + drift.value * 8}deg` }],
@@ -84,7 +86,7 @@ export function NfcScanScreen() {
           Keep the student ID steady until it reads.
         </Text>
       </View>
-      <ScanMethodSwitcher active="NFC" sessionId={sessionId} />
+      <ScanMethodSwitcher active="NFC" sessionId={sessionId} allowedMethods={allowedMethods} />
     </View>
   );
 }

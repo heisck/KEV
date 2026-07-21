@@ -10,6 +10,7 @@ import { ScanMethodSwitcher } from '@/components/scan/ScanMethodSwitcher';
 import { SessionLockButton } from '@/components/scan/SessionLockButton';
 import { HapticPressable } from '@/components/ui/HapticPressable';
 import { useMockScan } from '@/hooks/useMockScan';
+import { useScanMethodGuard } from '@/hooks/useScanMethodGuard';
 import { useScanNavigation } from '@/hooks/useScanNavigation';
 import { useScanSessionId } from '@/hooks/useScanSession';
 import { radii, spacing, usePalette } from '@/theme';
@@ -38,6 +39,7 @@ export function FaceScanScreen() {
   const sessionId = useScanSessionId();
   const { goBack } = useScanNavigation(sessionId);
   const completeScan = useMockScan(sessionId, 'FACE');
+  const { allowedMethods, canUse } = useScanMethodGuard(sessionId, 'FACE');
   const [permission, requestPermission] = useCameraPermissions();
   const [facing, setFacing] = useState<CameraType>('front');
   const previewHeight = Math.min(Math.max(height * 0.46, 320), 520);
@@ -77,12 +79,13 @@ export function FaceScanScreen() {
         </Text>
       </View>
 
-      <ScanMethodSwitcher active="FACE" sessionId={sessionId} />
+      <ScanMethodSwitcher active="FACE" sessionId={sessionId} allowedMethods={allowedMethods} />
       {permission?.granted ? (
         <HapticPressable
           accessibilityRole="button"
+          disabled={!canUse}
           onPress={() => completeScan()}
-          style={[styles.cta, { backgroundColor: p.primary }]}
+          style={[styles.cta, { backgroundColor: p.primary }, !canUse && styles.disabled]}
           testID="face-capture"
         >
           <Text style={[styles.ctaText, { color: p.onPrimary }]}>Capture</Text>
@@ -90,8 +93,9 @@ export function FaceScanScreen() {
       ) : (
         <HapticPressable
           accessibilityRole="button"
+          disabled={!canUse}
           onPress={() => void requestPermission()}
-          style={[styles.cta, { backgroundColor: p.primary }]}
+          style={[styles.cta, { backgroundColor: p.primary }, !canUse && styles.disabled]}
           testID="face-permission"
         >
           <Text style={[styles.ctaText, { color: p.onPrimary }]}>Allow camera</Text>
@@ -138,4 +142,5 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.lg - 2,
   },
   ctaText: { fontSize: 15, fontWeight: '700' },
+  disabled: { opacity: 0.45 },
 });

@@ -9,6 +9,10 @@ import {
 
 const SAVE_DELAY_MS = 150;
 
+export function getSessionDraftKey(userId: string, sessionId?: number): string {
+  return sessionId ? `session-draft:${userId}:edit:${sessionId}` : `session-draft:${userId}:create`;
+}
+
 export function useSessionDraft(key: string) {
   const [draft, setDraft] = useState<SessionDraft | null>(null);
   const [ready, setReady] = useState(false);

@@ -62,6 +62,14 @@ public class SessionController {
         return sessions.join(userId(principal), request.getEffectiveCodeOrPassword());
     }
 
+    @PostMapping("/{id}/join")
+    public SessionDto joinByPassword(
+            @AuthenticationPrincipal Jwt principal,
+            @PathVariable Long id,
+            @Valid @RequestBody JoinSessionRequest request) {
+        return sessions.joinByPassword(userId(principal), id, request.getEffectiveCodeOrPassword());
+    }
+
     @PostMapping("/{id}/end")
     public SessionDto end(@AuthenticationPrincipal Jwt principal, @PathVariable Long id) {
         return sessions.end(userId(principal), id);

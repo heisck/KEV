@@ -17,6 +17,13 @@ public interface SessionInvigilatorRepository extends JpaRepository<SessionInvig
 
     long countBySessionId(Long sessionId);
 
+    @Query("select i.sessionId from SessionInvigilator i where i.userId = :userId")
+    List<Long> findSessionIdsByUserId(@Param("userId") UUID userId);
+
+    @Query("select new com.kev.backend.session.SessionCount(i.sessionId, count(i)) "
+            + "from SessionInvigilator i where i.sessionId in :sessionIds group by i.sessionId")
+    List<SessionCount> countBySessionIds(@Param("sessionIds") List<Long> sessionIds);
+
     /** Distinct invigilators an admin has assigned across currently ACTIVE sessions. */
     @Query("select count(distinct i.userId) from SessionInvigilator i "
             + "where i.assignedBy = :adminId and i.sessionId in "

@@ -80,6 +80,11 @@ jest.mock('@/api/hooks', () => ({
   useSessionDetail: () => ({ data: mockDetail }),
 }));
 
+beforeEach(() => {
+  mockPush.mockReset();
+  mockDetail.session.status = 'ONGOING';
+});
+
 it('shows the result preference and opens an attending student as already added', () => {
   useAuthStore.setState({
     status: 'authenticated',
@@ -108,4 +113,31 @@ it('shows the result preference and opens an attending student as already added'
     pathname: '/verify/result',
     params: { attendance: '8', exam: '2', mode: 'profile', status: 'added', student: '7' },
   });
+});
+
+it('shows closed without join or scan controls for a past session', () => {
+  mockDetail.session.status = 'COMPLETED';
+  useAuthStore.setState({
+    status: 'authenticated',
+    user: {
+      id: '22222222-2222-2222-2222-222222222222',
+      email: 'other@example.com',
+      role: 'LECTURER',
+      plan: 'FREE',
+    },
+  });
+  const screen = render(
+    <SafeAreaProvider
+      initialMetrics={{
+        frame: { height: 844, width: 390, x: 0, y: 0 },
+        insets: { bottom: 0, left: 0, right: 0, top: 0 },
+      }}
+    >
+      <GroupSessionScreen />
+    </SafeAreaProvider>,
+  );
+
+  expect(screen.getAllByText('Closed')).toHaveLength(2);
+  expect(screen.queryByText('Enter session password')).toBeNull();
+  expect(screen.queryByLabelText('Face verification')).toBeNull();
 });

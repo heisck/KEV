@@ -31,7 +31,7 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
  * with {@code kev.auth.jwt.secret} and validated by the OAuth2 resource server.
  * Google ID tokens are verified separately (see GoogleTokenVerifier).
  */
-@Configuration
+@Configuration(proxyBeanMethods = false)
 @EnableMethodSecurity
 public class SecurityConfig {
 

@@ -37,7 +37,7 @@ export function ChatScreen({ threadId }: ChatScreenProps = {}) {
   const activeId = threadId ?? storedActiveId;
   const openThread = useChatStore((s) => s.openThread);
   const closeThread = useChatStore((s) => s.closeThread);
-  const send = useChatStore((s) => s.send);
+  const appendMessage = useChatStore((s) => s.appendMessage);
   const setThreadMessages = useChatStore((s) => s.setThreadMessages);
   const [draft, setDraft] = useState('');
   const listRef = useRef<FlatList>(null);
@@ -98,8 +98,9 @@ export function ChatScreen({ threadId }: ChatScreenProps = {}) {
     const content = draft.trim();
     setDraft('');
     try {
-      await api.post(`/api/chat/conversations/${activeId}/messages`, { content });
-      send(activeId, content);
+      const response = await api.post(`/api/chat/conversations/${activeId}/messages`, { content });
+      const [message] = parseMessages([response.data], currentUserId);
+      if (message) appendMessage(activeId, message);
       requestAnimationFrame(() => listRef.current?.scrollToEnd({ animated: true }));
     } catch {
       setDraft(content);

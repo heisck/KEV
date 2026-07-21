@@ -48,6 +48,11 @@ export async function joinSession(sessionCode: string): Promise<SessionDto> {
   return SessionDtoSchema.parse(res.data);
 }
 
+export async function joinSessionById(id: number, sessionPassword: string): Promise<SessionDto> {
+  const res = await api.post(`/api/sessions/${id}/join`, { sessionPassword });
+  return SessionDtoSchema.parse(res.data);
+}
+
 export async function endSession(id: number): Promise<SessionDto> {
   const res = await api.post(`/api/sessions/${id}/end`);
   return SessionDtoSchema.parse(res.data);
