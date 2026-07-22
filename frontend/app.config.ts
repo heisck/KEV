@@ -84,11 +84,13 @@ const config: ExpoConfig = {
     reactCompiler: false,
   },
   extra: {
-    apiUrl: process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:8080',
+    apiUrl: process.env.EXPO_PUBLIC_API_URL ?? process.env.BACKEND_URL ?? 'http://localhost:8080',
     appEnv: process.env.EXPO_PUBLIC_ENV ?? 'development',
-    sentryDsn: process.env.EXPO_PUBLIC_SENTRY_DSN ?? '',
-    googleWebClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID ?? '',
-    googleIosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID ?? '',
+    sentryDsn: process.env.EXPO_PUBLIC_SENTRY_DSN ?? process.env.FRONTEND_SENTRY_DSN ?? '',
+    googleWebClientId:
+      process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID ?? process.env.GOOGLE_WEB_CLIENT_ID ?? '',
+    googleIosClientId:
+      process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID ?? process.env.GOOGLE_IOS_CLIENT_ID ?? '',
     eas: { projectId: process.env.EAS_PROJECT_ID ?? '' },
   },
 };
