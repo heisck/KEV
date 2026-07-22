@@ -12,7 +12,8 @@
       "Bash(git commit -q -m 'feat: add student/session reports, credential update, and session UI enhancements *)",
       "Bash(git push *)",
       "Bash(git commit *)",
-      "Bash(git commit -q -m 'chore\\(root\\): apply prettier formatting to .claude/settings.json *)"
+      "Bash(git commit -q -m 'chore\\(root\\): apply prettier formatting to .claude/settings.json *)",
+      "Bash(git -c user.name=\"heisck\" commit -q -m \"chore\\(root\\): apply prettier formatting to .claude/settings.json\" --author=\"heisck <heisck@users.noreply.github.com>\")"
     ]
   }
 }
