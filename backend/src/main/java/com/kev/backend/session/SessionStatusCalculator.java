@@ -44,13 +44,16 @@ final class SessionStatusCalculator {
         return SessionStatus.ONGOING;
     }
 
+    private static final java.time.format.DateTimeFormatter TIME_FORMATTER =
+            java.time.format.DateTimeFormatter.ofPattern("[H][HH]:mm[:ss]");
+
     /** Parses "HH:mm" / "H:mm" style strings; null on blank or malformed input. */
     private static LocalTime parseTime(String value) {
         if (value == null || value.isBlank()) {
             return null;
         }
         try {
-            return LocalTime.parse(value.trim());
+            return LocalTime.parse(value.trim(), TIME_FORMATTER);
         } catch (java.time.format.DateTimeParseException e) {
             return null;
         }

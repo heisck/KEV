@@ -69,9 +69,20 @@ def test_verify_face_502_when_reference_unreachable() -> None:
     response = client.post(
         "/verify-face",
         files={"probe": ("probe.jpg", b"fake-bytes")},
-        data={"reference_url": "http://127.0.0.1:9/nope.jpg"},
+        data={"reference_url": "http://example.invalid/nope.jpg"},
     )
     assert response.status_code == 502
+
+
+def test_verify_face_400_on_ssrf_attempt() -> None:
+    client = _use(FakeEngine())
+    response = client.post(
+        "/verify-face",
+        files={"probe": ("probe.jpg", b"fake-bytes")},
+        data={"reference_url": "http://127.0.0.1/admin"},
+    )
+    assert response.status_code == 400
+
 
 
 @pytest.mark.skipif(

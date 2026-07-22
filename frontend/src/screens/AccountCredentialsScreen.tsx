@@ -98,7 +98,7 @@ export function AccountCredentialsScreen() {
         >
           <BackIcon color={p.onPrimary} />
         </HapticPressable>
-        <Text style={[styles.title, { color: p.onPrimary }]}>Email in</Text>
+        <Text style={[styles.title, { color: p.onPrimary }]}>Account Credentials</Text>
         <View style={styles.back} />
       </View>
       <KeyboardAvoidingView
@@ -113,7 +113,7 @@ export function AccountCredentialsScreen() {
           <CredentialsKeyIcon color={p.inkSoft} outline={p.hairline} surface={p.surfaceDim} />
           <Text style={[styles.intro, { color: p.ink }]}>Reset Password</Text>
           <Text style={[styles.hint, { color: p.muted }]}>
-            Enter your new password below, we’re just being extra safe
+            Update your sign-in email address or password below
           </Text>
           <View style={styles.form}>
             <SecureField email label="Sign-in email" onChange={setEmail} p={p} value={email} />

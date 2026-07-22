@@ -1,3 +1,4 @@
+import { formatTime } from '@/lib/date';
 import type { ChatMessage } from '@/store/chatStore';
 
 /** Validates backend chat rows and assigns each bubble to its sender. */
@@ -22,10 +23,7 @@ export function parseMessages(data: unknown, currentUserId?: string): ChatMessag
         id: String(message.id),
         text: message.content,
         mine,
-        at: new Date(createdAt).toLocaleTimeString([], {
-          hour: '2-digit',
-          minute: '2-digit',
-        }),
+        at: formatTime(createdAt),
         createdAt,
         status: mine && !message.read ? 'sent' : 'read',
       },

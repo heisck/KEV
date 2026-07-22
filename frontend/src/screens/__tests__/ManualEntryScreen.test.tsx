@@ -8,7 +8,7 @@ const mockLookupStudent = jest.fn();
 jest.mock('@/api/directory', () => ({
   lookupStudent: (...args: unknown[]) => mockLookupStudent(...args),
 }));
-jest.mock('@/hooks/useMockScan', () => ({ useMockScan: () => mockCompleteScan }));
+jest.mock('@/hooks/useScanCheckIn', () => ({ useScanCheckIn: () => mockCompleteScan }));
 jest.mock('@/hooks/useScanNavigation', () => ({
   useScanNavigation: () => ({ goBack: jest.fn(), locked: false }),
 }));

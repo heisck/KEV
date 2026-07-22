@@ -9,7 +9,7 @@ import { FaceIdIcon } from '@/components/kev/icons';
 import { ScanMethodSwitcher } from '@/components/scan/ScanMethodSwitcher';
 import { SessionLockButton } from '@/components/scan/SessionLockButton';
 import { HapticPressable } from '@/components/ui/HapticPressable';
-import { useMockScan } from '@/hooks/useMockScan';
+import { useScanCheckIn } from '@/hooks/useScanCheckIn';
 import { useScanMethodGuard } from '@/hooks/useScanMethodGuard';
 import { useScanNavigation } from '@/hooks/useScanNavigation';
 import { useScanSessionId } from '@/hooks/useScanSession';
@@ -38,7 +38,7 @@ export function FaceScanScreen() {
   const { top } = useSafeAreaInsets();
   const sessionId = useScanSessionId();
   const { goBack } = useScanNavigation(sessionId);
-  const completeScan = useMockScan(sessionId, 'FACE');
+  const completeScan = useScanCheckIn(sessionId, 'FACE');
   const { allowedMethods, canUse } = useScanMethodGuard(sessionId, 'FACE');
   const [permission, requestPermission] = useCameraPermissions();
   const [facing, setFacing] = useState<CameraType>('front');

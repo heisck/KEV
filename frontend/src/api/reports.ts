@@ -27,6 +27,6 @@ export async function markAllReportsRead(): Promise<void> {
   await api.post('/api/reports/read-all');
 }
 
-export async function markReportsRead(ids: number[]): Promise<void> {
-  await Promise.all(ids.map(markReportRead));
+export async function markReportsRead(_ids?: number[]): Promise<void> {
+  await markAllReportsRead();
 }

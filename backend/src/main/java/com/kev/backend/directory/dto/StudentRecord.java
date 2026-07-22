@@ -34,8 +34,6 @@ public record StudentRecord(
                 s.isEnrolled(),
                 s.getFeesStatus(),
                 eligible,
-                s.getCourses().stream()
-                        .map(com.kev.backend.directory.Course::getCode)
-                        .toList());
+                s.getCourses().stream().map(c -> c.getCode()).toList());
     }
 }

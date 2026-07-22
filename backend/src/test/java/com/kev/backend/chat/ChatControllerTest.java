@@ -76,7 +76,7 @@ class ChatControllerTest {
 
         var result = service.listLecturers(senderId, null);
 
-        assertThat(result).extracting(com.kev.backend.auth.dto.UserDto::id).containsExactly(peer.getId());
+        assertThat(result).extracting(u -> u.id()).containsExactly(peer.getId());
     }
 
     @Test

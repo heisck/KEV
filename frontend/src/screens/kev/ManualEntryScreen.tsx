@@ -8,7 +8,7 @@ import { ScanMethodSwitcher } from '@/components/scan/ScanMethodSwitcher';
 import { SessionLockButton } from '@/components/scan/SessionLockButton';
 import { HapticPressable } from '@/components/ui/HapticPressable';
 import { studentRecordToScanned } from '@/data/exams';
-import { useMockScan } from '@/hooks/useMockScan';
+import { useScanCheckIn } from '@/hooks/useScanCheckIn';
 import { useScanMethodGuard } from '@/hooks/useScanMethodGuard';
 import { useScanNavigation } from '@/hooks/useScanNavigation';
 import { useScanSessionId } from '@/hooks/useScanSession';
@@ -20,7 +20,7 @@ export function ManualEntryScreen() {
   const { bottom, top } = useSafeAreaInsets();
   const sessionId = useScanSessionId();
   const { goBack } = useScanNavigation(sessionId);
-  const completeScan = useMockScan(sessionId, 'MANUAL');
+  const completeScan = useScanCheckIn(sessionId, 'MANUAL');
   const { allowedMethods, canUse } = useScanMethodGuard(sessionId, 'MANUAL');
 
   const [index, setIndex] = useState('');

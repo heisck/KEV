@@ -95,4 +95,19 @@ export const authScreenStyles = StyleSheet.create({
     overflow: 'hidden',
     width: 52,
   },
+  inputError: {
+    borderColor: '#FF4D4D',
+  },
+  errorContainer: {
+    height: 18,
+    justifyContent: 'center',
+    paddingLeft: 16,
+    marginTop: -8,
+    marginBottom: -4,
+  },
+  errorText: {
+    color: '#FF4D4D',
+    fontSize: 12,
+    fontWeight: '600',
+  },
 });

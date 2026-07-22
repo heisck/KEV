@@ -27,6 +27,8 @@ type AuthScreenProps = {
 };
 
 /** Email/password sign-in surface. Keyboard avoidance is handled by AuthScaffold. */
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 export function AuthScreen({
   onApplePress,
   onGooglePress,
@@ -37,19 +39,47 @@ export function AuthScreen({
   const [password, setPassword] = useState('');
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
   const [focusedField, setFocusedField] = useState<'email' | 'password' | null>(null);
+  const [emailError, setEmailError] = useState<string | null>(null);
+  const [isEmailTouched, setIsEmailTouched] = useState(false);
+
   const { height } = useWindowDimensions();
   const { bottom, top } = useSafeAreaInsets();
   const palette = usePalette();
 
-  // Static column height; the scaffold's KeyboardAvoidingView lifts the inputs above
-  // the keyboard, so no per-keystroke keyboard-height math is needed here.
   const fullMinHeight = Math.max(height - top - bottom - AUTH_OVERLAY_VERTICAL_PADDING * 2, 0);
   const layoutMinHeight = Math.max(fullMinHeight, 300);
 
-  const handleSignIn = useCallback(
-    () => onEmailSignIn?.(email.trim(), password),
-    [email, onEmailSignIn, password],
+  const validateEmail = useCallback((val: string) => {
+    const trimmed = val.trim();
+    if (!trimmed) return 'Email is required';
+    if (!EMAIL_REGEX.test(trimmed)) return 'Incorrect email address';
+    return null;
+  }, []);
+
+  const handleEmailBlur = useCallback(() => {
+    setFocusedField(null);
+    setIsEmailTouched(true);
+    setEmailError(validateEmail(email));
+  }, [email, validateEmail]);
+
+  const handleEmailChange = useCallback(
+    (text: string) => {
+      setEmail(text);
+      if (isEmailTouched) {
+        setEmailError(validateEmail(text));
+      }
+    },
+    [isEmailTouched, validateEmail],
   );
+
+  const handleSignIn = useCallback(() => {
+    const err = validateEmail(email);
+    setIsEmailTouched(true);
+    setEmailError(err);
+    if (!err) {
+      onEmailSignIn?.(email.trim(), password);
+    }
+  }, [email, onEmailSignIn, password, validateEmail]);
 
   return (
     <AuthScaffold
@@ -73,8 +103,8 @@ export function AuthScreen({
               autoCorrect={false}
               disableFullscreenUI
               keyboardType="email-address"
-              onBlur={() => setFocusedField(null)}
-              onChangeText={setEmail}
+              onBlur={handleEmailBlur}
+              onChangeText={handleEmailChange}
               onFocus={() => setFocusedField('email')}
               placeholder="Write your gmail"
               placeholderTextColor={palette.muted}
@@ -83,12 +113,18 @@ export function AuthScreen({
                 styles.input,
                 { color: palette.ink },
                 focusedField === 'email' && styles.inputFocused,
+                Boolean(emailError) && isEmailTouched && styles.inputError,
               ]}
               textContentType="emailAddress"
               underlineColorAndroid="transparent"
               value={email}
             />
           </GlassSurface>
+          <View style={styles.errorContainer}>
+            <Text style={[styles.errorText, { opacity: emailError && isEmailTouched ? 1 : 0 }]}>
+              {emailError ?? ' '}
+            </Text>
+          </View>
 
           <GlassSurface fallbackColor={palette.input} intensity={60} style={styles.inputShell}>
             <View pointerEvents="none" style={styles.inputIcon}>

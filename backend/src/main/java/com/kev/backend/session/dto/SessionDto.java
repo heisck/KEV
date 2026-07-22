@@ -33,7 +33,7 @@ public record SessionDto(
         String methods = s.getVerificationMethods() == null ? "FACE,NFC,MANUAL" : s.getVerificationMethods();
         return new SessionDto(
                 s.getId(),
-                s.getSessionCode(),
+                joined ? s.getSessionCode() : null,
                 joined ? (s.getSessionPassword() != null ? s.getSessionPassword() : s.getSessionCode()) : null,
                 s.getTitle() != null
                         ? s.getTitle()
@@ -42,7 +42,7 @@ public record SessionDto(
                 s.getFloor(),
                 s.getRoom(),
                 Arrays.stream((s.getCourseCodes() == null ? "" : s.getCourseCodes()).split(","))
-                        .map(String::trim)
+                        .map(str -> str.trim())
                         .filter(c -> !c.isEmpty())
                         .toList(),
                 s.getIndexRangeStart(),
@@ -51,7 +51,7 @@ public record SessionDto(
                 s.getStartTime(),
                 s.getEndTime(),
                 Arrays.stream(methods.split(","))
-                        .map(String::trim)
+                        .map(str -> str.trim())
                         .filter(m -> !m.isEmpty())
                         .toList(),
                 status,

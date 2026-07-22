@@ -14,7 +14,7 @@ import { ScreenTopBar } from '@/components/kev/chrome';
 import { NfcIcon } from '@/components/kev/icons';
 import { ScanMethodSwitcher } from '@/components/scan/ScanMethodSwitcher';
 import { SessionLockButton } from '@/components/scan/SessionLockButton';
-import { useMockScan } from '@/hooks/useMockScan';
+import { useScanCheckIn } from '@/hooks/useScanCheckIn';
 import { useScanMethodGuard } from '@/hooks/useScanMethodGuard';
 import { useScanNavigation } from '@/hooks/useScanNavigation';
 import { useScanSessionId } from '@/hooks/useScanSession';
@@ -28,7 +28,7 @@ export function NfcScanScreen() {
   const { bottom, top } = useSafeAreaInsets();
   const sessionId = useScanSessionId();
   const { goBack } = useScanNavigation(sessionId);
-  const completeScan = useMockScan(sessionId, 'NFC');
+  const completeScan = useScanCheckIn(sessionId, 'NFC');
   const { allowedMethods, canUse } = useScanMethodGuard(sessionId, 'NFC');
 
   const drift = useSharedValue(0);

@@ -52,6 +52,7 @@ public class GlobalExceptionHandler {
     /** Method-security denials (e.g. non-admins on /api/admin/**) are 403s, not 500s. */
     @ExceptionHandler(AccessDeniedException.class)
     ProblemDetail handleAccessDenied(AccessDeniedException ex) {
+        log.warn("Access denied: {}", ex.getMessage());
         return problem(HttpStatus.FORBIDDEN, "You do not have access to this resource");
     }
 

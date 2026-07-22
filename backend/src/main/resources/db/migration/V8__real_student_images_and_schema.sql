@@ -68,15 +68,4 @@ update directory_students set photo_url = 'http://localhost:8080/images/student_
 update directory_students set photo_url = 'http://localhost:8080/images/student_yaw.jpg' where index_number in ('10953004', '10953009', '10953014', '10953019', '10953024', '10953029', '10953034', '10953039');
 update directory_students set photo_url = 'http://localhost:8080/images/student_akosua.jpg' where index_number in ('10953005', '10953010', '10953015', '10953020', '10953025', '10953030', '10953035', '10953040');
 
--- 8. Seed some real upcoming / ongoing / completed sessions and invigilators
-update users set phone = '+233 24 123 4567', personal_email = 'dr.kwame@gmail.com', lecturer_id = 'LEC-001', status = 'ACTIVE', is_active = true where email = 'lecturer@kev.app';
 
-insert into users (email, display_name, role, plan, password_hash, lecturer_id, personal_email, phone, status, is_active)
-values ('ama.mensah@knust.edu.gh', 'Dr. Ama Mensah', 'LECTURER', 'FREE',
-        '$2b$10$TZ7A8ea6EDI2wbqEWFotTeN68uRzWI64/JqAorcbxPl9gXKHBdHWC', 'LEC-002', 'ama.m@gmail.com', '+233 20 987 6543', 'ACTIVE', true)
-on conflict (email) do nothing;
-
-insert into users (email, display_name, role, plan, password_hash, lecturer_id, personal_email, phone, status, is_active)
-values ('kofi.appiah@knust.edu.gh', 'Prof. Kofi Appiah', 'LECTURER', 'FREE',
-        '$2b$10$TZ7A8ea6EDI2wbqEWFotTeN68uRzWI64/JqAorcbxPl9gXKHBdHWC', 'LEC-003', 'kofi.appiah@yahoo.com', '+233 54 321 0987', 'ACTIVE', true)
-on conflict (email) do nothing;

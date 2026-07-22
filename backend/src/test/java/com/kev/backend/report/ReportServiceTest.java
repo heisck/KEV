@@ -5,7 +5,6 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.kev.backend.auth.Role;
 import com.kev.backend.auth.User;
 import com.kev.backend.auth.UserRepository;
 import com.kev.backend.directory.DirectoryStudent;
@@ -15,6 +14,7 @@ import com.kev.backend.notification.NotificationRepository;
 import com.kev.backend.report.dto.CreateStudentReportRequest;
 import com.kev.backend.report.dto.StudentReportDto;
 import com.kev.backend.session.ExamSession;
+import com.kev.backend.session.SessionInvigilatorRepository;
 import com.kev.backend.session.SessionService;
 import java.util.List;
 import java.util.Optional;
@@ -46,6 +46,9 @@ class ReportServiceTest {
 
     @Mock
     SessionService sessions;
+
+    @Mock
+    SessionInvigilatorRepository invigilators;
 
     @InjectMocks
     ReportService service;
@@ -79,8 +82,11 @@ class ReportServiceTest {
 
     @Test
     void createSharesReportWithSessionInvigilatorsAndMarksAuthorRead() {
-        User colleague = lecturer(colleagueId, "colleague@example.com");
-        when(sessions.requireVisible(2L)).thenReturn(session);
+        com.kev.backend.session.SessionInvigilator member = new com.kev.backend.session.SessionInvigilator();
+        member.setSessionId(2L);
+        member.setUserId(colleagueId);
+        when(invigilators.findBySessionId(2L)).thenReturn(List.of(member));
+        when(sessions.requireMember(authorId, 2L)).thenReturn(session);
         when(students.findById(7L)).thenReturn(Optional.of(student));
         when(users.findById(authorId)).thenReturn(Optional.of(author));
         when(reports.save(any())).thenAnswer(invocation -> {
@@ -88,8 +94,6 @@ class ReportServiceTest {
             report.setId(11L);
             return report;
         });
-        when(users.findAllByRoleInAndActiveTrue(List.of(Role.LECTURER, Role.ADMIN)))
-                .thenReturn(List.of(author, colleague));
 
         StudentReportDto result =
                 service.create(authorId, new CreateStudentReportRequest(2L, 7L, "  ID card damaged  "));
@@ -128,15 +132,13 @@ class ReportServiceTest {
 
     @Test
     void createAllowsGeneralSessionReportWithoutStudent() {
-        when(sessions.requireVisible(2L)).thenReturn(session);
+        when(sessions.requireMember(authorId, 2L)).thenReturn(session);
         when(users.findById(authorId)).thenReturn(Optional.of(author));
         when(reports.save(any())).thenAnswer(invocation -> {
             StudentReport report = invocation.getArgument(0);
             report.setId(13L);
             return report;
         });
-        when(users.findAllByRoleInAndActiveTrue(List.of(Role.LECTURER, Role.ADMIN)))
-                .thenReturn(List.of(author));
 
         StudentReportDto result =
                 service.create(authorId, new CreateStudentReportRequest(2L, null, "Room temperature is too high"));
@@ -156,15 +158,6 @@ class ReportServiceTest {
         service.markAllRead(colleagueId);
 
         verify(reads).saveAll(any());
-    }
-
-    private User lecturer(UUID id, String email) {
-        User user = new User();
-        user.setId(id);
-        user.setEmail(email);
-        user.setRole(Role.LECTURER);
-        user.setActive(true);
-        return user;
     }
 
     private StudentReport report() {

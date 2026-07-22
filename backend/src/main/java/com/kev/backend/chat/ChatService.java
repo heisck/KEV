@@ -5,6 +5,7 @@ import com.kev.backend.auth.User;
 import com.kev.backend.auth.UserRepository;
 import com.kev.backend.auth.dto.UserDto;
 import com.kev.backend.common.ApiException;
+import com.kev.backend.common.EntityUtils;
 import com.kev.backend.notification.Notification;
 import com.kev.backend.notification.NotificationRepository;
 import java.time.Instant;
@@ -60,16 +61,15 @@ public class ChatService {
     public List<ConversationSummaryDto> listConversations(UUID userId) {
         List<Conversation> items = conversations.findAllForUser(userId);
         if (items.isEmpty()) return List.of();
-        List<Long> ids = items.stream().map(Conversation::getId).toList();
+        List<Long> ids = items.stream().map(c -> c.getId()).toList();
         Map<Long, Message> latest = messages.findLatestByConversationIds(ids).stream()
-                .collect(Collectors.toMap(Message::getConversationId, Function.identity(), ChatService::newer));
+                .collect(Collectors.toMap(m -> m.getConversationId(), Function.identity(), ChatService::newer));
         Map<Long, Long> unread = messages.countUnreadByConversationIds(ids, userId).stream()
-                .collect(Collectors.toMap(
-                        ConversationMessageCount::getConversationId, ConversationMessageCount::getCount));
+                .collect(Collectors.toMap(c -> c.getConversationId(), c -> c.getCount()));
         Map<UUID, User> peers = users
                 .findAllById(items.stream().map(item -> peerId(item, userId)).toList())
                 .stream()
-                .collect(Collectors.toMap(User::getId, Function.identity()));
+                .collect(Collectors.toMap(u -> u.getId(), Function.identity()));
         return items.stream()
                 .map(item -> summary(item, userId, peers, latest, unread))
                 .filter(java.util.Objects::nonNull)
@@ -79,10 +79,9 @@ public class ChatService {
     @Transactional
     public MessageDto sendMessage(UUID userId, UUID peerId, SendMessageRequest request) {
         if (peerId.equals(userId)) throw new ApiException(HttpStatus.BAD_REQUEST, "You cannot message yourself");
-        users.findById(peerId).orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Peer not found"));
-        User sender =
-                users.findById(userId).orElseThrow(() -> new ApiException(HttpStatus.UNAUTHORIZED, "Unauthorized"));
-        Conversation conversation = conversations.findByUsers(userId, peerId).orElseGet(() -> create(userId, peerId));
+        EntityUtils.requireNonNull(users.findById(peerId), "Peer not found");
+        User sender = EntityUtils.requireNonNull(users.findById(userId), HttpStatus.UNAUTHORIZED, "Unauthorized");
+        Conversation conversation = getOrCreateConversation(userId, peerId);
         conversation.setUpdatedAt(Instant.now());
         conversations.save(conversation);
         Message message = new Message();
@@ -102,11 +101,20 @@ public class ChatService {
         });
     }
 
-    private Conversation create(UUID userId, UUID peerId) {
-        Conversation conversation = new Conversation();
-        conversation.setUser1Id(userId);
-        conversation.setUser2Id(peerId);
-        return conversations.save(conversation);
+    private Conversation getOrCreateConversation(UUID userId, UUID peerId) {
+        return conversations.findByUsers(userId, peerId).orElseGet(() -> {
+            try {
+                Conversation conversation = new Conversation();
+                conversation.setUser1Id(userId);
+                conversation.setUser2Id(peerId);
+                return conversations.saveAndFlush(conversation);
+            } catch (org.springframework.dao.DataIntegrityViolationException e) {
+                return conversations
+                        .findByUsers(userId, peerId)
+                        .orElseThrow(() ->
+                                new ApiException(HttpStatus.INTERNAL_SERVER_ERROR, "Failed to create conversation"));
+            }
+        });
     }
 
     private Notification chatNotification(UUID peerId, UUID senderId, User sender, Message message) {

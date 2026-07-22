@@ -1,9 +1,8 @@
 package com.kev.backend.report;
 
-import com.kev.backend.auth.Role;
 import com.kev.backend.auth.User;
 import com.kev.backend.auth.UserRepository;
-import com.kev.backend.common.ApiException;
+import com.kev.backend.common.EntityUtils;
 import com.kev.backend.directory.DirectoryStudent;
 import com.kev.backend.directory.DirectoryStudentRepository;
 import com.kev.backend.directory.dto.StudentRecord;
@@ -12,12 +11,12 @@ import com.kev.backend.notification.NotificationRepository;
 import com.kev.backend.report.dto.CreateStudentReportRequest;
 import com.kev.backend.report.dto.StudentReportDto;
 import com.kev.backend.session.ExamSession;
+import com.kev.backend.session.SessionInvigilatorRepository;
 import com.kev.backend.session.SessionService;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -30,6 +29,7 @@ public class ReportService {
     private final UserRepository users;
     private final NotificationRepository notifications;
     private final SessionService sessions;
+    private final SessionInvigilatorRepository invigilators;
 
     public ReportService(
             StudentReportRepository reports,
@@ -37,21 +37,22 @@ public class ReportService {
             DirectoryStudentRepository students,
             UserRepository users,
             NotificationRepository notifications,
-            SessionService sessions) {
+            SessionService sessions,
+            SessionInvigilatorRepository invigilators) {
         this.reports = reports;
         this.reads = reads;
         this.students = students;
         this.users = users;
         this.notifications = notifications;
         this.sessions = sessions;
+        this.invigilators = invigilators;
     }
 
     @Transactional
     public StudentReportDto create(UUID userId, CreateStudentReportRequest request) {
-        ExamSession session = sessions.requireVisible(request.sessionId());
+        ExamSession session = sessions.requireMember(userId, request.sessionId());
         DirectoryStudent student = request.studentId() != null
-                ? students.findById(request.studentId())
-                        .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Student not found"))
+                ? EntityUtils.requireNonNull(students.findById(request.studentId()), "Student not found")
                 : null;
         User author = requireUser(userId);
         StudentReport report = new StudentReport();
@@ -69,7 +70,7 @@ public class ReportService {
     public List<StudentReportDto> list(UUID userId) {
         List<StudentReport> visible = reports.findAllVisible();
         if (visible.isEmpty()) return List.of();
-        List<Long> ids = visible.stream().map(StudentReport::getId).toList();
+        List<Long> ids = visible.stream().map(r -> r.getId()).toList();
         Set<Long> readIds = new HashSet<>(reads.findReadReportIds(userId, ids));
         return visible.stream()
                 .map(report -> toDto(report, readIds.contains(report.getId())))
@@ -78,7 +79,7 @@ public class ReportService {
 
     @Transactional
     public void markRead(UUID userId, Long reportId) {
-        StudentReport report = requireReport(reportId);
+        requireReport(reportId);
         if (!reads.existsByReportIdAndUserId(reportId, userId)) {
             reads.save(receipt(reportId, userId));
         }
@@ -88,7 +89,7 @@ public class ReportService {
     public void markAllRead(UUID userId) {
         List<StudentReport> visible = reports.findAllVisible();
         if (visible.isEmpty()) return;
-        List<Long> ids = visible.stream().map(StudentReport::getId).toList();
+        List<Long> ids = visible.stream().map(r -> r.getId()).toList();
         Set<Long> readIds = new HashSet<>(reads.findReadReportIds(userId, ids));
         List<StudentReportRead> missing = ids.stream()
                 .filter(id -> !readIds.contains(id))
@@ -98,11 +99,11 @@ public class ReportService {
     }
 
     private StudentReport requireReport(Long reportId) {
-        return reports.findById(reportId).orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Report not found"));
+        return EntityUtils.requireNonNull(reports.findById(reportId), "Report not found");
     }
 
     private User requireUser(UUID userId) {
-        return users.findById(userId).orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "User not found"));
+        return EntityUtils.requireNonNull(users.findById(userId), "User not found");
     }
 
     private StudentReportRead receipt(Long reportId, UUID userId) {
@@ -113,8 +114,17 @@ public class ReportService {
     }
 
     private void notifyInvigilators(StudentReport report, UUID authorId) {
-        List<Notification> items = users.findAllByRoleInAndActiveTrue(List.of(Role.LECTURER, Role.ADMIN)).stream()
-                .map(User::getId)
+        Set<UUID> recipientIds = new HashSet<>();
+        if (report.getSession() != null && report.getSession().getCreatedBy() != null) {
+            recipientIds.add(report.getSession().getCreatedBy());
+        }
+        if (report.getSession() != null && report.getSession().getId() != null) {
+            var list = invigilators.findBySessionId(report.getSession().getId());
+            if (list != null) {
+                list.forEach(i -> recipientIds.add(i.getUserId()));
+            }
+        }
+        List<Notification> items = recipientIds.stream()
                 .filter(recipientId -> !recipientId.equals(authorId))
                 .map(recipientId -> notification(report, recipientId))
                 .toList();
@@ -139,13 +149,13 @@ public class ReportService {
         ExamSession session = report.getSession();
         return new StudentReportDto(
                 report.getId(),
-                session.getId(),
+                session != null ? session.getId() : null,
                 sessionTitle(session),
-                session.getSessionCode(),
-                session.getExamDate(),
-                author.getId(),
-                displayName(author),
-                author.getEmail(),
+                session != null ? session.getSessionCode() : null,
+                session != null ? session.getExamDate() : null,
+                author != null ? author.getId() : null,
+                author != null ? displayName(author) : "",
+                author != null ? author.getEmail() : "",
                 report.getStudent() != null ? StudentRecord.from(report.getStudent()) : null,
                 report.getMessage(),
                 report.getCreatedAt(),
@@ -153,12 +163,14 @@ public class ReportService {
     }
 
     private String displayName(User user) {
+        if (user == null) return "";
         return user.getDisplayName() != null && !user.getDisplayName().isBlank()
                 ? user.getDisplayName()
                 : user.getEmail();
     }
 
     private String sessionTitle(ExamSession session) {
+        if (session == null) return "Session";
         return session.getTitle() != null && !session.getTitle().isBlank()
                 ? session.getTitle()
                 : session.getSessionCode();

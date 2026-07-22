@@ -54,6 +54,22 @@ export const UserDtoSchema = z.object({
 });
 export type UserDto = z.infer<typeof UserDtoSchema>;
 
+export const CreateLecturerRequestSchema = z.object({
+  fullName: z.string().min(1, 'Full name is required'),
+  lecturerId: z.string().min(1, 'Lecturer ID is required'),
+  universityEmail: z.string().email('Invalid university email'),
+  personalEmail: z.string().email('Invalid personal email'),
+  phone: z.string().min(1, 'Phone number is required'),
+});
+export type CreateLecturerRequest = z.infer<typeof CreateLecturerRequestSchema>;
+
+export const CreateAdminRequestSchema = z.object({
+  fullName: z.string().min(1, 'Full name is required'),
+  email: z.string().email('Invalid email address'),
+  password: z.string().min(6, 'Password must be at least 6 characters'),
+});
+export type CreateAdminRequest = z.infer<typeof CreateAdminRequestSchema>;
+
 export const AuthResponseSchema = z.object({
   accessToken: z.string(),
   refreshToken: z.string(),

@@ -10,13 +10,12 @@ before writing code. If anything here is ambiguous or conflicts with a request, 
 
 A campus/exam mobile app. Polyglot monorepo:
 
-| Path                  | Stack                                                             | Purpose                                           |
-| --------------------- | ----------------------------------------------------------------- | ------------------------------------------------- |
-| `frontend/`           | Expo SDK 54, React Native 0.81, React 19, TypeScript, Expo Router | Mobile app                                        |
-| `backend/`            | Spring Boot 4.1, Java 21, Maven                                   | REST API                                          |
-| `ml/`                 | Python 3.12, FastAPI, Hugging Face (uv)                           | Face-model service (stub)                         |
-| `packages/api-types/` | TypeScript                                                        | Types generated from backend OpenAPI              |
-| `ui-mockup-html/`     | Static HTML                                                       | **Reference only — do NOT edit, import, or port** |
+| Path                  | Stack                                                             | Purpose                              |
+| --------------------- | ----------------------------------------------------------------- | ------------------------------------ |
+| `frontend/`           | Expo SDK 54, React Native 0.81, React 19, TypeScript, Expo Router | Mobile app                           |
+| `backend/`            | Spring Boot 4.1, Java 21, Maven                                   | REST API                             |
+| `ml/`                 | Python 3.12, FastAPI, Hugging Face (uv)                           | Face-model service (stub)            |
+| `packages/api-types/` | TypeScript                                                        | Types generated from backend OpenAPI |
 
 Infra: **Neon** (serverless Postgres), **Upstash** (Redis), **Sentry** (errors, all 3 services),
 **Google** OAuth (sign-in → app JWT). Orchestrated with **npm workspaces + Turborepo**.
@@ -24,12 +23,11 @@ Infra: **Neon** (serverless Postgres), **Upstash** (Redis), **Sentry** (errors, 
 ## 2. Golden rules
 
 1. **Never commit secrets.** Everything sensitive comes from env vars; only `*.env.example` is tracked. See `docs/ENVIRONMENT.md`.
-2. **Do not touch `ui-mockup-html/`.** It is design reference, kept isolated by request.
-3. **Do not assume — ask.** Especially on auth, data model, money, deletions, and anything irreversible.
-4. **Validate all external input** at the boundary (Zod on the frontend, Bean Validation on the backend, Pydantic in ML).
-5. **Tests + types are part of "done."** New code ships with tests; `typecheck`, `lint`, and tests must pass.
-6. **Conventional Commits** (`type(scope): subject`), scopes: `root|frontend|backend|ml|api-types|ci|deps|docs|release|security`.
-7. Keep changes minimal and in the style of surrounding code. No drive-by rewrites.
+2. **Do not assume — ask.** Especially on auth, data model, money, deletions, and anything irreversible.
+3. **Validate all external input** at the boundary (Zod on the frontend, Bean Validation on the backend, Pydantic in ML).
+4. **Tests + types are part of "done."** New code ships with tests; `typecheck`, `lint`, and tests must pass.
+5. **Conventional Commits** (`type(scope): subject`), scopes: `root|frontend|backend|ml|api-types|ci|deps|docs|release|security`.
+6. Keep changes minimal and in the style of surrounding code. No drive-by rewrites.
 
 ## 3. Commands (run from repo root unless noted)
 

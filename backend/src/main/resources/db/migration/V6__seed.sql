@@ -1,8 +1,4 @@
--- Demo seed: mock UITS directory + one premium admin (password: Admin@1234).
-insert into users (email, display_name, role, plan, password_hash)
-values ('admin@kev.app', 'KEV Admin', 'ADMIN', 'PREMIUM',
-        '$2b$10$wBliUXb6rqjAUYcbLPVeN.lj2DIQfJcWwxnSMWwGOwyHeodp87lKm');
-
+-- Demo seed: UITS directory students.
 insert into directory_students (index_number, full_name, programme, level, photo_url, enrolled, fees_status) values
 ('10953001', 'Ama Serwaa Boateng',   'BSc Computer Science',          300, 'https://i.pravatar.cc/300?img=1',  true,  'PAID'),
 ('10953002', 'Kwame Osei Mensah',    'BSc Computer Science',          300, 'https://i.pravatar.cc/300?img=2',  true,  'PAID'),

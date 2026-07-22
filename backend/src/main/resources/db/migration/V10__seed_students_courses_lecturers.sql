@@ -79,16 +79,4 @@ select s.id, c.id
 from directory_students s
 join courses c on c.programme = s.programme and c.level = s.level;
 
--- 4. More pre-provisioned lecturers (LEC-004..LEC-013). Password: Lecturer@1234.
-insert into users (email, display_name, role, plan, password_hash, lecturer_id, personal_email, phone, status, is_active) values
-('yaw.boateng@knust.edu.gh',    'Dr. Yaw Boateng',    'LECTURER', 'FREE', '$2b$10$TZ7A8ea6EDI2wbqEWFotTeN68uRzWI64/JqAorcbxPl9gXKHBdHWC', 'LEC-004', 'yaw.boateng@gmail.com',    '+233 24 200 0004', 'ACTIVE', true),
-('abena.osei@knust.edu.gh',     'Dr. Abena Osei',     'LECTURER', 'FREE', '$2b$10$TZ7A8ea6EDI2wbqEWFotTeN68uRzWI64/JqAorcbxPl9gXKHBdHWC', 'LEC-005', 'abena.osei@gmail.com',     '+233 20 200 0005', 'ACTIVE', true),
-('kwaku.adjei@knust.edu.gh',    'Prof. Kwaku Adjei',  'LECTURER', 'FREE', '$2b$10$TZ7A8ea6EDI2wbqEWFotTeN68uRzWI64/JqAorcbxPl9gXKHBdHWC', 'LEC-006', 'kwaku.adjei@yahoo.com',    '+233 54 200 0006', 'ACTIVE', true),
-('efua.danso@knust.edu.gh',     'Dr. Efua Danso',     'LECTURER', 'FREE', '$2b$10$TZ7A8ea6EDI2wbqEWFotTeN68uRzWI64/JqAorcbxPl9gXKHBdHWC', 'LEC-007', 'efua.danso@gmail.com',     '+233 24 200 0007', 'ACTIVE', true),
-('kojo.asante@knust.edu.gh',    'Dr. Kojo Asante',    'LECTURER', 'FREE', '$2b$10$TZ7A8ea6EDI2wbqEWFotTeN68uRzWI64/JqAorcbxPl9gXKHBdHWC', 'LEC-008', 'kojo.asante@gmail.com',    '+233 20 200 0008', 'ACTIVE', true),
-('adwoa.frimpong@knust.edu.gh', 'Prof. Adwoa Frimpong','LECTURER','FREE', '$2b$10$TZ7A8ea6EDI2wbqEWFotTeN68uRzWI64/JqAorcbxPl9gXKHBdHWC', 'LEC-009', 'adwoa.frimpong@yahoo.com', '+233 54 200 0009', 'ACTIVE', true),
-('kwabena.owusu@knust.edu.gh',  'Dr. Kwabena Owusu',  'LECTURER', 'FREE', '$2b$10$TZ7A8ea6EDI2wbqEWFotTeN68uRzWI64/JqAorcbxPl9gXKHBdHWC', 'LEC-010', 'kwabena.owusu@gmail.com',  '+233 24 200 0010', 'ACTIVE', true),
-('akosua.mensah@knust.edu.gh',  'Dr. Akosua Mensah',  'LECTURER', 'FREE', '$2b$10$TZ7A8ea6EDI2wbqEWFotTeN68uRzWI64/JqAorcbxPl9gXKHBdHWC', 'LEC-011', 'akosua.mensah@gmail.com',  '+233 20 200 0011', 'ACTIVE', true),
-('yaw.amankwah@knust.edu.gh',   'Prof. Yaw Amankwah', 'LECTURER', 'FREE', '$2b$10$TZ7A8ea6EDI2wbqEWFotTeN68uRzWI64/JqAorcbxPl9gXKHBdHWC', 'LEC-012', 'yaw.amankwah@yahoo.com',   '+233 54 200 0012', 'ACTIVE', true),
-('esi.nkrumah@knust.edu.gh',    'Dr. Esi Nkrumah',    'LECTURER', 'FREE', '$2b$10$TZ7A8ea6EDI2wbqEWFotTeN68uRzWI64/JqAorcbxPl9gXKHBdHWC', 'LEC-013', 'esi.nkrumah@gmail.com',    '+233 24 200 0013', 'ACTIVE', true)
-on conflict (email) do nothing;
+
