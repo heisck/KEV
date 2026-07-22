@@ -1,7 +1,7 @@
-import { Image } from 'expo-image';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 
+import { InitialAvatar } from '@/components/ui/InitialAvatar';
 import { radii, spacing, usePalette } from '@/theme';
 
 type ScreenHeaderProps = {
@@ -28,15 +28,13 @@ export function ScreenHeader({
   return (
     <View style={styles.row} testID={testID}>
       <Pressable accessibilityRole="button" onPress={onPressAvatar} style={styles.identity}>
-        {avatarUrl ? (
-          <Image source={{ uri: avatarUrl }} style={styles.avatar} contentFit="cover" />
-        ) : (
-          <View style={[styles.avatar, styles.avatarFallback, { backgroundColor: p.primary20 }]}>
-            <Text style={[styles.avatarInitial, { color: p.primaryDeep }]}>
-              {name.charAt(0).toUpperCase()}
-            </Text>
-          </View>
-        )}
+        <InitialAvatar
+          uri={avatarUrl}
+          seed={name}
+          imageStyle={styles.avatar}
+          fallbackStyle={[styles.avatar, styles.avatarFallback, { backgroundColor: p.primary20 }]}
+          initialStyle={[styles.avatarInitial, { color: p.primaryDeep }]}
+        />
         <View>
           <Text style={[styles.greeting, { color: p.muted }]}>{greeting}</Text>
           <Text style={[styles.name, { color: p.ink }]}>{name}</Text>

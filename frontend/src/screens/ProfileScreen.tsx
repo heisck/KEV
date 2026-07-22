@@ -1,5 +1,4 @@
 import Constants from 'expo-constants';
-import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -16,6 +15,7 @@ import {
 import { ProfilePreferences } from '@/components/settings/ProfilePreferences';
 import { ProfileRow as Row, SectionLabel } from '@/components/settings/ProfileSettingsRows';
 import { HapticPressable } from '@/components/ui/HapticPressable';
+import { InitialAvatar } from '@/components/ui/InitialAvatar';
 import { useAuthStore } from '@/store/authStore';
 import { spacing, usePalette } from '@/theme';
 import { profileStyles as styles } from '@/screens/profileStyles';
@@ -62,17 +62,17 @@ export function ProfileScreen() {
       >
         <View style={styles.identity}>
           <View style={[styles.avatarRing, { borderColor: p.hairline }]}>
-            {user?.pictureUrl ? (
-              <Image source={{ uri: user.pictureUrl }} style={styles.avatar} contentFit="cover" />
-            ) : (
-              <View
-                style={[styles.avatar, styles.avatarFallback, { backgroundColor: p.primary12 }]}
-              >
-                <Text style={[styles.avatarInitial, { color: p.primary }]}>
-                  {name.charAt(0).toUpperCase()}
-                </Text>
-              </View>
-            )}
+            <InitialAvatar
+              uri={user?.pictureUrl}
+              seed={name}
+              imageStyle={styles.avatar}
+              fallbackStyle={[
+                styles.avatar,
+                styles.avatarFallback,
+                { backgroundColor: p.primary12 },
+              ]}
+              initialStyle={[styles.avatarInitial, { color: p.primary }]}
+            />
           </View>
           <Text style={[styles.name, { color: p.ink }]}>{name}</Text>
           <Text style={[styles.email, { color: p.muted }]}>{email}</Text>
