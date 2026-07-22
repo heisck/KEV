@@ -6,6 +6,7 @@ import {
   type SessionDraft,
   type WizardValues,
 } from '@/components/session/sessionForm';
+import { logger } from '@/lib/logger';
 
 const SAVE_DELAY_MS = 150;
 
@@ -23,7 +24,9 @@ export function useSessionDraft(key: string) {
     if (!pending.current) return;
     const value = pending.current;
     pending.current = null;
-    void AsyncStorage.setItem(key, JSON.stringify(value));
+    AsyncStorage.setItem(key, JSON.stringify(value)).catch((error: unknown) =>
+      logger.warn('Failed to persist session draft', { error: String(error) }),
+    );
   }, [key]);
 
   useEffect(() => {
@@ -36,7 +39,10 @@ export function useSessionDraft(key: string) {
         setDraft(parsed?.success ? parsed.data : null);
         setReady(true);
       })
-      .catch(() => active && setReady(true));
+      .catch((error: unknown) => {
+        logger.warn('Failed to load session draft', { error: String(error) });
+        if (active) setReady(true);
+      });
     return () => {
       active = false;
       if (timer.current) clearTimeout(timer.current);
