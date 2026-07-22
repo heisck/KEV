@@ -4,14 +4,10 @@ import com.kev.backend.common.ApiException;
 import com.kev.backend.config.AppProperties;
 import java.util.List;
 import org.springframework.http.HttpStatus;
-import org.springframework.security.oauth2.core.DelegatingOAuth2TokenValidator;
-import org.springframework.security.oauth2.core.OAuth2Error;
 import org.springframework.security.oauth2.core.OAuth2TokenValidator;
-import org.springframework.security.oauth2.core.OAuth2TokenValidatorResult;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.jwt.JwtClaimValidator;
 import org.springframework.security.oauth2.jwt.JwtException;
-import org.springframework.security.oauth2.jwt.JwtValidators;
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.stereotype.Component;
 
@@ -29,18 +25,9 @@ public class GoogleTokenVerifier {
     private final NimbusJwtDecoder decoder;
 
     public GoogleTokenVerifier(AppProperties props) {
-        NimbusJwtDecoder nimbus = NimbusJwtDecoder.withJwkSetUri(GOOGLE_JWKS).build();
         OAuth2TokenValidator<Jwt> issuer = new JwtClaimValidator<String>("iss", GOOGLE_ISSUERS::contains);
-        OAuth2TokenValidator<Jwt> audience = jwt -> {
-            List<String> allowed = props.auth().google().clientIds();
-            boolean ok = jwt.getAudience() != null && jwt.getAudience().stream().anyMatch(allowed::contains);
-            return ok
-                    ? OAuth2TokenValidatorResult.success()
-                    : OAuth2TokenValidatorResult.failure(
-                            new OAuth2Error("invalid_token", "Audience not allowed", null));
-        };
-        nimbus.setJwtValidator(new DelegatingOAuth2TokenValidator<>(JwtValidators.createDefault(), issuer, audience));
-        this.decoder = nimbus;
+        this.decoder = OidcJwtDecoders.forProvider(
+                GOOGLE_JWKS, issuer, () -> props.auth().google().clientIds());
     }
 
     public GoogleUser verify(String idToken) {
