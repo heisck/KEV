@@ -1,34 +1,13 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { Keyboard, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { useEffect, useMemo, useState } from 'react';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { useCreateReport, useSessions } from '@/api/hooks';
 import { PlusIcon, SendIcon } from '@/components/kev/icons';
-import {
-  ReportFormattingToolbar,
-  type ReportFormat,
-} from '@/components/reports/ReportFormattingToolbar';
+import { RichReportEditor } from '@/components/reports/RichReportEditor';
 import { HapticPressable } from '@/components/ui/HapticPressable';
+import { hasVisibleReportContent, richHtmlToReportMarkup } from '@/lib/reportRichText';
 import { toast } from '@/lib/toast';
 import { radii, spacing, usePalette } from '@/theme';
-
-type Selection = { start: number; end: number };
-const LIST_FORMATS: ReportFormat[] = ['numbered-list', 'circle-list', 'bullet-list'];
-
-function serializeReportText(value: string, formats: ReadonlySet<ReportFormat>) {
-  return value
-    .split('\n')
-    .map((line) => {
-      let formatted = line;
-      if (formats.has('bold')) formatted = `**${formatted}**`;
-      if (formats.has('italic')) formatted = `_${formatted}_`;
-      if (formats.has('underline')) formatted = `<u>${formatted}</u>`;
-      if (formats.has('strike')) formatted = `~~${formatted}~~`;
-      if (formats.has('align-right')) formatted = `<right>${formatted}</right>`;
-      else if (formats.has('align-left')) formatted = `<left>${formatted}</left>`;
-      return formatted;
-    })
-    .join('\n');
-}
 
 export function ReportCreatePanel({
   onSendingChange,
@@ -40,11 +19,8 @@ export function ReportCreatePanel({
   const create = useCreateReport();
   const available = useMemo(() => sessions ?? [], [sessions]);
   const [sessionId, setSessionId] = useState<number | null>(null);
-  const [content, setContent] = useState('');
+  const [contentHtml, setContentHtml] = useState('');
   const [editing, setEditing] = useState(false);
-  const [activeFormats, setActiveFormats] = useState<Set<ReportFormat>>(new Set());
-  const [selection, setSelection] = useState<Selection>({ start: 0, end: 0 });
-  const input = useRef<TextInput>(null);
 
   useEffect(() => {
     if (sessionId === null && available[0]) setSessionId(available[0].id);
@@ -52,64 +28,15 @@ export function ReportCreatePanel({
 
   useEffect(() => onSendingChange(create.isPending), [create.isPending, onSendingChange]);
 
-  const focus = () => {
-    setEditing(true);
-    setTimeout(() => input.current?.focus(), 0);
-  };
-
-  const formatList = (marker: string) => {
-    if (!editing) focus();
-    const selected = content.slice(selection.start, selection.end);
-    const lead = selection.start > 0 && content[selection.start - 1] !== '\n' ? '\n' : '';
-    const insertion = `${lead}${(selected || '')
-      .split('\n')
-      .map((line) => `${marker}${line}`)
-      .join('\n')}`;
-    setContent(`${content.slice(0, selection.start)}${insertion}${content.slice(selection.end)}`);
-    setSelection({
-      start: selection.start + insertion.length,
-      end: selection.start + insertion.length,
-    });
-    setTimeout(() => input.current?.focus(), 0);
-  };
-
-  const applyFormat = (next: ReportFormat) => {
-    if (!editing) focus();
-    if (next === 'numbered-list') formatList('1. ');
-    else if (next === 'circle-list') formatList('○ ');
-    else if (next === 'bullet-list') formatList('• ');
-    setActiveFormats((current) => {
-      const updated = new Set(current);
-      const exclusive = next.startsWith('align-')
-        ? (['align-left', 'align-right'] as ReportFormat[])
-        : LIST_FORMATS;
-      if (current.has(next)) {
-        updated.delete(next);
-      } else if (next.startsWith('align-') || next.endsWith('-list')) {
-        exclusive.forEach((format) => updated.delete(format));
-        updated.add(next);
-      } else {
-        updated.add(next);
-      }
-      return updated;
-    });
-  };
-
-  const hideKeyboard = () => {
-    input.current?.blur();
-    Keyboard.dismiss();
-  };
-
   const send = async () => {
-    if (!sessionId || !content.trim() || create.isPending) return;
+    if (!sessionId || !hasVisibleReportContent(contentHtml) || create.isPending) return;
     try {
       await create.mutateAsync({
         sessionId,
-        message: serializeReportText(content.trim(), activeFormats),
+        message: richHtmlToReportMarkup(contentHtml),
       });
-      setContent('');
+      setContentHtml('');
       setEditing(false);
-      setActiveFormats(new Set());
       toast.success('Report sent');
     } catch {
       toast.error('Could not send report');
@@ -118,7 +45,6 @@ export function ReportCreatePanel({
 
   return (
     <View style={styles.panel}>
-      <ReportFormattingToolbar active={activeFormats} onSelect={applyFormat} />
       <ScrollView
         horizontal
         keyboardShouldPersistTaps="always"
@@ -141,60 +67,28 @@ export function ReportCreatePanel({
           );
         })}
       </ScrollView>
-      {editing ? (
-        <View style={styles.editorActions}>
-          <HapticPressable
-            accessibilityLabel="Hide keyboard"
-            haptic="select"
-            onPress={hideKeyboard}
-            style={[styles.done, { backgroundColor: p.primary12 }]}
-          >
-            <Text style={[styles.doneText, { color: p.primaryDeep }]}>Go</Text>
-          </HapticPressable>
-        </View>
-      ) : null}
-      <TextInput
-        ref={input}
-        editable={editing}
-        multiline
-        onChangeText={setContent}
-        onSelectionChange={(event) => setSelection(event.nativeEvent.selection)}
-        placeholder={editing ? 'Write your report…' : 'Tap + to start a report'}
-        placeholderTextColor={p.muted}
-        selection={selection}
-        style={[
-          styles.editor,
-          {
-            backgroundColor: p.surfaceDim,
-            color: p.ink,
-            fontStyle: activeFormats.has('italic') ? 'italic' : 'normal',
-            fontWeight: activeFormats.has('bold') ? '800' : '400',
-            textAlign: activeFormats.has('align-right') ? 'right' : 'left',
-            textDecorationLine:
-              activeFormats.has('underline') && activeFormats.has('strike')
-                ? 'underline line-through'
-                : activeFormats.has('underline')
-                  ? 'underline'
-                  : activeFormats.has('strike')
-                    ? 'line-through'
-                    : 'none',
-          },
-        ]}
-        textAlignVertical="top"
-        value={content}
+      <RichReportEditor
+        editing={editing}
+        html={contentHtml}
+        onChange={setContentHtml}
+        onStart={() => setEditing(true)}
       />
       {available.length === 0 ? (
         <Text style={[styles.empty, { color: p.muted }]}>No sessions are available.</Text>
       ) : null}
       <HapticPressable
         accessibilityLabel={editing ? 'Send report' : 'Start report'}
-        disabled={editing && (!sessionId || !content.trim() || create.isPending)}
+        disabled={
+          editing && (!sessionId || !hasVisibleReportContent(contentHtml) || create.isPending)
+        }
         haptic={editing ? 'success' : 'select'}
-        onPress={editing ? send : focus}
+        onPress={editing ? send : () => setEditing(true)}
         style={[
           styles.fab,
           { backgroundColor: p.primary },
-          editing && (!sessionId || !content.trim() || create.isPending) && styles.disabled,
+          editing &&
+            (!sessionId || !hasVisibleReportContent(contentHtml) || create.isPending) &&
+            styles.disabled,
         ]}
         testID="report-compose-action"
       >
@@ -214,23 +108,6 @@ const styles = StyleSheet.create({
   sessions: { alignItems: 'center', gap: spacing.sm },
   session: { borderRadius: radii.pill, paddingHorizontal: spacing.lg, paddingVertical: spacing.sm },
   sessionText: { fontSize: 12, fontWeight: '700' },
-  editorActions: { alignItems: 'flex-end', marginBottom: -spacing.sm },
-  done: {
-    alignItems: 'center',
-    borderRadius: radii.pill,
-    height: 30,
-    justifyContent: 'center',
-    width: 52,
-  },
-  doneText: { fontSize: 13, fontWeight: '800' },
-  editor: {
-    borderRadius: radii.lg,
-    flex: 1,
-    fontSize: 16,
-    lineHeight: 24,
-    minHeight: 240,
-    padding: spacing.lg,
-  },
   empty: { paddingVertical: spacing.xxl, textAlign: 'center' },
   fab: {
     alignItems: 'center',

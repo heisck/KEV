@@ -8,8 +8,11 @@ import { useNotificationsStore } from '@/store/notificationsStore';
 import { useSettingsStore } from '@/store/settingsStore';
 import { getPalette } from '@/theme/palette';
 
+const mockPush = jest.fn();
+const mockReplace = jest.fn();
+
 jest.mock('expo-router', () => ({
-  useRouter: () => ({ replace: jest.fn() }),
+  useRouter: () => ({ push: mockPush, replace: mockReplace }),
 }));
 jest.mock('@/api/notifications', () => ({
   deleteNotification: jest.fn(async () => undefined),
@@ -40,6 +43,8 @@ const INITIAL_ITEMS = [
     at: 'Now',
     day: 'today' as const,
     icon: 'reminder' as const,
+    kind: 'CHAT' as const,
+    targetId: '11111111-1111-1111-1111-111111111111',
     read: false,
   },
   {
@@ -49,7 +54,30 @@ const INITIAL_ITEMS = [
     at: 'Yesterday',
     day: 'yesterday' as const,
     icon: 'complete' as const,
+    kind: 'INFO' as const,
     read: true,
+  },
+  {
+    id: 'n3',
+    title: 'New report',
+    body: 'Review this report',
+    at: 'Now',
+    day: 'today' as const,
+    icon: 'progress' as const,
+    kind: 'REPORT' as const,
+    targetId: '42',
+    read: false,
+  },
+  {
+    id: 'n4',
+    title: 'Session created',
+    body: 'A session is available',
+    at: 'Now',
+    day: 'today' as const,
+    icon: 'focus' as const,
+    kind: 'SESSION' as const,
+    targetId: '7',
+    read: false,
   },
 ];
 
@@ -68,6 +96,8 @@ function renderScreen() {
 
 describe('NotificationsScreen', () => {
   beforeEach(() => {
+    mockPush.mockClear();
+    mockReplace.mockClear();
     useSettingsStore.setState({ theme: 'dark' });
     useNotificationsStore.setState({
       items: INITIAL_ITEMS.map((item) => ({ ...item })),
@@ -107,5 +137,26 @@ describe('NotificationsScreen', () => {
 
     expect(useNotificationsStore.getState().unreadCount()).toBe(0);
     expect(queryByTestId('notification-unread-n1')).toBeNull();
+  });
+
+  it('opens chat, report, and session notifications at their targets', () => {
+    const { getByLabelText } = renderScreen();
+
+    fireEvent.press(getByLabelText('New message'));
+    fireEvent.press(getByLabelText('New report'));
+    fireEvent.press(getByLabelText('Session created'));
+
+    expect(mockPush).toHaveBeenNthCalledWith(1, {
+      pathname: '/chat/[id]',
+      params: { id: '11111111-1111-1111-1111-111111111111' },
+    });
+    expect(mockPush).toHaveBeenNthCalledWith(2, {
+      pathname: '/reports',
+      params: { report: '42' },
+    });
+    expect(mockPush).toHaveBeenNthCalledWith(3, {
+      pathname: '/exam/[id]',
+      params: { id: '7' },
+    });
   });
 });

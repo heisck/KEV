@@ -1,8 +1,8 @@
 package com.kev.backend.report;
 
+import com.kev.backend.auth.Role;
 import com.kev.backend.auth.User;
 import com.kev.backend.auth.UserRepository;
-import com.kev.backend.auth.Role;
 import com.kev.backend.common.ApiException;
 import com.kev.backend.directory.DirectoryStudent;
 import com.kev.backend.directory.DirectoryStudentRepository;
@@ -124,7 +124,7 @@ public class ReportService {
     private Notification notification(StudentReport report, UUID userId) {
         Notification notification = new Notification();
         notification.setUserId(userId);
-        notification.setType("REPORT");
+        notification.setType("REPORT:" + report.getId());
         notification.setTitle(report.getStudent() != null ? "Student report" : "Session report");
         notification.setMessage(
                 report.getStudent() != null

@@ -16,6 +16,16 @@ const LOOKS: Record<PersonKey, Look> = {
   milan: { bg: ['#E3D6F5', '#9A7ED0'], skin: '#EDB68C', hair: '#B9B4AC' },
   anna: { bg: ['#F6D8C8', '#DE8F6C'], skin: '#F0BE96', hair: '#6E3A24' },
 };
+const PERSON_KEYS = Object.keys(LOOKS) as PersonKey[];
+
+export function personForId(id: string | undefined): PersonKey {
+  if (!id) return 'me';
+  const hash = [...id].reduce(
+    (total, character) => (total * 31 + character.charCodeAt(0)) >>> 0,
+    0,
+  );
+  return PERSON_KEYS[hash % PERSON_KEYS.length] ?? 'me';
+}
 
 const isUrl = (v: string) => /^https?:\/\//i.test(v);
 

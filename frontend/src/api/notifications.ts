@@ -35,7 +35,8 @@ function relativeTime(date: Date, now: Date) {
 }
 
 function iconFor(type: string): NotificationIcon {
-  if (type === 'CHAT') return 'reminder';
+  if (type.startsWith('CHAT')) return 'reminder';
+  if (type.startsWith('REPORT')) return 'progress';
   if (type === 'SUCCESS') return 'complete';
   return 'focus';
 }
@@ -46,6 +47,10 @@ export function parseNotifications(data: unknown, now = new Date()): AppNotifica
     .parse(data)
     .map((item) => {
       const createdAt = new Date(item.createdAt);
+      const [rawKind, targetId] = item.type.split(':', 2);
+      const kind = ['CHAT', 'REPORT', 'SESSION'].includes(rawKind)
+        ? (rawKind as AppNotification['kind'])
+        : 'INFO';
       return {
         id: String(item.id),
         title: item.title,
@@ -54,6 +59,8 @@ export function parseNotifications(data: unknown, now = new Date()): AppNotifica
         day: dayFor(createdAt, now),
         icon: iconFor(item.type),
         read: item.read,
+        kind,
+        targetId,
       };
     });
 }

@@ -8,7 +8,7 @@ describe('notification API parsing', () => {
         userId: 'd9a36b8a-6170-455d-9b46-2d2a78959980',
         title: 'New message from Dr. Ama',
         message: 'Can you join my session?',
-        type: 'CHAT',
+        type: 'CHAT:8d91fa4d-6d41-4610-9137-7c75f1d417b9',
         read: false,
         createdAt: '2026-07-20T14:00:00Z',
       },
@@ -19,6 +19,8 @@ describe('notification API parsing', () => {
       title: 'New message from Dr. Ama',
       body: 'Can you join my session?',
       icon: 'reminder',
+      kind: 'CHAT',
+      targetId: '8d91fa4d-6d41-4610-9137-7c75f1d417b9',
       read: false,
     });
   });

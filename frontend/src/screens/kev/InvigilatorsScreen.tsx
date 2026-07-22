@@ -7,7 +7,7 @@ import { useLecturers } from '@/api/hooks';
 import type { UserDto } from '@/api/schemas';
 import { ScreenTopBar } from '@/components/kev/chrome';
 import { ChevronRightIcon, SearchIcon, StepsIcon } from '@/components/kev/icons';
-import { Avatar } from '@/components/kev/people';
+import { Avatar, personForId } from '@/components/kev/people';
 import { AppButton } from '@/components/ui/AppButton';
 import { BottomDrawer } from '@/components/ui/BottomDrawer';
 import { HapticPressable } from '@/components/ui/HapticPressable';
@@ -52,7 +52,7 @@ export function InvigilatorsScreen() {
             style={[styles.row, { backgroundColor: p.surfaceDim }]}
             testID={`invigilator-${i.id}`}
           >
-            <Avatar person="freja" size={44} verified />
+            <Avatar person={personForId(i.id)} size={44} verified />
             <View style={styles.rowText}>
               <Text style={[styles.rowName, { color: p.ink }]}>{i.displayName || i.email}</Text>
               <Text style={[styles.rowSub, { color: p.muted }]}>{i.role} · Active Staff</Text>
@@ -73,7 +73,7 @@ export function InvigilatorsScreen() {
       >
         {selected ? (
           <View style={styles.details}>
-            <Avatar person="freja" size={72} verified />
+            <Avatar person={personForId(selected.id)} size={72} verified />
             <View style={styles.detailRow}>
               <StepsIcon color={p.inkSoft} size={13} />
               <Text style={[styles.detailText, { color: p.ink }]}>{selected.role}</Text>
@@ -85,15 +85,6 @@ export function InvigilatorsScreen() {
                 const id = selected.id;
                 setSelected(null);
                 router.push({ pathname: '/chat/[id]', params: { id } });
-              }}
-              style={styles.detailCta}
-            />
-            <AppButton
-              label="Open group session"
-              variant="ghost"
-              onPress={() => {
-                setSelected(null);
-                router.push({ pathname: '/group-session', params: { exam: '1' } });
               }}
               style={styles.detailCta}
             />

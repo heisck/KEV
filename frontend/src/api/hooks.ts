@@ -16,6 +16,7 @@ const keys = {
   summary: (id: number) => ['sessions', id, 'summary'] as const,
   directory: (indexNumber: string) => ['directory', indexNumber] as const,
   lecturers: ['chat', 'lecturers'] as const,
+  conversations: ['chat', 'conversations'] as const,
   invigilators: ['admin', 'invigilators'] as const,
   adminSessions: ['admin', 'sessions'] as const,
   report: (id: number) => ['admin', 'sessions', id, 'report'] as const,
@@ -138,6 +139,16 @@ export function useInvigilators() {
 /** Lecturer/admin directory for chat — any signed-in user (non-admin safe). */
 export function useLecturers() {
   return useQuery({ queryKey: keys.lecturers, queryFn: () => chat.listLecturers() });
+}
+
+export function useConversations() {
+  const userId = useAuthStore((state) => state.user?.id);
+  return useQuery({
+    queryKey: [...keys.conversations, userId],
+    queryFn: chat.listConversations,
+    enabled: Boolean(userId),
+    refetchInterval: userId ? 3_000 : false,
+  });
 }
 
 export function useNotifications(enabled = true) {
