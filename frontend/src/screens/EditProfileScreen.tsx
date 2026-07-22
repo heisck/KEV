@@ -1,4 +1,3 @@
-import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
@@ -7,6 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BackIcon, PencilIcon } from '@/components/kev/icons';
 import { AppButton } from '@/components/ui/AppButton';
 import { HapticPressable } from '@/components/ui/HapticPressable';
+import { InitialAvatar } from '@/components/ui/InitialAvatar';
 import { useAuthStore } from '@/store/authStore';
 import { radii, spacing, usePalette, type Palette } from '@/theme';
 
@@ -81,17 +81,17 @@ export function EditProfileScreen() {
       >
         <View style={styles.identity}>
           <View style={[styles.avatarRing, { borderColor: p.hairline }]}>
-            {user?.pictureUrl ? (
-              <Image source={{ uri: user.pictureUrl }} style={styles.avatar} contentFit="cover" />
-            ) : (
-              <View
-                style={[styles.avatar, styles.avatarFallback, { backgroundColor: p.primary12 }]}
-              >
-                <Text style={[styles.avatarInitial, { color: p.primary }]}>
-                  {(displayName || 'K').charAt(0).toUpperCase()}
-                </Text>
-              </View>
-            )}
+            <InitialAvatar
+              uri={user?.pictureUrl}
+              seed={displayName || 'K'}
+              imageStyle={styles.avatar}
+              fallbackStyle={[
+                styles.avatar,
+                styles.avatarFallback,
+                { backgroundColor: p.primary12 },
+              ]}
+              initialStyle={[styles.avatarInitial, { color: p.primary }]}
+            />
             <View style={[styles.editBadge, { backgroundColor: p.primary, borderColor: p.bg }]}>
               <PencilIcon color={p.onPrimary} size={12} />
             </View>
