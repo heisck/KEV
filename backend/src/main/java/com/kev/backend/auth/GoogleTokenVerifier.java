@@ -43,7 +43,7 @@ public class GoogleTokenVerifier {
                     jwt.getClaimAsString("name"),
                     jwt.getClaimAsString("picture"));
         } catch (JwtException e) {
-            throw new ApiException(HttpStatus.UNAUTHORIZED, "Invalid Google ID token");
+            throw new ApiException(HttpStatus.UNAUTHORIZED, "Invalid Google ID token", e);
         }
     }
 

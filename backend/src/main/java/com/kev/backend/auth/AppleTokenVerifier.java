@@ -33,7 +33,7 @@ public class AppleTokenVerifier {
             Jwt jwt = decoder.decode(identityToken);
             return new AppleUser(jwt.getSubject(), jwt.getClaimAsString("email"));
         } catch (JwtException e) {
-            throw new ApiException(HttpStatus.UNAUTHORIZED, "Invalid Apple identity token");
+            throw new ApiException(HttpStatus.UNAUTHORIZED, "Invalid Apple identity token", e);
         }
     }
 
