@@ -1,4 +1,10 @@
 # Production profile (activated with SPRING_PROFILES_ACTIVE=prod).
+server:
+  error:
+    # Don't leak internal exception/binding messages to clients in prod.
+    include-message: never
+    include-binding-errors: never
+
 spring:
   jpa:
     properties:
