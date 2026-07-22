@@ -38,7 +38,7 @@ public class FaceVerifyController {
         try {
             probeBytes = probe.getBytes();
         } catch (IOException e) {
-            throw new ApiException(HttpStatus.BAD_REQUEST, "Could not read probe image");
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Could not read probe image", e);
         }
         String filename = probe.getOriginalFilename() != null ? probe.getOriginalFilename() : "probe.jpg";
         MlClient.VerifyFaceResponse result = ml.verifyFace(probeBytes, filename, student.photoUrl());

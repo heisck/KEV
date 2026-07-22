@@ -20,6 +20,11 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(ApiException.class)
     ProblemDetail handleApi(ApiException ex) {
+        if (ex.getStatus().is5xxServerError()) {
+            log.error("API error {}: {}", ex.getStatus().value(), ex.getMessage(), ex);
+        } else {
+            log.debug("API error {}: {}", ex.getStatus().value(), ex.getMessage(), ex);
+        }
         ProblemDetail pd = problem(ex.getStatus(), ex.getMessage());
         ex.getProperties().forEach(pd::setProperty);
         return pd;

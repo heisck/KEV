@@ -45,13 +45,22 @@ public class ArkeselSmsService {
 
             httpClient
                     .sendAsync(request, HttpResponse.BodyHandlers.ofString())
-                    .thenAccept(response -> log.info("Arkesel SMS API status: {}", response.statusCode()))
+                    .thenAccept(response -> {
+                        if (response.statusCode() >= 200 && response.statusCode() < 300) {
+                            log.info("Arkesel SMS API status: {}", response.statusCode());
+                        } else {
+                            log.warn(
+                                    "Arkesel SMS API returned non-2xx status {}: {}",
+                                    response.statusCode(),
+                                    response.body());
+                        }
+                    })
                     .exceptionally(ex -> {
-                        log.warn("Arkesel SMS dispatch failed: {}", ex.getMessage());
+                        log.warn("Arkesel SMS dispatch failed", ex);
                         return null;
                     });
         } catch (Exception ex) {
-            log.warn("Exception during Arkesel SMS dispatch: {}", ex.getMessage());
+            log.warn("Exception during Arkesel SMS dispatch", ex);
         }
     }
 

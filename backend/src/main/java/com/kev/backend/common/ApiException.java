@@ -10,12 +10,21 @@ public class ApiException extends RuntimeException {
     private final transient Map<String, Object> properties;
 
     public ApiException(HttpStatus status, String message) {
-        this(status, message, Map.of());
+        this(status, message, Map.of(), null);
+    }
+
+    /** Preserves the originating exception as the cause so it is not silently swallowed. */
+    public ApiException(HttpStatus status, String message, Throwable cause) {
+        this(status, message, Map.of(), cause);
     }
 
     /** Extension properties are copied onto the ProblemDetail (e.g. plan-limit upgrade hints). */
     public ApiException(HttpStatus status, String message, Map<String, Object> properties) {
-        super(message);
+        this(status, message, properties, null);
+    }
+
+    public ApiException(HttpStatus status, String message, Map<String, Object> properties, Throwable cause) {
+        super(message, cause);
         this.status = status;
         this.properties = properties;
     }
