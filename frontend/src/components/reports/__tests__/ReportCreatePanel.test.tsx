@@ -4,6 +4,60 @@ import { ReportCreatePanel } from '@/components/reports/ReportCreatePanel';
 import { getPalette } from '@/theme/palette';
 
 const mockCreateReport = jest.fn(async () => undefined);
+const mockSendAction = jest.fn();
+const mockCommand = jest.fn();
+
+jest.mock('react-native-pell-rich-editor', () => {
+  const React = jest.requireActual<typeof import('react')>('react');
+  const { TextInput } = jest.requireActual<typeof import('react-native')>('react-native');
+  const RichEditor = React.forwardRef(
+    (
+      props: {
+        disabled?: boolean;
+        editorInitializedCallback?: () => void;
+        initialContentHTML?: string;
+        onChange?: (value: string) => void;
+        placeholder?: string;
+        testID?: string;
+      },
+      ref,
+    ) => {
+      const { editorInitializedCallback } = props;
+      React.useImperativeHandle(ref, () => ({
+        blurContentEditor: jest.fn(),
+        command: mockCommand,
+        focusContentEditor: jest.fn(),
+        registerToolbar: jest.fn(),
+        sendAction: mockSendAction,
+        setContentHTML: jest.fn(),
+      }));
+      React.useEffect(() => editorInitializedCallback?.(), [editorInitializedCallback]);
+      return (
+        <TextInput
+          editable={!props.disabled}
+          onChangeText={props.onChange}
+          placeholder={props.placeholder}
+          testID={props.testID}
+          value={props.initialContentHTML}
+        />
+      );
+    },
+  );
+  RichEditor.displayName = 'MockRichEditor';
+  return {
+    RichEditor,
+    actions: {
+      alignLeft: 'justifyLeft',
+      alignRight: 'justifyRight',
+      insertBulletsList: 'unorderedList',
+      insertOrderedList: 'orderedList',
+      setBold: 'bold',
+      setItalic: 'italic',
+      setStrikethrough: 'strikeThrough',
+      setUnderline: 'underline',
+    },
+  };
+});
 
 jest.mock('@/api/hooks', () => ({
   useCreateReport: () => ({ isPending: false, mutateAsync: mockCreateReport }),
@@ -13,7 +67,11 @@ jest.mock('@/api/hooks', () => ({
 }));
 
 describe('ReportCreatePanel', () => {
-  beforeEach(() => mockCreateReport.mockClear());
+  beforeEach(() => {
+    mockCommand.mockClear();
+    mockCreateReport.mockClear();
+    mockSendAction.mockClear();
+  });
 
   it('allows reports for sessions the lecturer has not joined', () => {
     const screen = render(<ReportCreatePanel onSendingChange={jest.fn()} />);
@@ -37,16 +95,14 @@ describe('ReportCreatePanel', () => {
     expect(screen.getByPlaceholderText('Write your report…').props.value).toBe('');
   });
 
-  it('formats visually without exposing markup and provides a keyboard done action', () => {
+  it('keeps the Go action out of the editor layout', () => {
     const screen = render(<ReportCreatePanel onSendingChange={jest.fn()} />);
 
     fireEvent.press(screen.getByTestId('report-compose-action'));
     fireEvent.changeText(screen.getByPlaceholderText('Write your report…'), 'Room issue');
     fireEvent.press(screen.getByTestId('report-format-align-right'));
 
-    expect(screen.getByDisplayValue('Room issue')).toBeTruthy();
-    expect(screen.queryByDisplayValue('<right>Room issue</right>')).toBeNull();
-    expect(screen.getByLabelText('Hide keyboard')).toBeTruthy();
+    expect(screen.queryByLabelText('Hide keyboard')).toBeNull();
     expect(screen.getByTestId('report-format-toolbar').props.keyboardShouldPersistTaps).toBe(
       'always',
     );
@@ -57,16 +113,26 @@ describe('ReportCreatePanel', () => {
     const screen = render(<ReportCreatePanel onSendingChange={jest.fn()} />);
 
     fireEvent.press(screen.getByTestId('report-compose-action'));
-    fireEvent.changeText(screen.getByPlaceholderText('Write your report…'), 'Room issue');
-    fireEvent.press(screen.getByTestId('report-format-bold'));
-    expect(screen.getByDisplayValue('Room issue')).toBeTruthy();
+    fireEvent.changeText(
+      screen.getByPlaceholderText('Write your report…'),
+      '<div><b>Room</b> issue</div>',
+    );
     fireEvent.press(screen.getByTestId('report-compose-action'));
 
     await waitFor(() =>
       expect(mockCreateReport).toHaveBeenCalledWith({
-        message: '**Room issue**',
+        message: '**Room** issue',
         sessionId: 9,
       }),
     );
+  });
+
+  it('sends selection-aware formatting commands to the editor', async () => {
+    const screen = render(<ReportCreatePanel onSendingChange={jest.fn()} />);
+
+    fireEvent.press(screen.getByTestId('report-compose-action'));
+    fireEvent.press(screen.getByTestId('report-format-bold'));
+
+    await waitFor(() => expect(mockSendAction).toHaveBeenCalledWith('bold', 'result'));
   });
 });

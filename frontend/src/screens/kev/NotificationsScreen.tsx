@@ -51,6 +51,17 @@ export function NotificationsScreen() {
     markRead(id);
     void markNotificationRead(id).catch(() => undefined);
   };
+  const openNotification = (id: string) => {
+    const item = items.find((notification) => notification.id === id);
+    readOne(id);
+    if (item?.kind === 'CHAT' && item.targetId) {
+      router.push({ pathname: '/chat/[id]', params: { id: item.targetId } });
+    } else if (item?.kind === 'REPORT' && item.targetId) {
+      router.push({ pathname: '/reports', params: { report: item.targetId } });
+    } else if (item?.kind === 'SESSION' && item.targetId) {
+      router.push({ pathname: '/exam/[id]', params: { id: item.targetId } });
+    }
+  };
   const readAll = () => {
     const unreadIds = items.filter((item) => !item.read).map((item) => item.id);
     markAllRead();
@@ -144,7 +155,7 @@ export function NotificationsScreen() {
               key={n.id}
               item={n}
               palette={p}
-              onPress={() => readOne(n.id)}
+              onPress={() => openNotification(n.id)}
               onDelete={() => deleteOne(n.id)}
             />
           ))

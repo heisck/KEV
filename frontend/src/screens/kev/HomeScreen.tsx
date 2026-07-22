@@ -6,7 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useSessions } from '@/api/hooks';
 import { CircleButton } from '@/components/kev/chrome';
 import { ClearSessionsIcon, SearchIcon } from '@/components/kev/icons';
-import { Avatar } from '@/components/kev/people';
+import { Avatar, personForId } from '@/components/kev/people';
 import { ExamCard } from '@/components/kev/ExamCard';
 import { HapticPressable } from '@/components/ui/HapticPressable';
 import { LoadingSkeleton } from '@/components/ui/LoadingSkeleton';
@@ -62,7 +62,7 @@ export function HomeScreen() {
           haptic="select"
           onPress={() => router.push('/(tabs)/profile')}
         >
-          <Avatar person="me" size={44} />
+          <Avatar person={personForId(user?.id)} size={44} />
         </HapticPressable>
         <View style={styles.welcome}>
           <Text style={[styles.welcomeLabel, { color: p.muted }]}>Welcome back</Text>

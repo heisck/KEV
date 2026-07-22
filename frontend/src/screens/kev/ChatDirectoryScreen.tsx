@@ -1,14 +1,13 @@
 import { useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { useLecturers } from '@/api/hooks';
+import { useConversations, useLecturers } from '@/api/hooks';
 import { SearchIcon } from '@/components/kev/icons';
-import { Avatar } from '@/components/kev/people';
+import { Avatar, personForId } from '@/components/kev/people';
 import { HapticPressable } from '@/components/ui/HapticPressable';
 import { LoadingSkeleton } from '@/components/ui/LoadingSkeleton';
-import { useChatStore } from '@/store/chatStore';
 import { useAuthStore } from '@/store/authStore';
 import { radii, spacing, usePalette } from '@/theme';
 
@@ -17,15 +16,29 @@ export function ChatDirectoryScreen() {
   const router = useRouter();
   const p = usePalette();
   const { top } = useSafeAreaInsets();
-  const threads = useChatStore((state) => state.threads);
   const currentUserId = useAuthStore((state) => state.user?.id);
   const [query, setQuery] = useState('');
   const { data: lecturers, isLoading } = useLecturers();
+  const { data: conversations } = useConversations();
   const normalizedQuery = query.trim().toLowerCase();
-  const filtered = (lecturers ?? []).filter(
-    (lecturer) =>
-      lecturer.id !== currentUserId &&
-      (lecturer.displayName || lecturer.email).toLowerCase().includes(normalizedQuery),
+  const summaryByPeer = useMemo(
+    () => new Map((conversations ?? []).map((item) => [item.peer.id, item])),
+    [conversations],
+  );
+  const filtered = useMemo(
+    () =>
+      (lecturers ?? [])
+        .filter(
+          (lecturer) =>
+            lecturer.id !== currentUserId &&
+            (lecturer.displayName || lecturer.email).toLowerCase().includes(normalizedQuery),
+        )
+        .sort((first, second) => {
+          const firstAt = summaryByPeer.get(first.id)?.lastMessage.createdAt ?? '';
+          const secondAt = summaryByPeer.get(second.id)?.lastMessage.createdAt ?? '';
+          return secondAt.localeCompare(firstAt);
+        }),
+    [currentUserId, lecturers, normalizedQuery, summaryByPeer],
   );
 
   return (
@@ -53,7 +66,7 @@ export function ChatDirectoryScreen() {
           <LoadingSkeleton testID="chat-directory-skeleton" variant="rows" />
         ) : (
           filtered.map((lecturer) => {
-            const last = threads[lecturer.id]?.at(-1);
+            const summary = summaryByPeer.get(lecturer.id);
             const name = lecturer.displayName || lecturer.email;
             return (
               <HapticPressable
@@ -65,14 +78,30 @@ export function ChatDirectoryScreen() {
                 style={[styles.row, { backgroundColor: p.surfaceDim }]}
                 testID={`chat-row-${lecturer.id}`}
               >
-                <Avatar person="freja" size={48} verified />
+                <Avatar person={personForId(lecturer.id)} size={48} verified />
                 <View style={styles.rowText}>
                   <Text style={[styles.rowName, { color: p.ink }]}>{name}</Text>
                   <Text style={[styles.rowPreview, { color: p.muted }]} numberOfLines={1}>
-                    {last?.text ?? 'Tap to start conversation'}
+                    {summary?.lastMessage.content ?? 'Tap to start conversation'}
                   </Text>
                 </View>
-                {last ? <Text style={[styles.rowTime, { color: p.muted }]}>{last.at}</Text> : null}
+                <View style={styles.rowMeta}>
+                  {summary ? (
+                    <Text style={[styles.rowTime, { color: p.muted }]}>
+                      {new Date(summary.lastMessage.createdAt).toLocaleTimeString([], {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      })}
+                    </Text>
+                  ) : null}
+                  {summary?.unreadCount ? (
+                    <View style={[styles.unread, { backgroundColor: p.primary }]}>
+                      <Text style={[styles.unreadText, { color: p.onPrimary }]}>
+                        {summary.unreadCount}
+                      </Text>
+                    </View>
+                  ) : null}
+                </View>
               </HapticPressable>
             );
           })
@@ -113,4 +142,13 @@ const styles = StyleSheet.create({
   rowName: { fontSize: 15, fontWeight: '700' },
   rowPreview: { fontSize: 13, fontWeight: '500' },
   rowTime: { fontSize: 11, fontWeight: '600' },
+  rowMeta: { alignItems: 'flex-end', gap: spacing.xs },
+  unread: {
+    alignItems: 'center',
+    borderRadius: radii.pill,
+    minWidth: 20,
+    paddingHorizontal: 5,
+    paddingVertical: 2,
+  },
+  unreadText: { fontSize: 11, fontWeight: '800' },
 });

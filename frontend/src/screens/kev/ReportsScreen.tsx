@@ -1,5 +1,5 @@
-import { useMemo, useState } from 'react';
-import { useRouter } from 'expo-router';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -8,6 +8,8 @@ import { BackIcon } from '@/components/kev/icons';
 import { DoubleCheckIcon } from '@/components/notifications/DoubleCheckIcon';
 import { ReportCard } from '@/components/reports/ReportCard';
 import { ReportCreatePanel } from '@/components/reports/ReportCreatePanel';
+import { ReportDetailDrawer } from '@/components/reports/ReportDetailDrawer';
+import type { StudentReport } from '@/api/schemas';
 import { HapticPressable } from '@/components/ui/HapticPressable';
 import { LoadingSkeleton } from '@/components/ui/LoadingSkeleton';
 import { radii, spacing, usePalette } from '@/theme';
@@ -17,6 +19,8 @@ const RECENT_MS = 7 * 24 * 60 * 60 * 1000;
 
 export function ReportsScreen() {
   const router = useRouter();
+  const { report: reportParam } = useLocalSearchParams<{ report?: string }>();
+  const openedTarget = useRef<string | null>(null);
   const { top } = useSafeAreaInsets();
   const p = usePalette();
   const { data = [], isLoading } = useReports();
@@ -26,6 +30,16 @@ export function ReportsScreen() {
   const [recent, setRecent] = useState(true);
   const [status, setStatus] = useState<StatusFilter | null>(null);
   const [sending, setSending] = useState(false);
+  const [selected, setSelected] = useState<StudentReport | null>(null);
+
+  useEffect(() => {
+    if (!reportParam || openedTarget.current === reportParam) return;
+    const match = data.find((report) => String(report.id) === reportParam);
+    if (!match) return;
+    openedTarget.current = reportParam;
+    setSelected(match);
+    if (!match.read) markRead.mutate(match.id);
+  }, [data, markRead, reportParam]);
 
   const visible = useMemo(
     () =>
@@ -122,6 +136,7 @@ export function ReportsScreen() {
                 palette={p}
                 onPress={() => {
                   if (!report.read) markRead.mutate(report.id);
+                  setSelected(report);
                 }}
               />
             ))
@@ -130,6 +145,7 @@ export function ReportsScreen() {
           )}
         </ScrollView>
       )}
+      <ReportDetailDrawer report={selected} onClose={() => setSelected(null)} />
     </View>
   );
 }
