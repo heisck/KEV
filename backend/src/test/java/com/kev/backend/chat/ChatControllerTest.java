@@ -116,8 +116,8 @@ class ChatControllerTest {
         latest.setSenderId(peerId);
         latest.setContent("Latest");
         ConversationMessageCount unread = mock(ConversationMessageCount.class);
-        when(unread.conversationId()).thenReturn(7L);
-        when(unread.count()).thenReturn(2L);
+        when(unread.getConversationId()).thenReturn(7L);
+        when(unread.getCount()).thenReturn(2L);
         when(conversations.findAllForUser(userId)).thenReturn(java.util.List.of(conversation));
         when(messages.findLatestByConversationIds(java.util.List.of(7L))).thenReturn(java.util.List.of(latest));
         when(messages.countUnreadByConversationIds(java.util.List.of(7L), userId))

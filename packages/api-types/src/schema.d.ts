@@ -4,6 +4,54 @@
  */
 
 export interface paths {
+    "/api/sessions/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["detail"];
+        put: operations["update"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/credentials": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: operations["updateCredentials"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/lecturers/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: operations["updateLecturer"];
+        post?: never;
+        delete: operations["disableLecturer"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/verify/face": {
         parameters: {
             query?: never;
@@ -68,6 +116,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/sessions/{id}/join": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["joinByPassword"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/sessions/{id}/end": {
         parameters: {
             query?: never;
@@ -94,6 +158,102 @@ export interface paths {
         get?: never;
         put?: never;
         post: operations["join"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/reports": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["list_1"];
+        put?: never;
+        post: operations["create_1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/reports/{id}/read": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["markRead"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/reports/read-all": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["markAllRead"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/notifications/{id}/read": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["markRead_1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/chat/conversations/{peerId}/read": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["markRead_2"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/chat/conversations/{peerId}/messages": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getMessages"];
+        put?: never;
+        post: operations["sendMessage"];
         delete?: never;
         options?: never;
         head?: never;
@@ -180,16 +340,16 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/sessions/{id}": {
+    "/api/admin/lecturers": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get: operations["detail"];
+        get: operations["lecturers"];
         put?: never;
-        post?: never;
+        post: operations["createLecturer"];
         delete?: never;
         options?: never;
         head?: never;
@@ -204,6 +364,22 @@ export interface paths {
             cookie?: never;
         };
         get: operations["summary"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/notifications": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["list_2"];
         put?: never;
         post?: never;
         delete?: never;
@@ -228,6 +404,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/directory/students": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["listOrSearch"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/directory/students/{indexNumber}": {
         parameters: {
             query?: never;
@@ -236,6 +428,38 @@ export interface paths {
             cookie?: never;
         };
         get: operations["lookup"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/chat/lecturers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["listLecturers"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/chat/conversations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["listConversations"];
         put?: never;
         post?: never;
         delete?: never;
@@ -308,6 +532,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/dashboard": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["dashboard"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/sessions/{sessionId}/attendance/{attendanceId}": {
         parameters: {
             query?: never;
@@ -319,6 +559,22 @@ export interface paths {
         put?: never;
         post?: never;
         delete: operations["remove"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/notifications/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: operations["delete"];
         options?: never;
         head?: never;
         patch?: never;
@@ -344,6 +600,79 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        CreateSessionRequest: {
+            title?: string;
+            building: string;
+            floor?: string;
+            room?: string;
+            courseCodes?: string[];
+            indexRangeStart?: string;
+            indexRangeEnd?: string;
+            /** Format: date */
+            examDate?: string;
+            startTime?: string;
+            endTime?: string;
+            verificationMethods?: string[];
+        };
+        SessionDto: {
+            /** Format: int64 */
+            id?: number;
+            sessionCode?: string;
+            sessionPassword?: string;
+            title?: string;
+            building?: string;
+            floor?: string;
+            room?: string;
+            courseCodes?: string[];
+            indexRangeStart?: string;
+            indexRangeEnd?: string;
+            /** Format: date */
+            examDate?: string;
+            startTime?: string;
+            endTime?: string;
+            verificationMethods?: string[];
+            status?: string;
+            /** Format: date-time */
+            startedAt?: string;
+            /** Format: date-time */
+            endedAt?: string;
+            /** Format: int64 */
+            checkedInCount?: number;
+            /** Format: int64 */
+            invigilatorCount?: number;
+            joined?: boolean;
+        };
+        UpdateCredentialsRequest: {
+            currentPassword: string;
+            /** Format: email */
+            email?: string;
+            newPassword?: string;
+        };
+        UserDto: {
+            /** Format: uuid */
+            id?: string;
+            email?: string;
+            displayName?: string;
+            pictureUrl?: string;
+            role?: string;
+            plan?: string;
+            lecturerId?: string;
+            personalEmail?: string;
+            phone?: string;
+            status?: string;
+            active?: boolean;
+        };
+        UpdateLecturerRequest: {
+            fullName: string;
+            lecturerId: string;
+            /** Format: email */
+            universityEmail: string;
+            /** Format: email */
+            personalEmail: string;
+            phone: string;
+            status?: string;
+            active?: boolean;
+        };
         FaceVerifyResponse: {
             indexNumber?: string;
             /** Format: double */
@@ -364,34 +693,7 @@ export interface components {
             /** @enum {string} */
             feesStatus?: "PAID" | "PARTIAL" | "OWING";
             eligible?: boolean;
-        };
-        CreateSessionRequest: {
-            building: string;
-            floor?: string;
-            room?: string;
-            courseCodes: string[];
-            indexRangeStart?: string;
-            indexRangeEnd?: string;
-        };
-        SessionDto: {
-            /** Format: int64 */
-            id?: number;
-            sessionCode?: string;
-            building?: string;
-            floor?: string;
-            room?: string;
-            courseCodes?: string[];
-            indexRangeStart?: string;
-            indexRangeEnd?: string;
-            status?: string;
-            /** Format: date-time */
-            startedAt?: string;
-            /** Format: date-time */
-            endedAt?: string;
-            /** Format: int64 */
-            checkedInCount?: number;
-            /** Format: int64 */
-            invigilatorCount?: number;
+            courses?: string[];
         };
         CheckInRequest: {
             indexNumber: string;
@@ -410,7 +712,50 @@ export interface components {
             removedAt?: string;
         };
         JoinSessionRequest: {
-            sessionCode: string;
+            sessionCode?: string;
+            sessionPassword?: string;
+            effectiveCodeOrPassword?: string;
+        };
+        CreateStudentReportRequest: {
+            /** Format: int64 */
+            sessionId: number;
+            /** Format: int64 */
+            studentId?: number;
+            message: string;
+        };
+        StudentReportDto: {
+            /** Format: int64 */
+            id?: number;
+            /** Format: int64 */
+            sessionId?: number;
+            sessionTitle?: string;
+            sessionCode?: string;
+            /** Format: date */
+            examDate?: string;
+            /** Format: uuid */
+            authorId?: string;
+            authorName?: string;
+            authorEmail?: string;
+            student?: components["schemas"]["StudentRecord"];
+            message?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            read?: boolean;
+        };
+        SendMessageRequest: {
+            content: string;
+        };
+        MessageDto: {
+            /** Format: int64 */
+            id?: number;
+            /** Format: int64 */
+            conversationId?: number;
+            /** Format: uuid */
+            senderId?: string;
+            content?: string;
+            read?: boolean;
+            /** Format: date-time */
+            createdAt?: string;
         };
         RefreshRequest: {
             refreshToken: string;
@@ -427,15 +772,6 @@ export interface components {
             accessToken?: string;
             refreshToken?: string;
             user?: components["schemas"]["UserDto"];
-        };
-        UserDto: {
-            /** Format: uuid */
-            id?: string;
-            email?: string;
-            displayName?: string;
-            pictureUrl?: string;
-            role?: string;
-            plan?: string;
         };
         GoogleLoginRequest: {
             idToken: string;
@@ -457,6 +793,16 @@ export interface components {
             /** Format: date-time */
             joinedAt?: string;
             assignedByAdmin?: boolean;
+            role?: string;
+        };
+        CreateLecturerRequest: {
+            fullName: string;
+            lecturerId: string;
+            /** Format: email */
+            universityEmail: string;
+            /** Format: email */
+            personalEmail: string;
+            phone: string;
         };
         SessionDetailDto: {
             session?: components["schemas"]["SessionDto"];
@@ -473,10 +819,38 @@ export interface components {
             };
             recent?: components["schemas"]["AttendanceDto"][];
         };
+        Notification: {
+            /** Format: int64 */
+            id?: number;
+            /** Format: uuid */
+            userId?: string;
+            title?: string;
+            message?: string;
+            type?: string;
+            read?: boolean;
+            /** Format: date-time */
+            createdAt?: string;
+        };
         HealthResponse: {
             status?: string;
             service?: string;
             timestamp?: string;
+        };
+        ConversationSummaryDto: {
+            peer?: components["schemas"]["UserDto"];
+            lastMessage?: components["schemas"]["MessageDto"];
+            /** Format: int64 */
+            unreadCount?: number;
+        };
+        AdminDashboardDto: {
+            /** Format: int64 */
+            totalLecturers?: number;
+            /** Format: int64 */
+            activeLecturers?: number;
+            /** Format: int64 */
+            totalSessions?: number;
+            recentSessions?: components["schemas"]["SessionDto"][];
+            recentLecturers?: components["schemas"]["UserDto"][];
         };
     };
     responses: never;
@@ -487,6 +861,124 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    detail: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["SessionDetailDto"];
+                };
+            };
+        };
+    };
+    update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateSessionRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["SessionDto"];
+                };
+            };
+        };
+    };
+    updateCredentials: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateCredentialsRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["UserDto"];
+                };
+            };
+        };
+    };
+    updateLecturer: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateLecturerRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["UserDto"];
+                };
+            };
+        };
+    };
+    disableLecturer: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     verifyFace: {
         parameters: {
             query: {
@@ -609,6 +1101,32 @@ export interface operations {
             };
         };
     };
+    joinByPassword: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["JoinSessionRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["SessionDto"];
+                };
+            };
+        };
+    };
     end: {
         parameters: {
             query?: never;
@@ -651,6 +1169,176 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["SessionDto"];
+                };
+            };
+        };
+    };
+    list_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["StudentReportDto"][];
+                };
+            };
+        };
+    };
+    create_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateStudentReportRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["StudentReportDto"];
+                };
+            };
+        };
+    };
+    markRead: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    markAllRead: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    markRead_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    markRead_2: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                peerId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    getMessages: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                peerId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["MessageDto"][];
+                };
+            };
+        };
+    };
+    sendMessage: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                peerId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SendMessageRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["MessageDto"];
                 };
             };
         };
@@ -777,13 +1465,11 @@ export interface operations {
             };
         };
     };
-    detail: {
+    lecturers: {
         parameters: {
             query?: never;
             header?: never;
-            path: {
-                id: number;
-            };
+            path?: never;
             cookie?: never;
         };
         requestBody?: never;
@@ -794,7 +1480,31 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["SessionDetailDto"];
+                    "*/*": components["schemas"]["UserDto"][];
+                };
+            };
+        };
+    };
+    createLecturer: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateLecturerRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["UserDto"];
                 };
             };
         };
@@ -821,6 +1531,26 @@ export interface operations {
             };
         };
     };
+    list_2: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["Notification"][];
+                };
+            };
+        };
+    };
     health: {
         parameters: {
             query?: never;
@@ -837,6 +1567,28 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["HealthResponse"];
+                };
+            };
+        };
+    };
+    listOrSearch: {
+        parameters: {
+            query?: {
+                q?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["StudentRecord"][];
                 };
             };
         };
@@ -859,6 +1611,48 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["StudentRecord"];
+                };
+            };
+        };
+    };
+    listLecturers: {
+        parameters: {
+            query?: {
+                q?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["UserDto"][];
+                };
+            };
+        };
+    };
+    listConversations: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ConversationSummaryDto"][];
                 };
             };
         };
@@ -945,6 +1739,26 @@ export interface operations {
             };
         };
     };
+    dashboard: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["AdminDashboardDto"];
+                };
+            };
+        };
+    };
     remove: {
         parameters: {
             query?: never;
@@ -965,6 +1779,26 @@ export interface operations {
                 content: {
                     "*/*": components["schemas"]["AttendanceDto"];
                 };
+            };
+        };
+    };
+    delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };

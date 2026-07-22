@@ -3,12 +3,10 @@ package com.kev.backend.session;
 import com.kev.backend.attendance.AttendanceMapper;
 import com.kev.backend.attendance.AttendanceRecordRepository;
 import com.kev.backend.attendance.AttendanceStatus;
-import com.kev.backend.auth.Role;
 import com.kev.backend.auth.User;
 import com.kev.backend.auth.UserRepository;
 import com.kev.backend.common.ApiException;
-import com.kev.backend.notification.Notification;
-import com.kev.backend.notification.NotificationRepository;
+import com.kev.backend.notification.SessionNotificationService;
 import com.kev.backend.session.dto.CreateSessionRequest;
 import com.kev.backend.session.dto.InvigilatorDto;
 import com.kev.backend.session.dto.SessionDetailDto;
@@ -36,7 +34,7 @@ public class SessionService {
     private final AttendanceRecordRepository attendance;
     private final UserRepository users;
     private final AttendanceMapper attendanceMapper;
-    private final NotificationRepository notifications;
+    private final SessionNotificationService sessionNotifications;
 
     public SessionService(
             ExamSessionRepository sessions,
@@ -44,13 +42,13 @@ public class SessionService {
             AttendanceRecordRepository attendance,
             UserRepository users,
             AttendanceMapper attendanceMapper,
-            NotificationRepository notifications) {
+            SessionNotificationService sessionNotifications) {
         this.sessions = sessions;
         this.invigilators = invigilators;
         this.attendance = attendance;
         this.users = users;
         this.attendanceMapper = attendanceMapper;
-        this.notifications = notifications;
+        this.sessionNotifications = sessionNotifications;
     }
 
     @Transactional
@@ -62,7 +60,8 @@ public class SessionService {
         session.setCreatedBy(userId);
         ExamSession saved = sessions.save(session);
         addMember(saved.getId(), userId, null, "CREATOR");
-        notifyLecturers(saved, "Session created", sessionTitle(saved) + " is now available");
+        sessionNotifications.notifyLecturers(
+                saved.getId(), "Session created", sessionTitle(saved) + " is now available");
         return toDto(saved);
     }
 
@@ -119,7 +118,8 @@ public class SessionService {
         if (session.getStatus() == SessionStatus.ACTIVE) {
             session.setStatus(SessionStatus.ENDED);
             session.setEndedAt(java.time.Instant.now());
-            notifyLecturers(session, "Session ended", sessionTitle(session) + " has closed");
+            sessionNotifications.notifyLecturers(
+                    session.getId(), "Session ended", sessionTitle(session) + " has closed");
         }
         return toDto(session);
     }
@@ -206,10 +206,6 @@ public class SessionService {
         invigilators.save(membership);
     }
 
-    void addMember(Long sessionId, UUID userId, UUID assignedBy) {
-        addMember(sessionId, userId, assignedBy, "INVIGILATOR");
-    }
-
     public SessionDto toDto(ExamSession session) {
         long checkedIn = attendance.countBySessionIdAndStatus(session.getId(), AttendanceStatus.CHECKED_IN);
         long members = invigilators.countBySessionId(session.getId());
@@ -293,22 +289,6 @@ public class SessionService {
             }
         }
         throw new ApiException(HttpStatus.INTERNAL_SERVER_ERROR, "Could not allocate session code");
-    }
-
-    private void notifyLecturers(ExamSession session, String title, String message) {
-        List<Notification> items = users.findAllByRoleInAndActiveTrue(List.of(Role.LECTURER, Role.ADMIN)).stream()
-                .map(user -> sessionNotification(session, user.getId(), title, message))
-                .toList();
-        if (!items.isEmpty()) notifications.saveAll(items);
-    }
-
-    private Notification sessionNotification(ExamSession session, UUID userId, String title, String message) {
-        Notification notification = new Notification();
-        notification.setUserId(userId);
-        notification.setTitle(title);
-        notification.setMessage(message);
-        notification.setType("SESSION:" + session.getId());
-        return notification;
     }
 
     private String sessionTitle(ExamSession session) {
