@@ -3,6 +3,7 @@ import { create } from 'zustand';
 /** Visual badge + which filter bucket a notification falls under. */
 export type NotificationIcon = 'focus' | 'progress' | 'complete' | 'break' | 'reminder';
 export type NotificationDay = 'today' | 'yesterday' | 'earlier';
+export type NotificationKind = 'CHAT' | 'REPORT' | 'SESSION' | 'INFO';
 
 export type AppNotification = {
   id: string;
@@ -12,6 +13,8 @@ export type AppNotification = {
   day: NotificationDay;
   icon: NotificationIcon;
   read: boolean;
+  kind: NotificationKind;
+  targetId?: string;
 };
 
 type NotificationsState = {

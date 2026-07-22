@@ -3,12 +3,17 @@ package com.kev.backend.session;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.kev.backend.attendance.AttendanceMapper;
 import com.kev.backend.attendance.AttendanceRecordRepository;
+import com.kev.backend.auth.Role;
+import com.kev.backend.auth.User;
 import com.kev.backend.auth.UserRepository;
 import com.kev.backend.common.ApiException;
+import com.kev.backend.notification.Notification;
+import com.kev.backend.notification.NotificationRepository;
 import com.kev.backend.session.dto.CreateSessionRequest;
 import com.kev.backend.session.dto.SessionDto;
 import java.time.LocalDate;
@@ -17,6 +22,7 @@ import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -40,6 +46,9 @@ class SessionServiceTest {
 
     @Mock
     AttendanceMapper attendanceMapper;
+
+    @Mock
+    NotificationRepository notifications;
 
     @InjectMocks
     SessionService service;
@@ -66,6 +75,61 @@ class SessionServiceTest {
         assertThat(dto.courseCodes()).containsExactly("DCIT 301", "DCIT 305");
         // No exam date set → treated as UPCOMING (unscheduled, just created).
         assertThat(dto.status()).isEqualTo("UPCOMING");
+        verify(users).findAllByRoleInAndActiveTrue(any());
+    }
+
+    @Test
+    void createSendsSessionTargetToEveryActiveLecturer() {
+        UUID lecturerId = UUID.randomUUID();
+        User lecturer = new User();
+        lecturer.setId(lecturerId);
+        lecturer.setRole(Role.LECTURER);
+        lecturer.setActive(true);
+        when(users.findAllByRoleInAndActiveTrue(List.of(Role.LECTURER, Role.ADMIN)))
+                .thenReturn(List.of(lecturer));
+        when(sessions.existsBySessionCode(any())).thenReturn(false);
+        when(sessions.save(any())).thenAnswer(invocation -> {
+            ExamSession session = invocation.getArgument(0);
+            session.setId(12L);
+            return session;
+        });
+
+        service.create(
+                creator,
+                new CreateSessionRequest(
+                        "Algorithms", "JQB", "GF", "12", List.of("DCIT 301"), null, null, null, null, null, null));
+
+        ArgumentCaptor<Iterable<Notification>> captor = ArgumentCaptor.captor();
+        verify(notifications).saveAll(captor.capture());
+        assertThat(captor.getValue()).singleElement().satisfies(notification -> {
+            assertThat(notification.getUserId()).isEqualTo(lecturerId);
+            assertThat(notification.getTitle()).isEqualTo("Session created");
+            assertThat(notification.getType()).isEqualTo("SESSION:12");
+        });
+    }
+
+    @Test
+    void endSendsSessionTargetToEveryActiveLecturer() {
+        UUID lecturerId = UUID.randomUUID();
+        User lecturer = new User();
+        lecturer.setId(lecturerId);
+        ExamSession session = editableSession();
+        session.setStatus(SessionStatus.ACTIVE);
+        session.setTitle("Algorithms");
+        when(sessions.findById(3L)).thenReturn(Optional.of(session));
+        when(users.findAllByRoleInAndActiveTrue(List.of(Role.LECTURER, Role.ADMIN)))
+                .thenReturn(List.of(lecturer));
+
+        service.end(creator, 3L);
+
+        ArgumentCaptor<Iterable<Notification>> captor = ArgumentCaptor.captor();
+        verify(notifications).saveAll(captor.capture());
+        assertThat(captor.getValue()).singleElement().satisfies(notification -> {
+            assertThat(notification.getUserId()).isEqualTo(lecturerId);
+            assertThat(notification.getTitle()).isEqualTo("Session ended");
+            assertThat(notification.getMessage()).isEqualTo("Algorithms has closed");
+            assertThat(notification.getType()).isEqualTo("SESSION:3");
+        });
     }
 
     @Test

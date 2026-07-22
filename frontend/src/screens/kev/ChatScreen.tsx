@@ -12,9 +12,10 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useLecturers } from '@/api/hooks';
-import { api } from '@/api/client';
+import * as chatApi from '@/api/chat';
+import { queryClient } from '@/api/queryClient';
 import { BackIcon } from '@/components/kev/icons';
-import { Avatar, type PersonKey } from '@/components/kev/people';
+import { Avatar, personForId } from '@/components/kev/people';
 import { HapticPressable } from '@/components/ui/HapticPressable';
 import { parseMessages } from '@/lib/chatMessages';
 import { useChatStore } from '@/store/chatStore';
@@ -38,6 +39,7 @@ export function ChatScreen({ threadId }: ChatScreenProps = {}) {
   const openThread = useChatStore((s) => s.openThread);
   const closeThread = useChatStore((s) => s.closeThread);
   const appendMessage = useChatStore((s) => s.appendMessage);
+  const replaceMessage = useChatStore((s) => s.replaceMessage);
   const setThreadMessages = useChatStore((s) => s.setThreadMessages);
   const [draft, setDraft] = useState('');
   const listRef = useRef<FlatList>(null);
@@ -62,10 +64,15 @@ export function ChatScreen({ threadId }: ChatScreenProps = {}) {
     if (!activeId) return undefined;
     let active = true;
     const load = () => {
-      api
-        .get<unknown>(`/api/chat/conversations/${activeId}/messages`)
-        .then((res) => {
-          if (active) setThreadMessages(activeId, parseMessages(res.data, currentUserId));
+      chatApi
+        .listMessages(activeId)
+        .then((data) => {
+          if (!active) return;
+          setThreadMessages(activeId, parseMessages(data, currentUserId));
+          void chatApi.markConversationRead(activeId).then(() => {
+            void queryClient.invalidateQueries({ queryKey: ['chat', 'conversations'] });
+            void queryClient.invalidateQueries({ queryKey: ['notifications'] });
+          });
         })
         .catch(() => {
           // Ignore offline fallback
@@ -81,13 +88,11 @@ export function ChatScreen({ threadId }: ChatScreenProps = {}) {
 
   const peer = useMemo(() => {
     const found = lecturers?.find((i) => i.id === activeId);
-    if (!found)
-      return { id: activeId || '0', name: 'Lecturer Staff', hall: 'Exam Hall', person: 'freja' };
+    if (!found) return { id: activeId || '0', name: 'Lecturer Staff', hall: 'Exam Hall' };
     return {
       id: found.id,
       name: found.displayName || found.email,
       hall: found.role || 'Staff',
-      person: 'freja',
     };
   }, [activeId, lecturers]);
 
@@ -96,14 +101,32 @@ export function ChatScreen({ threadId }: ChatScreenProps = {}) {
   const submit = async () => {
     if (!activeId || !draft.trim()) return;
     const content = draft.trim();
+    const createdAt = new Date().toISOString();
+    const temporaryId = `pending-${createdAt}`;
+    appendMessage(activeId, {
+      id: temporaryId,
+      text: content,
+      mine: true,
+      at: new Date(createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      createdAt,
+      status: 'sending',
+    });
     setDraft('');
     try {
-      const response = await api.post(`/api/chat/conversations/${activeId}/messages`, { content });
-      const [message] = parseMessages([response.data], currentUserId);
-      if (message) appendMessage(activeId, message);
+      const response = await chatApi.sendMessage(activeId, content);
+      const [message] = parseMessages([response], currentUserId);
+      if (message) replaceMessage(activeId, temporaryId, message);
+      void queryClient.invalidateQueries({ queryKey: ['chat', 'conversations'] });
       requestAnimationFrame(() => listRef.current?.scrollToEnd({ animated: true }));
     } catch {
-      setDraft(content);
+      replaceMessage(activeId, temporaryId, {
+        id: temporaryId,
+        text: content,
+        mine: true,
+        at: new Date(createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        createdAt,
+        status: 'failed',
+      });
     }
   };
 
@@ -125,7 +148,7 @@ export function ChatScreen({ threadId }: ChatScreenProps = {}) {
           >
             <BackIcon color={p.ink} />
           </HapticPressable>
-          <Avatar person={peer.person as PersonKey} size={36} verified />
+          <Avatar person={personForId(peer.id)} size={36} verified />
           <View style={styles.threadHeadText}>
             <Text style={[styles.threadName, { color: p.ink }]} numberOfLines={1}>
               {peer.name}
@@ -169,6 +192,7 @@ export function ChatScreen({ threadId }: ChatScreenProps = {}) {
                 style={[styles.bubbleTime, { color: p.muted }, item.mine && styles.bubbleTimeMine]}
               >
                 {item.at}
+                {item.mine ? ` · ${receipt(item.status)}` : ''}
               </Text>
             </View>
           )}
@@ -210,6 +234,12 @@ export function ChatScreen({ threadId }: ChatScreenProps = {}) {
   }
 
   return <View style={[styles.screen, { backgroundColor: p.bg }]} />;
+}
+
+function receipt(status: 'sending' | 'sent' | 'read' | 'failed'): string {
+  if (status === 'sending') return 'Sending';
+  if (status === 'failed') return 'Not sent';
+  return status === 'read' ? '✓✓' : '✓';
 }
 const styles = StyleSheet.create({
   screen: { backgroundColor: colors.white, flex: 1 },

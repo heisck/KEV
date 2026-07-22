@@ -9,16 +9,23 @@ import { useChatStore } from '@/store/chatStore';
 
 const mockBack = jest.fn();
 const mockPush = jest.fn();
+let mockConversations: {
+  peer: { id: string };
+  lastMessage: { content: string; createdAt: string };
+  unreadCount: number;
+}[] = [];
 
 jest.mock('expo-router', () => ({
   useLocalSearchParams: () => ({}),
   useRouter: () => ({ back: mockBack, push: mockPush }),
 }));
 jest.mock('@/api/hooks', () => ({
+  useConversations: () => ({ data: mockConversations }),
   useLecturers: () => ({
     data: [
       { id: 'me', displayName: 'Signed In', email: 'me@example.com', role: 'LECTURER' },
       { id: 'l1', displayName: 'Ada Mensah', email: 'ada@example.com', role: 'LECTURER' },
+      { id: 'l2', displayName: 'Kojo Asare', email: 'kojo@example.com', role: 'LECTURER' },
     ],
   }),
 }));
@@ -51,6 +58,7 @@ describe('chat navigation', () => {
       user: { id: 'me', email: 'me@example.com', role: 'LECTURER', plan: 'FREE' },
     });
     useChatStore.setState({ activeLecturerId: null, threads: {} });
+    mockConversations = [];
   });
 
   it('opens a thread in the root stack', () => {
@@ -63,8 +71,39 @@ describe('chat navigation', () => {
     expect(mockPush).toHaveBeenCalledWith({ pathname: '/chat/[id]', params: { id: 'l1' } });
   });
 
+  it('shows unread previews and orders the newest conversation first', () => {
+    mockConversations = [
+      {
+        peer: { id: 'l1' },
+        lastMessage: { content: 'Older message', createdAt: '2026-07-20T12:00:00Z' },
+        unreadCount: 0,
+      },
+      {
+        peer: { id: 'l2' },
+        lastMessage: { content: 'Newest message', createdAt: '2026-07-20T12:05:00Z' },
+        unreadCount: 2,
+      },
+    ];
+
+    const { getAllByTestId, getByText } = renderScreen(<ChatDirectoryScreen />);
+
+    expect(getAllByTestId(/^chat-row-/).map((row) => row.props.testID)).toEqual([
+      'chat-row-l2',
+      'chat-row-l1',
+    ]);
+    expect(getByText('Newest message')).toBeTruthy();
+    expect(getByText('2')).toBeTruthy();
+  });
+
   it('keeps one copy of a server message in its peer thread', () => {
-    const message = { id: '7', text: 'Hello', mine: true, at: '12:00' };
+    const message = {
+      id: '7',
+      text: 'Hello',
+      mine: true,
+      at: '12:00',
+      createdAt: '2026-07-20T12:00:00.000Z',
+      status: 'sent' as const,
+    };
 
     useChatStore.getState().appendMessage('l1', message);
     useChatStore.getState().appendMessage('l1', message);
@@ -83,8 +122,14 @@ describe('chat navigation', () => {
   it('distinguishes received messages from the signed-in lecturer messages', () => {
     const messages = parseMessages(
       [
-        { id: 1, senderId: 'me', content: 'Sent', createdAt: '2026-07-20T12:00:00Z' },
-        { id: 2, senderId: 'peer', content: 'Received', createdAt: '2026-07-20T12:01:00Z' },
+        { id: 1, senderId: 'me', content: 'Sent', read: false, createdAt: '2026-07-20T12:00:00Z' },
+        {
+          id: 2,
+          senderId: 'peer',
+          content: 'Received',
+          read: true,
+          createdAt: '2026-07-20T12:01:00Z',
+        },
       ],
       'me',
     );

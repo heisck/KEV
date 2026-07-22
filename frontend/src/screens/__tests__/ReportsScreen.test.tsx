@@ -4,9 +4,15 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { ReportsScreen } from '@/screens/kev/ReportsScreen';
 
-jest.mock('expo-router', () => ({ useRouter: () => ({ back: jest.fn() }) }));
+const mockMarkReportRead = jest.fn();
+let mockReportParam: string | undefined;
+
+jest.mock('expo-router', () => ({
+  useLocalSearchParams: () => ({ report: mockReportParam }),
+  useRouter: () => ({ back: jest.fn() }),
+}));
 jest.mock('@/api/hooks', () => ({
-  useMarkReportRead: () => ({ mutate: jest.fn() }),
+  useMarkReportRead: () => ({ mutate: mockMarkReportRead }),
   useMarkReportsRead: () => ({ mutate: jest.fn() }),
   useReports: () => ({
     data: [
@@ -40,6 +46,17 @@ jest.mock('@/components/reports/ReportCreatePanel', () => ({
     return <View testID="report-composer" />;
   },
 }));
+jest.mock('@/components/reports/ReportDetailDrawer', () => ({
+  ReportDetailDrawer: ({ report }: { report: { id: number } | null }) => {
+    const { Text } = jest.requireActual<typeof import('react-native')>('react-native');
+    return report ? <Text testID="report-detail">Report {report.id}</Text> : null;
+  },
+}));
+
+beforeEach(() => {
+  mockMarkReportRead.mockClear();
+  mockReportParam = undefined;
+});
 
 function renderScreen() {
   return render(
@@ -82,4 +99,13 @@ it('renders compact report filter pills', () => {
   expect(StyleSheet.flatten(screen.getByTestId('report-filter-recent').props.style)).toEqual(
     expect.objectContaining({ flex: 1, height: 32 }),
   );
+});
+
+it('opens and marks a report from a notification deep link', () => {
+  mockReportParam = '1';
+
+  const screen = renderScreen();
+
+  expect(screen.getByTestId('report-detail')).toHaveTextContent('Report 1');
+  expect(mockMarkReportRead).toHaveBeenCalledWith(1);
 });
