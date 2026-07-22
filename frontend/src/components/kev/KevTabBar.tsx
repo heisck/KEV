@@ -2,6 +2,7 @@ import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { handleTabPress } from '@/components/navigation/tabPress';
 import { GlassSurface } from '@/components/ui/GlassSurface';
 import { HapticPressable } from '@/components/ui/HapticPressable';
 import { useConversations } from '@/api/hooks';
@@ -39,16 +40,7 @@ export function KevTabBar({ state, descriptors, navigation }: BottomTabBarProps)
         const badge =
           route.name === 'chat' ? chatUnread : route.name === 'reminders' ? reminderUnread : 0;
 
-        const onPress = () => {
-          const event = navigation.emit({
-            type: 'tabPress',
-            target: route.key,
-            canPreventDefault: true,
-          });
-          if (!isFocused && !event.defaultPrevented) {
-            navigation.navigate(route.name);
-          }
-        };
+        const onPress = () => handleTabPress(navigation, route.key, route.name, isFocused);
 
         return (
           <HapticPressable

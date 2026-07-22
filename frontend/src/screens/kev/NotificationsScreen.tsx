@@ -25,6 +25,7 @@ const STATUS_FILTERS = [
 ] as const;
 type NotificationStatus = (typeof STATUS_FILTERS)[number]['value'];
 type NotificationFilter = NotificationDay | NotificationStatus;
+const ALL_FILTERS: { value: NotificationFilter; label: string }[] = [...FILTERS, ...STATUS_FILTERS];
 
 /** Notification centre — filter by day, tap to read, swipe to delete. */
 export function NotificationsScreen() {
@@ -105,25 +106,7 @@ export function NotificationsScreen() {
         contentContainerStyle={styles.filters}
         style={styles.filterScroll}
       >
-        {FILTERS.map((f) => {
-          const active = filter === f.value;
-          return (
-            <HapticPressable
-              key={f.value}
-              accessibilityRole="button"
-              accessibilityState={{ selected: active }}
-              haptic="select"
-              onPress={() => setFilter(f.value)}
-              style={[styles.pill, { backgroundColor: active ? p.primary : p.surfaceDim }]}
-              testID={`notification-filter-${f.value}`}
-            >
-              <Text style={[styles.pillText, { color: active ? p.onPrimary : p.inkSoft }]}>
-                {f.label}
-              </Text>
-            </HapticPressable>
-          );
-        })}
-        {STATUS_FILTERS.map((f) => {
+        {ALL_FILTERS.map((f) => {
           const active = filter === f.value;
           return (
             <HapticPressable

@@ -1,7 +1,7 @@
-import { Image } from 'expo-image';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { HapticPressable } from '@/components/ui/HapticPressable';
+import { InitialAvatar } from '@/components/ui/InitialAvatar';
 import { radii, spacing, usePalette } from '@/theme';
 
 type ListRowProps = {
@@ -37,15 +37,13 @@ export function ListRow({
       style={[styles.row, { backgroundColor: p.surface }, dimmed && styles.dimmed]}
       testID={testID}
     >
-      {avatarUrl ? (
-        <Image source={{ uri: avatarUrl }} style={styles.avatar} contentFit="cover" />
-      ) : (
-        <View style={[styles.avatar, styles.avatarFallback, { backgroundColor: p.primary20 }]}>
-          <Text style={[styles.avatarInitial, { color: p.primaryDeep }]}>
-            {title.charAt(0).toUpperCase()}
-          </Text>
-        </View>
-      )}
+      <InitialAvatar
+        uri={avatarUrl}
+        seed={title}
+        imageStyle={styles.avatar}
+        fallbackStyle={[styles.avatar, styles.avatarFallback, { backgroundColor: p.primary20 }]}
+        initialStyle={[styles.avatarInitial, { color: p.primaryDeep }]}
+      />
       <View style={styles.body}>
         <Text numberOfLines={1} style={[styles.title, { color: p.ink }]}>
           {title}

@@ -58,7 +58,7 @@ jest.mock('@/components/kev/ExamCard', () => {
   const { Text } = jest.requireActual<typeof import('react-native')>('react-native');
   return { ExamCard: ({ exam }: { exam: { course: string } }) => <Text>{exam.course}</Text> };
 });
-jest.mock('@/components/kev/people', () => ({ Avatar: () => null }));
+jest.mock('@/components/kev/people', () => ({ Avatar: () => null, personForId: () => 'me' }));
 
 it('clears the active filter per lecturer but keeps cleared sessions searchable', () => {
   useClearedSessionsStore.setState({ byUser: {} });
