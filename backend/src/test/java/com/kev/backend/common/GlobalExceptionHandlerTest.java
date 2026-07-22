@@ -4,11 +4,8 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.kev.backend.auth.UserRepository;
 import com.kev.backend.chat.ChatController;
-import com.kev.backend.chat.ConversationRepository;
-import com.kev.backend.chat.MessageRepository;
-import com.kev.backend.notification.NotificationRepository;
+import com.kev.backend.chat.ChatService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -22,22 +19,13 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 class GlobalExceptionHandlerTest {
 
     @Mock
-    ConversationRepository conversations;
-
-    @Mock
-    MessageRepository messages;
-
-    @Mock
-    UserRepository users;
-
-    @Mock
-    NotificationRepository notifications;
+    ChatService chat;
 
     private MockMvc mvc;
 
     @BeforeEach
     void setUp() {
-        mvc = MockMvcBuilders.standaloneSetup(new ChatController(conversations, messages, users, notifications))
+        mvc = MockMvcBuilders.standaloneSetup(new ChatController(chat))
                 .setControllerAdvice(new GlobalExceptionHandler())
                 .setCustomArgumentResolvers(new AuthenticationPrincipalArgumentResolver())
                 .build();

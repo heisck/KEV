@@ -64,7 +64,8 @@ public class ChatService {
         Map<Long, Message> latest = messages.findLatestByConversationIds(ids).stream()
                 .collect(Collectors.toMap(Message::getConversationId, Function.identity(), ChatService::newer));
         Map<Long, Long> unread = messages.countUnreadByConversationIds(ids, userId).stream()
-                .collect(Collectors.toMap(ConversationMessageCount::conversationId, ConversationMessageCount::count));
+                .collect(Collectors.toMap(
+                        ConversationMessageCount::getConversationId, ConversationMessageCount::getCount));
         Map<UUID, User> peers = users
                 .findAllById(items.stream().map(item -> peerId(item, userId)).toList())
                 .stream()

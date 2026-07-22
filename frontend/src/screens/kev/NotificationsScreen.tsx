@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useRouter } from 'expo-router';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { deleteNotification, markNotificationRead } from '@/api/notifications';
@@ -10,8 +10,9 @@ import { NotificationRow } from '@/components/notifications/NotificationRow';
 import { DoubleCheckIcon } from '@/components/notifications/DoubleCheckIcon';
 import { HapticPressable } from '@/components/ui/HapticPressable';
 import { LoadingSkeleton } from '@/components/ui/LoadingSkeleton';
+import { notificationsScreenStyles as styles } from '@/screens/kev/notificationsScreenStyles';
 import { useNotificationsStore, type NotificationDay } from '@/store/notificationsStore';
-import { radii, spacing, usePalette } from '@/theme';
+import { spacing, usePalette } from '@/theme';
 
 const FILTERS: { value: NotificationDay; label: string }[] = [
   { value: 'today', label: 'Today' },
@@ -145,7 +146,7 @@ export function NotificationsScreen() {
       <ScrollView
         contentContainerStyle={styles.list}
         showsVerticalScrollIndicator={false}
-        style={{ borderTopColor: p.hairline, borderTopWidth: StyleSheet.hairlineWidth }}
+        style={[styles.listBorder, { borderTopColor: p.hairline }]}
       >
         {!loaded ? (
           <LoadingSkeleton style={styles.skeleton} testID="notifications-skeleton" variant="rows" />
@@ -166,46 +167,3 @@ export function NotificationsScreen() {
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  screen: { flex: 1 },
-  header: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingHorizontal: spacing.xl,
-    paddingVertical: spacing.md,
-  },
-  backBtn: {
-    alignItems: 'center',
-    borderRadius: radii.pill,
-    height: 40,
-    justifyContent: 'center',
-    width: 40,
-  },
-  headerTitle: { fontSize: 18, fontWeight: '700' },
-  disabled: { opacity: 0.45 },
-  skeleton: { paddingHorizontal: spacing.xl, paddingTop: spacing.lg },
-  filterScroll: { flexGrow: 0, height: 48 },
-  filters: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    gap: spacing.sm,
-    paddingHorizontal: spacing.xl,
-  },
-  pill: {
-    alignItems: 'center',
-    borderRadius: radii.pill,
-    height: 32,
-    justifyContent: 'center',
-    paddingHorizontal: spacing.md,
-  },
-  pillText: { fontSize: 13, fontWeight: '700' },
-  list: { paddingBottom: spacing.xxxl },
-  empty: {
-    fontSize: 14,
-    paddingHorizontal: spacing.xl,
-    paddingVertical: spacing.xxxl,
-    textAlign: 'center',
-  },
-});
