@@ -155,7 +155,7 @@ class SessionServiceTest {
 
         List<SessionDto> result = service.listForUser(creator);
 
-        assertThat(result).extracting(SessionDto::id).containsExactly(3L, 5L, 4L);
+        assertThat(result).extracting(s -> s.id()).containsExactly(3L, 5L, 4L);
         assertThat(result.get(0).joined()).isTrue();
         assertThat(result.get(0).sessionPassword()).isEqualTo("F7K9PX");
         assertThat(result.get(1).joined()).isFalse();

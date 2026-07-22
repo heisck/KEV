@@ -29,9 +29,9 @@ public class AttendanceMapper {
     }
 
     public List<AttendanceDto> toDtos(List<AttendanceRecord> records) {
-        List<Long> ids = records.stream().map(AttendanceRecord::getStudentId).toList();
-        Map<Long, DirectoryStudent> byId = students.findAllById(ids).stream()
-                .collect(Collectors.toMap(DirectoryStudent::getId, Function.identity()));
+        List<Long> ids = records.stream().map(r -> r.getStudentId()).toList();
+        Map<Long, DirectoryStudent> byId =
+                students.findAllById(ids).stream().collect(Collectors.toMap(s -> s.getId(), Function.identity()));
         return records.stream()
                 .map(r -> AttendanceDto.from(r, StudentRecord.from(byId.get(r.getStudentId()))))
                 .toList();

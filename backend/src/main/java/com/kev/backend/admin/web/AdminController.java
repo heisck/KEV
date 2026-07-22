@@ -3,6 +3,7 @@ package com.kev.backend.admin.web;
 import com.kev.backend.admin.AdminService;
 import com.kev.backend.admin.dto.AdminDashboardDto;
 import com.kev.backend.admin.dto.AssignInvigilatorRequest;
+import com.kev.backend.admin.dto.CreateAdminRequest;
 import com.kev.backend.admin.dto.CreateLecturerRequest;
 import com.kev.backend.admin.dto.UpdateLecturerRequest;
 import com.kev.backend.attendance.AttendanceService;
@@ -45,6 +46,17 @@ public class AdminController {
     @GetMapping("/dashboard")
     public AdminDashboardDto dashboard(@AuthenticationPrincipal Jwt principal) {
         return admin.getDashboard(UUID.fromString(principal.getSubject()));
+    }
+
+    @GetMapping("/admins")
+    public List<UserDto> admins() {
+        return admin.listAdmins();
+    }
+
+    @PostMapping("/admins")
+    @ResponseStatus(HttpStatus.CREATED)
+    public UserDto createAdmin(@AuthenticationPrincipal Jwt principal, @Valid @RequestBody CreateAdminRequest req) {
+        return admin.createAdmin(UUID.fromString(principal.getSubject()), req);
     }
 
     @GetMapping("/lecturers")

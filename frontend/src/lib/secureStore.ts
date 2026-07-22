@@ -4,16 +4,16 @@ import * as SecureStore from 'expo-secure-store';
 const ACCESS_KEY = 'kev.accessToken';
 const REFRESH_KEY = 'kev.refreshToken';
 
-/** Web has no Keychain/Keystore — sessionStorage is best-effort for dev previews. */
+/** Web has no Keychain/Keystore — localStorage is fallback for web previews. */
 const webStore = {
   getItem: (key: string) =>
-    Promise.resolve(typeof sessionStorage === 'undefined' ? null : sessionStorage.getItem(key)),
+    Promise.resolve(typeof localStorage === 'undefined' ? null : localStorage.getItem(key)),
   setItem: (key: string, value: string) => {
-    if (typeof sessionStorage !== 'undefined') sessionStorage.setItem(key, value);
+    if (typeof localStorage !== 'undefined') localStorage.setItem(key, value);
     return Promise.resolve();
   },
   deleteItem: (key: string) => {
-    if (typeof sessionStorage !== 'undefined') sessionStorage.removeItem(key);
+    if (typeof localStorage !== 'undefined') localStorage.removeItem(key);
     return Promise.resolve();
   },
 };

@@ -1,6 +1,7 @@
 package com.kev.backend.admin;
 
 import com.kev.backend.admin.dto.AdminDashboardDto;
+import com.kev.backend.admin.dto.CreateAdminRequest;
 import com.kev.backend.admin.dto.CreateLecturerRequest;
 import com.kev.backend.admin.dto.UpdateLecturerRequest;
 import com.kev.backend.auth.Plan;
@@ -9,6 +10,7 @@ import com.kev.backend.auth.User;
 import com.kev.backend.auth.UserRepository;
 import com.kev.backend.auth.dto.UserDto;
 import com.kev.backend.common.ApiException;
+import com.kev.backend.common.EntityUtils;
 import com.kev.backend.notification.ArkeselSmsService;
 import com.kev.backend.notification.Notification;
 import com.kev.backend.notification.NotificationRepository;
@@ -67,6 +69,30 @@ public class AdminService {
                 .filter(u -> u.getRole() == Role.LECTURER)
                 .map(UserDto::from)
                 .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<UserDto> listAdmins() {
+        return users.findAllByRole(Role.ADMIN).stream().map(UserDto::from).toList();
+    }
+
+    @Transactional
+    public UserDto createAdmin(UUID creatorAdminId, CreateAdminRequest req) {
+        String email = req.email().trim().toLowerCase(java.util.Locale.ROOT);
+        if (users.findByEmail(email).isPresent()) {
+            throw new ApiException(HttpStatus.CONFLICT, "User with email already exists");
+        }
+        User admin = new User();
+        admin.setEmail(email);
+        admin.setDisplayName(req.fullName().trim());
+        admin.setRole(Role.ADMIN);
+        admin.setPlan(Plan.PREMIUM);
+        admin.setPasswordHash(passwordEncoder.encode(req.password()));
+        admin.setStatus("ACTIVE");
+        admin.setActive(true);
+        admin.setCreatedByAdmin(creatorAdminId);
+        User saved = users.save(admin);
+        return UserDto.from(saved);
     }
 
     @Transactional(readOnly = true)
@@ -130,8 +156,7 @@ public class AdminService {
 
     @Transactional
     public UserDto updateLecturer(UUID adminId, UUID userId, UpdateLecturerRequest req) {
-        User target =
-                users.findById(userId).orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Lecturer not found"));
+        User target = EntityUtils.requireNonNull(users.findById(userId), "Lecturer not found");
         target.setDisplayName(req.fullName().trim());
         target.setLecturerId(req.lecturerId().trim());
         target.setEmail(req.universityEmail().trim());
@@ -144,8 +169,7 @@ public class AdminService {
 
     @Transactional
     public void disableLecturer(UUID adminId, UUID userId) {
-        User target =
-                users.findById(userId).orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Lecturer not found"));
+        User target = EntityUtils.requireNonNull(users.findById(userId), "Lecturer not found");
         target.setStatus("DISABLED");
         target.setActive(false);
         users.save(target);
@@ -159,10 +183,9 @@ public class AdminService {
     @Transactional
     public InvigilatorDto assign(UUID adminId, Long sessionId, UUID userId) {
         ExamSession session = sessions.require(sessionId);
-        User admin = users.findById(adminId)
-                .orElseThrow(() -> new ApiException(HttpStatus.UNAUTHORIZED, "Admin account not found"));
-        User target =
-                users.findById(userId).orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "User not found"));
+        User admin =
+                EntityUtils.requireNonNull(users.findById(adminId), HttpStatus.UNAUTHORIZED, "Admin account not found");
+        User target = EntityUtils.requireNonNull(users.findById(userId), "User not found");
         if (invigilators.existsBySessionIdAndUserId(sessionId, userId)) {
             throw new ApiException(HttpStatus.CONFLICT, "User is already an invigilator of this session");
         }
