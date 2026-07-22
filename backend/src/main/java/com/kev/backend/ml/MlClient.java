@@ -57,7 +57,7 @@ public class MlClient {
                     .retrieve()
                     .body(VerifyFaceResponse.class);
         } catch (ResourceAccessException e) {
-            throw new ApiException(HttpStatus.BAD_GATEWAY, "Face verification service unavailable");
+            throw new ApiException(HttpStatus.BAD_GATEWAY, "Face verification service unavailable", e);
         }
     }
 }

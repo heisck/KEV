@@ -4,6 +4,7 @@ import { ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { deleteNotification, markNotificationRead } from '@/api/notifications';
+import { logger } from '@/lib/logger';
 
 import { BackIcon } from '@/components/kev/icons';
 import { NotificationRow } from '@/components/notifications/NotificationRow';
@@ -51,7 +52,9 @@ export function NotificationsScreen() {
   );
   const readOne = (id: string) => {
     markRead(id);
-    void markNotificationRead(id).catch(() => undefined);
+    void markNotificationRead(id).catch((error: unknown) =>
+      logger.warn('Failed to mark notification read', { error: String(error), id }),
+    );
   };
   const openNotification = (id: string) => {
     const item = items.find((notification) => notification.id === id);
@@ -67,11 +70,15 @@ export function NotificationsScreen() {
   const readAll = () => {
     const unreadIds = items.filter((item) => !item.read).map((item) => item.id);
     markAllRead();
-    void Promise.all(unreadIds.map(markNotificationRead)).catch(() => undefined);
+    void Promise.all(unreadIds.map(markNotificationRead)).catch((error: unknown) =>
+      logger.warn('Failed to mark all notifications read', { error: String(error) }),
+    );
   };
   const deleteOne = (id: string) => {
     remove(id);
-    void deleteNotification(id).catch(() => undefined);
+    void deleteNotification(id).catch((error: unknown) =>
+      logger.warn('Failed to delete notification', { error: String(error), id }),
+    );
   };
 
   return (

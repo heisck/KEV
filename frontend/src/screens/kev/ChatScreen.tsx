@@ -10,6 +10,7 @@ import { BackIcon } from '@/components/kev/icons';
 import { Avatar, personForId } from '@/components/kev/people';
 import { HapticPressable } from '@/components/ui/HapticPressable';
 import { parseMessages } from '@/lib/chatMessages';
+import { logger } from '@/lib/logger';
 import { useChatStore } from '@/store/chatStore';
 import { useAuthStore } from '@/store/authStore';
 import { spacing, usePalette } from '@/theme';
@@ -67,8 +68,8 @@ export function ChatScreen({ threadId }: ChatScreenProps = {}) {
             void queryClient.invalidateQueries({ queryKey: ['notifications'] });
           });
         })
-        .catch(() => {
-          // Ignore offline fallback
+        .catch((error: unknown) => {
+          logger.debug('Chat message poll failed', { error: String(error) });
         });
     };
     load();

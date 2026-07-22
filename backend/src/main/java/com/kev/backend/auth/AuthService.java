@@ -109,7 +109,7 @@ public class AuthService {
         try {
             decoded = jwtDecoder.decode(refreshToken);
         } catch (JwtException e) {
-            throw new ApiException(HttpStatus.UNAUTHORIZED, "Invalid refresh token");
+            throw new ApiException(HttpStatus.UNAUTHORIZED, "Invalid refresh token", e);
         }
         if (!JwtService.TokenType.REFRESH.name().equals(decoded.getClaimAsString(JwtService.CLAIM_TYPE))) {
             throw new ApiException(HttpStatus.UNAUTHORIZED, "Not a refresh token");
