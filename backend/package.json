@@ -1,13 +1,13 @@
 {
-  "name": "@kev/backend",
-  "version": "0.0.0",
+  "name": "backend",
+  "version": "1.0.0",
   "private": true,
-  "description": "Spring Boot REST API. Scripts delegate to the cross-platform Maven launcher (scripts/run-backend.mjs), which selects mvnw/mvnw.cmd and loads backend/.env.",
+  "description": "Spring Boot backend wrapper package for npm script execution",
   "scripts": {
     "start": "node ../scripts/run-backend.mjs spring-boot:run",
     "dev": "node ../scripts/run-backend.mjs spring-boot:run",
-    "build": "node ../scripts/run-backend.mjs package",
-    "test": "node ../scripts/run-backend.mjs verify",
-    "format": "node ../scripts/run-backend.mjs spotless:apply"
+    "server": "node ../scripts/run-backend.mjs spring-boot:run",
+    "backend": "node ../scripts/run-backend.mjs spring-boot:run",
+    "test": "node ../scripts/run-backend.mjs verify"
   }
 }

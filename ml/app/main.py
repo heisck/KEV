@@ -36,9 +36,23 @@ def validate_reference_url(url: str) -> None:
         pass
 
 
+from contextlib import asynccontextmanager
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Lifespan event handler to preload and warm the face recognition engine on startup."""
+    print("[ML Startup] Preloading and warming face recognition engine...")
+    try:
+        engine = FaceEngine.get()
+        engine._app()
+        print("[ML Startup] Face recognition engine preloaded and ready!")
+    except Exception as exc:
+        print(f"[ML Startup] Engine warmup warning (will retry on first request): {exc}")
+    yield
+
 init_sentry()
 
-app = FastAPI(title="KEV ML Service", version="0.1.0")
+app = FastAPI(title="KEV ML Service", version="0.1.0", lifespan=lifespan)
 
 
 @app.middleware("http")

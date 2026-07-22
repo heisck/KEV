@@ -23,7 +23,7 @@ All vars below live in the **single root `.env`**. They're grouped by service fo
 
 | Var                                                                            | Required | Notes                                              |
 | ------------------------------------------------------------------------------ | -------- | -------------------------------------------------- |
-| `EXPO_PUBLIC_API_URL`                                                          | yes      | Backend base URL                                   |
+| `EXPO_PUBLIC_API_URL` / `BACKEND_URL`                                          | yes      | Backend base URL                                   |
 | `EXPO_PUBLIC_ENV`                                                              | no       | `development` / `production`                       |
 | `EXPO_PUBLIC_SENTRY_DSN`                                                       | no       | Frontend Sentry DSN                                |
 | `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID`                                             | yes      | Google web client ID (audience the backend checks) |
@@ -32,16 +32,19 @@ All vars below live in the **single root `.env`**. They're grouped by service fo
 
 ## Backend vars
 
-| Var                                                 | Required | Notes                               |
-| --------------------------------------------------- | -------- | ----------------------------------- |
-| `SPRING_DATASOURCE_URL` / `_USERNAME` / `_PASSWORD` | yes      | Neon pooled connection              |
-| `UPSTASH_REDIS_HOST` / `_PORT` / `_PASSWORD`        | prod     | Redis; set `UPSTASH_REDIS_SSL=true` |
-| `JWT_SECRET`                                        | yes      | ≥ 32 bytes random; signs app JWTs   |
-| `JWT_ACCESS_TTL_MINUTES`, `JWT_REFRESH_TTL_DAYS`    | no       | Token lifetimes                     |
-| `GOOGLE_CLIENT_IDS`                                 | yes      | Comma-separated accepted audiences  |
-| `SENTRY_DSN_BACKEND`                                | no       | Backend Sentry DSN                  |
-| `APP_CORS_ALLOWED_ORIGINS`                          | no       | Comma-separated allowed origins     |
-| `SPRING_PROFILES_ACTIVE`                            | no       | `dev` / `prod` (defaults to base)   |
+| Var                                                 | Required    | Notes                                                                    |
+| --------------------------------------------------- | ----------- | ------------------------------------------------------------------------ |
+| `DATABASE_URL`                                      | yes         | Standard Neon / Postgres URL (`postgres://user:pass@host/db`)            |
+| `SPRING_DATASOURCE_URL` / `_USERNAME` / `_PASSWORD` | alternative | Neon pooled JDBC connection string & credentials                         |
+| `REDIS_URL`                                         | prod        | Standard Upstash / Redis URL (`rediss://default:pass@host:port`)         |
+| `UPSTASH_REDIS_HOST` / `_PORT` / `_PASSWORD`        | alternative | Host/port/password format; set `UPSTASH_REDIS_SSL=true`                  |
+| `CLOUDINARY_URL` / `_CLOUD_NAME`                    | optional    | Cloudinary URL (`cloudinary://key:secret@name`) or individual properties |
+| `JWT_SECRET`                                        | yes         | ≥ 32 bytes random; signs app JWTs                                        |
+| `JWT_ACCESS_TTL_MINUTES`, `JWT_REFRESH_TTL_DAYS`    | no          | Token lifetimes                                                          |
+| `GOOGLE_CLIENT_IDS`                                 | yes         | Comma-separated accepted audiences                                       |
+| `SENTRY_DSN_BACKEND`                                | no          | Backend Sentry DSN                                                       |
+| `APP_CORS_ALLOWED_ORIGINS`                          | no          | Comma-separated allowed origins                                          |
+| `SPRING_PROFILES_ACTIVE`                            | no          | `dev` / `prod` (defaults to base)                                        |
 
 ## ML vars
 
