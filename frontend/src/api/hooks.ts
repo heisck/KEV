@@ -19,6 +19,8 @@ const keys = {
   conversations: ['chat', 'conversations'] as const,
   invigilators: ['admin', 'invigilators'] as const,
   adminSessions: ['admin', 'sessions'] as const,
+  adminLecturers: ['admin', 'lecturers'] as const,
+  adminAdmins: ['admin', 'admins'] as const,
   report: (id: number) => ['admin', 'sessions', id, 'report'] as const,
   notifications: ['notifications'] as const,
   reports: ['reports'] as const,
@@ -219,5 +221,59 @@ export function useUnassignInvigilator(sessionId: number) {
   return useMutation({
     mutationFn: (userId: string) => admin.unassignInvigilator(sessionId, userId),
     onSuccess: () => void qc.invalidateQueries({ queryKey: ['admin'] }),
+  });
+}
+
+export function useLecturersList() {
+  return useQuery({ queryKey: keys.adminLecturers, queryFn: admin.listLecturers });
+}
+
+export function useCreateLecturer() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: admin.createLecturer,
+    onSuccess: () => void qc.invalidateQueries({ queryKey: keys.adminLecturers }),
+  });
+}
+
+export function useUpdateLecturer() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      id,
+      data,
+    }: {
+      id: string;
+      data: {
+        fullName: string;
+        lecturerId: string;
+        universityEmail: string;
+        personalEmail: string;
+        phone: string;
+        status?: string;
+        active?: boolean;
+      };
+    }) => admin.updateLecturer(id, data),
+    onSuccess: () => void qc.invalidateQueries({ queryKey: keys.adminLecturers }),
+  });
+}
+
+export function useDisableLecturer() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => admin.disableLecturer(id),
+    onSuccess: () => void qc.invalidateQueries({ queryKey: keys.adminLecturers }),
+  });
+}
+
+export function useAdminsList() {
+  return useQuery({ queryKey: keys.adminAdmins, queryFn: admin.listAdmins });
+}
+
+export function useCreateAdmin() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: admin.createAdmin,
+    onSuccess: () => void qc.invalidateQueries({ queryKey: keys.adminAdmins }),
   });
 }

@@ -32,3 +32,12 @@ export async function updateCredentials(input: {
   const res = await api.put('/api/auth/credentials', input);
   return UserDtoSchema.parse(res.data);
 }
+
+export async function bootstrapAdmin(
+  fullName: string,
+  email: string,
+  password: string,
+): Promise<AuthResponse> {
+  const res = await api.post('/api/auth/bootstrap', { fullName, email, password });
+  return AuthResponseSchema.parse(res.data);
+}

@@ -1,0 +1,81 @@
+{
+  "groups": [
+    {
+      "name": "kev",
+      "type": "com.kev.backend.config.AppProperties",
+      "sourceType": "com.kev.backend.config.AppProperties"
+    },
+    {
+      "name": "kev.auth",
+      "type": "com.kev.backend.config.AppProperties$Auth",
+      "sourceType": "com.kev.backend.config.AppProperties"
+    },
+    {
+      "name": "kev.auth.jwt",
+      "type": "com.kev.backend.config.AppProperties$Jwt",
+      "sourceType": "com.kev.backend.config.AppProperties"
+    },
+    {
+      "name": "kev.auth.google",
+      "type": "com.kev.backend.config.AppProperties$Google",
+      "sourceType": "com.kev.backend.config.AppProperties"
+    },
+    {
+      "name": "kev.auth.apple",
+      "type": "com.kev.backend.config.AppProperties$Apple",
+      "sourceType": "com.kev.backend.config.AppProperties"
+    },
+    {
+      "name": "kev.cors",
+      "type": "com.kev.backend.config.AppProperties$Cors",
+      "sourceType": "com.kev.backend.config.AppProperties"
+    }
+  ],
+  "properties": [
+    {
+      "name": "kev.auth.jwt.secret",
+      "type": "java.lang.String",
+      "description": "Secret key used to sign and verify JWT tokens."
+    },
+    {
+      "name": "kev.auth.jwt.issuer",
+      "type": "java.lang.String",
+      "description": "Issuer claim for JWT tokens."
+    },
+    {
+      "name": "kev.auth.jwt.access-ttl",
+      "type": "java.time.Duration",
+      "description": "TTL for access tokens."
+    },
+    {
+      "name": "kev.auth.jwt.refresh-ttl",
+      "type": "java.time.Duration",
+      "description": "TTL for refresh tokens."
+    },
+    {
+      "name": "kev.auth.google.client-ids",
+      "type": "java.util.List<java.lang.String>",
+      "description": "List of accepted Google OAuth client IDs."
+    },
+    {
+      "name": "kev.auth.apple.client-ids",
+      "type": "java.util.List<java.lang.String>",
+      "description": "List of accepted Apple client IDs."
+    },
+    {
+      "name": "kev.cors.allowed-origins",
+      "type": "java.util.List<java.lang.String>",
+      "description": "List of CORS allowed origins."
+    },
+    {
+      "name": "kev.directory.provider",
+      "type": "java.lang.String",
+      "description": "Directory provider mode (e.g. database, mock)."
+    },
+    {
+      "name": "kev.ml.base-url",
+      "type": "java.lang.String",
+      "description": "Base URL for the ML FastAPI service."
+    }
+  ]
+}

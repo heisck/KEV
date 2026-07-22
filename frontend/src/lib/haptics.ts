@@ -17,20 +17,20 @@ export function haptic(kind: HapticKind = 'tap'): void {
 
   switch (kind) {
     case 'select':
-      void Haptics.selectionAsync();
+      void Haptics.selectionAsync().catch(() => {});
       return;
     case 'success':
-      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
       return;
     case 'warning':
-      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning).catch(() => {});
       return;
     case 'error':
-      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error).catch(() => {});
       return;
     case 'tap':
     default:
       // Light impact is the closest match to interactive control depression.
-      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
   }
 }

@@ -101,10 +101,6 @@ export const useAuthStore = create<AuthState>((set, get) => {
         set({ status: 'unauthenticated' });
         return;
       }
-      set({ status: 'authenticated' });
-      // Restore the profile (role/plan drive tab visibility). Best-effort:
-      // offline keeps the token-based session; the 401-refresh path in the
-      // api client handles expiry on the next request.
       try {
         const me = await authApi.me();
         set({
@@ -116,9 +112,11 @@ export const useAuthStore = create<AuthState>((set, get) => {
             role: me.role,
             plan: me.plan,
           },
+          status: 'authenticated',
         });
       } catch {
-        // keep session; profile loads on next successful request
+        // Token exists but /me failed (e.g. offline). Mark authenticated.
+        set({ status: 'authenticated' });
       }
     },
   };

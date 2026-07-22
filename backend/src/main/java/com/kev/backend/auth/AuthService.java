@@ -1,10 +1,13 @@
 package com.kev.backend.auth;
 
 import com.kev.backend.auth.dto.AuthResponse;
+import com.kev.backend.auth.dto.BootstrapRequest;
 import com.kev.backend.auth.dto.TokenResponse;
 import com.kev.backend.auth.dto.UpdateCredentialsRequest;
 import com.kev.backend.auth.dto.UserDto;
 import com.kev.backend.common.ApiException;
+import com.kev.backend.common.EntityUtils;
+import java.time.Instant;
 import java.util.Locale;
 import java.util.UUID;
 import org.springframework.http.HttpStatus;
@@ -38,6 +41,24 @@ public class AuthService {
         this.jwt = jwt;
         this.jwtDecoder = jwtDecoder;
         this.passwordEncoder = passwordEncoder;
+    }
+
+    /** First-time admin creation when zero admins exist. Self-disabling thereafter. */
+    @Transactional
+    public AuthResponse bootstrapAdmin(BootstrapRequest req) {
+        if (users.countByRole(Role.ADMIN) > 0) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "Bootstrap unavailable: Admin account already exists");
+        }
+        User admin = new User();
+        admin.setEmail(req.email().trim().toLowerCase(Locale.ROOT));
+        admin.setDisplayName(req.fullName().trim());
+        admin.setRole(Role.ADMIN);
+        admin.setPlan(Plan.PREMIUM);
+        admin.setPasswordHash(passwordEncoder.encode(req.password()));
+        admin.setStatus("ACTIVE");
+        admin.setActive(true);
+        User saved = users.save(admin);
+        return new AuthResponse(jwt.issueAccessToken(saved), jwt.issueRefreshToken(saved), UserDto.from(saved));
     }
 
     /** Verify the Google ID token, upsert the user, and mint our access + refresh tokens. */
@@ -93,13 +114,18 @@ public class AuthService {
         return new AuthResponse(jwt.issueAccessToken(saved), jwt.issueRefreshToken(saved), UserDto.from(saved));
     }
 
-    /** Email/password sign-in for pre-provisioned accounts (seeded admin/lecturers). */
-    @Transactional(readOnly = true)
+    /** Email/password sign-in for admin / lecturers. */
+    @Transactional
     public AuthResponse loginWithPassword(String email, String password) {
         User user = users.findByEmail(email.trim().toLowerCase())
                 .filter(u -> u.getPasswordHash() != null && passwordEncoder.matches(password, u.getPasswordHash()))
                 .orElseThrow(() -> new ApiException(HttpStatus.UNAUTHORIZED, "Invalid email or password"));
-        return new AuthResponse(jwt.issueAccessToken(user), jwt.issueRefreshToken(user), UserDto.from(user));
+        if (!user.isActive() || "DISABLED".equalsIgnoreCase(user.getStatus())) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "Account is disabled. Contact system administrator.");
+        }
+        user.setLastLogin(Instant.now());
+        User saved = users.save(user);
+        return new AuthResponse(jwt.issueAccessToken(saved), jwt.issueRefreshToken(saved), UserDto.from(saved));
     }
 
     /** Exchange a valid refresh token for a fresh access token. */
@@ -128,13 +154,14 @@ public class AuthService {
 
     @Transactional
     public UserDto updateCredentials(UUID userId, UpdateCredentialsRequest request) {
-        User user = users.findById(userId).orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "User not found"));
+        User user = EntityUtils.requireNonNull(users.findById(userId), "User not found");
         if (user.getPasswordHash() == null
                 || !passwordEncoder.matches(request.currentPassword(), user.getPasswordHash())) {
             throw new ApiException(HttpStatus.UNAUTHORIZED, "Current password is incorrect");
         }
         String email = normalized(request.email());
-        String password = normalized(request.newPassword());
+        String password =
+                request.newPassword() != null && !request.newPassword().isEmpty() ? request.newPassword() : null;
         if (email == null && password == null) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "Provide a new email or password");
         }

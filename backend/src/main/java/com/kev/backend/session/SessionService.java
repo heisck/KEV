@@ -100,7 +100,10 @@ public class SessionService {
             throw new ApiException(HttpStatus.CONFLICT, "Session is closed");
         }
         String supplied = password != null ? password.trim().toUpperCase() : "";
-        if (!supplied.equals(session.getSessionPassword())) {
+        byte[] a = supplied.getBytes(java.nio.charset.StandardCharsets.UTF_8);
+        byte[] b = (session.getSessionPassword() != null ? session.getSessionPassword() : "")
+                .getBytes(java.nio.charset.StandardCharsets.UTF_8);
+        if (!java.security.MessageDigest.isEqual(a, b)) {
             throw new ApiException(HttpStatus.FORBIDDEN, "Incorrect session password");
         }
         if (!invigilators.existsBySessionIdAndUserId(sessionId, userId)) {
@@ -129,7 +132,7 @@ public class SessionService {
         List<ExamSession> all = sessions.findAll(Sort.by("startedAt").descending());
         if (all.isEmpty()) return List.of();
         Set<Long> joinedIds = new HashSet<>(invigilators.findSessionIdsByUserId(userId));
-        List<Long> ids = all.stream().map(ExamSession::getId).toList();
+        List<Long> ids = all.stream().map(s -> s.getId()).toList();
         Map<Long, Long> checkedIn = countMap(attendance.countCheckedInBySessionIds(ids));
         Map<Long, Long> members = countMap(invigilators.countBySessionIds(ids));
         return all.stream()
@@ -144,9 +147,7 @@ public class SessionService {
     /** All sessions, newest first — admin overview. */
     @Transactional(readOnly = true)
     public List<SessionDto> listAll() {
-        return sessions
-                .findAll(org.springframework.data.domain.Sort.by("startedAt").descending())
-                .stream()
+        return sessions.findAll(Sort.by("startedAt").descending()).stream()
                 .map(this::toDto)
                 .toList();
     }

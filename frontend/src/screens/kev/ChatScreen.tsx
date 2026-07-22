@@ -18,7 +18,7 @@ import { chatScreenStyles as styles } from '@/screens/kev/chatScreenStyles';
 
 type ChatScreenProps = { threadId?: string };
 
-const CHAT_POLL_MS = 2_000;
+const CHAT_POLL_MS = 10_000;
 
 /** Full-screen lecturer thread. The directory lives in the tabs group. */
 export function ChatScreen({ threadId }: ChatScreenProps = {}) {

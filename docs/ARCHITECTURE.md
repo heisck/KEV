@@ -75,5 +75,3 @@ ml service. Combined with Sentry in all three services, a single user action is 
   (#3E97B0 / #416363 / #EDFFF8), liquid-glass surfaces with blur/solid fallbacks,
   NFC scan state machine gated by runtime capabilities (camera QR + manual entry in
   Expo Go).
-
-The HTML mockups in `ui-mockup-html/` remain design reference only.

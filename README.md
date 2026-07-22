@@ -11,9 +11,8 @@ backend, and a **Python/FastAPI** ML service for Hugging Face face models.
 ```
 frontend/            Expo SDK 54 + RN 0.81 + TS + Expo Router (mobile app shell)
 backend/             Spring Boot 4.1 + Java 21 (REST API)
-ml/                  Python 3.12 + FastAPI + Hugging Face (uv) — face model stub
+ml/                  Python 3.12 + FastAPI + Hugging Face (uv) — face model
 packages/api-types/  TS types generated from the backend OpenAPI schema
-ui-mockup-html/  Design reference only — not part of the build
 .github/workflows/   CI (path-filtered per service) + CodeQL / gitleaks / dependency-review
 ```
 
