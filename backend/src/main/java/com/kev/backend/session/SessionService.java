@@ -163,7 +163,7 @@ public class SessionService {
 
     @Transactional(readOnly = true)
     public List<SessionDto> listForUser(UUID userId) {
-        List<ExamSession> all = sessions.findAll(Sort.by("startedAt").descending());
+        List<ExamSession> all = sessions.findAll(Sort.by(Sort.Order.desc("startedAt")));
         if (all.isEmpty()) return List.of();
         Set<Long> joinedIds = new HashSet<>(invigilators.findSessionIdsByUserId(userId));
         List<Long> ids = all.stream().map(s -> s.getId()).toList();
@@ -181,7 +181,7 @@ public class SessionService {
     /** All sessions, newest first — admin overview. */
     @Transactional(readOnly = true)
     public List<SessionDto> listAll() {
-        return sessions.findAll(Sort.by("startedAt").descending()).stream()
+        return sessions.findAll(Sort.by(Sort.Order.desc("startedAt"))).stream()
                 .map(this::toDto)
                 .toList();
     }
