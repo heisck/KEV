@@ -202,6 +202,14 @@ export function useMarkReportsRead() {
   });
 }
 
+export function useDeleteReport() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: reports.deleteReport,
+    onSuccess: () => void qc.invalidateQueries({ queryKey: keys.reports }),
+  });
+}
+
 export function useAdminDashboard() {
   return useQuery({ queryKey: keys.adminDashboard, queryFn: admin.getDashboard });
 }

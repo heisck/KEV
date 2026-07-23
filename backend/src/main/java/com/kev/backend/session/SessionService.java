@@ -19,7 +19,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
-import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -163,7 +162,7 @@ public class SessionService {
 
     @Transactional(readOnly = true)
     public List<SessionDto> listForUser(UUID userId) {
-        List<ExamSession> all = sessions.findAll(Sort.by(Sort.Order.desc("startedAt")));
+        List<ExamSession> all = sessions.findAllByOrderByStartedAtDesc();
         if (all.isEmpty()) return List.of();
         Set<Long> joinedIds = new HashSet<>(invigilators.findSessionIdsByUserId(userId));
         List<Long> ids = all.stream().map(s -> s.getId()).toList();
@@ -181,7 +180,7 @@ public class SessionService {
     /** All sessions, newest first — admin overview. */
     @Transactional(readOnly = true)
     public List<SessionDto> listAll() {
-        return sessions.findAll(Sort.by(Sort.Order.desc("startedAt"))).stream()
+        return sessions.findAllByOrderByStartedAtDesc().stream()
                 .map(this::toDto)
                 .toList();
     }

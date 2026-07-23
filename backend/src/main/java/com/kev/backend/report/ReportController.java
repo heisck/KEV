@@ -52,6 +52,12 @@ public class ReportController {
         reports.markAllRead(userId(principal));
     }
 
+    @org.springframework.web.bind.annotation.DeleteMapping("/{id}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void delete(@PathVariable Long id) {
+        reports.delete(id);
+    }
+
     private UUID userId(Jwt principal) {
         return UUID.fromString(principal.getSubject());
     }

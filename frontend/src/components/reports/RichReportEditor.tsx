@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react';
+import { Keyboard, StyleSheet, View } from 'react-native';
 import { actions, RichEditor } from 'react-native-pell-rich-editor';
 
 import {
@@ -20,30 +20,50 @@ const ACTIONS: Record<Exclude<ReportFormat, 'circle-list'>, actions> = {
   'bullet-list': actions.insertBulletsList,
 };
 
-export function RichReportEditor({
-  editing,
-  html,
-  onChange,
-  onStart,
-}: {
-  editing: boolean;
-  html: string;
-  onChange: (html: string) => void;
-  onStart: () => void;
-}) {
+export interface RichReportEditorRef {
+  blur: () => void;
+  focus: () => void;
+}
+
+export const RichReportEditor = forwardRef<
+  RichReportEditorRef,
+  {
+    editing: boolean;
+    html: string;
+    onChange: (html: string) => void;
+    onStart: () => void;
+  }
+>(function RichReportEditor({ editing, html, onChange, onStart }, ref) {
   const p = usePalette();
   const editor = useRef<RichEditor>(null);
   const unorderedStyle = useRef<'bullet-list' | 'circle-list'>('bullet-list');
   const [active, setActive] = useState<Set<ReportFormat>>(new Set());
   const [, setFocused] = useState(false);
 
+  const [initialHtml] = useState(html);
+  const wasEditing = useRef(false);
+
+  useImperativeHandle(ref, () => ({
+    blur: () => {
+      Keyboard.dismiss();
+      editor.current?.blurContentEditor();
+    },
+    focus: () => {
+      editor.current?.focusContentEditor();
+    },
+  }));
+
   useEffect(() => {
     if (!editing) {
       setActive((current) => (current.size === 0 ? current : new Set()));
       if (!html) editor.current?.setContentHTML('');
+      wasEditing.current = false;
       return;
     }
-    editor.current?.focusContentEditor();
+    if (!wasEditing.current) {
+      wasEditing.current = true;
+      editor.current?.focusContentEditor();
+    }
   }, [editing, html]);
 
   const execute = (format: ReportFormat) => {
@@ -63,21 +83,35 @@ export function RichReportEditor({
 
   const select = (format: ReportFormat) => {
     if (!editing) onStart();
+    let toExecute: ReportFormat = format;
     setActive((current) => {
       const next = new Set(current);
-      const exclusive = format.startsWith('align-')
-        ? (['align-left', 'align-right'] as ReportFormat[])
-        : LIST_FORMATS;
-      if (current.has(format)) next.delete(format);
-      else {
-        if (format.startsWith('align-') || format.endsWith('-list')) {
-          exclusive.forEach((item) => next.delete(item));
+      if (format === 'align-left') {
+        next.delete('align-left');
+        next.delete('align-right');
+        toExecute = 'align-left';
+      } else if (format === 'align-right') {
+        if (current.has('align-right')) {
+          next.delete('align-right');
+          toExecute = 'align-left';
+        } else {
+          next.delete('align-left');
+          next.add('align-right');
+          toExecute = 'align-right';
         }
-        next.add(format);
+      } else {
+        const exclusive = LIST_FORMATS;
+        if (current.has(format)) next.delete(format);
+        else {
+          if (format.endsWith('-list')) {
+            exclusive.forEach((item) => next.delete(item));
+          }
+          next.add(format);
+        }
       }
       return next;
     });
-    queueMicrotask(() => execute(format));
+    queueMicrotask(() => execute(toExecute));
   };
 
   const ready = () =>
@@ -88,7 +122,7 @@ export function RichReportEditor({
         const match = Object.entries(ACTIONS).find(([, action]) => action === item)?.[0] as
           Exclude<ReportFormat, 'circle-list'> | undefined;
         if (match === 'bullet-list') selected.add(unorderedStyle.current);
-        else if (match) selected.add(match);
+        else if (match && match !== 'align-left') selected.add(match);
       }
       setActive(selected);
     });
@@ -105,22 +139,25 @@ export function RichReportEditor({
           backgroundColor: p.surfaceDim,
           caretColor: p.primary,
           color: p.ink,
-          contentCSSText: 'font-size:15px;line-height:22px;padding:12px 14px;',
+          contentCSSText:
+            'font-size:15px;line-height:22px;padding:12px 14px;min-height:100%;box-sizing:border-box;-webkit-overflow-scrolling:touch;',
           placeholderColor: p.muted,
         }}
-        enterKeyHint="done"
-        initialContentHTML={html}
+        initialContentHTML={initialHtml}
+        nestedScrollEnabled
         onBlur={() => setFocused(false)}
         onChange={onChange}
         onFocus={() => setFocused(true)}
         pasteAsPlainText
         placeholder={editing ? 'Write your report…' : 'Tap + to start a report'}
+        scrollEnabled
         style={[styles.editor, { backgroundColor: p.surfaceDim }]}
         testID="rich-report-editor"
+        useContainer
       />
     </View>
   );
-}
+});
 
 const styles = StyleSheet.create({
   container: { flex: 1, gap: spacing.md },

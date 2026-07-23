@@ -25,13 +25,13 @@ export type StudentRecord = z.infer<typeof StudentRecordSchema>;
 
 export const StudentReportSchema = z.object({
   id: z.number(),
-  sessionId: z.number(),
+  sessionId: z.number().nullable(),
   sessionTitle: z.string(),
-  sessionCode: z.string(),
+  sessionCode: z.string().nullable(),
   examDate: z.string().nullable(),
   authorId: z.string().uuid(),
   authorName: z.string(),
-  authorEmail: z.string().email(),
+  authorEmail: z.string(),
   student: StudentRecordSchema.nullable(),
   message: z.string(),
   createdAt: z.string(),

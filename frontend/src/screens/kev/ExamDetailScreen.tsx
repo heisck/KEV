@@ -4,6 +4,7 @@ import { ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useSessionDetail, useSessions } from '@/api/hooks';
+import type { SessionDto } from '@/api/schemas';
 import { CircleButton, ScreenTopBar } from '@/components/kev/chrome';
 import {
   CheckCircleIcon,
@@ -41,6 +42,8 @@ export function ExamDetailScreen() {
   const [joinedLocally, setJoinedLocally] = useState(false);
   const preferredMethod = useSettingsStore((state) => state.defaultScanMethod);
   const useAllScanMethods = useSettingsStore((state) => state.useAllScanMethods);
+  const userRole = useAuthStore((s) => s.user?.role);
+  const isNonScanner = userRole === 'ADMIN' || userRole === 'LECTURER';
 
   const METHODS = [
     {
@@ -60,7 +63,7 @@ export function ExamDetailScreen() {
 
   const user = useAuthStore((state) => state.user);
   const { data: allSessions, isLoading: sessionsLoading } = useSessions();
-  const listedSession = allSessions?.find((s) => String(s.id) === examId);
+  const listedSession = allSessions?.find((s: SessionDto) => String(s.id) === examId);
   const isPast = isPastSession(listedSession?.status);
   const isUserAdmin = user?.role === 'ADMIN';
   const canViewDetailDirectly =
@@ -222,13 +225,14 @@ export function ExamDetailScreen() {
         ) : null}
 
         <Text style={[styles.section, { color: p.ink }]}>Verification methods</Text>
-        <View style={[styles.amenities, isPast && { opacity: 0.5 }]}>
+        <View style={[styles.amenities, (isPast || isNonScanner) && { opacity: 0.45 }]}>
           {methods.map((m) => (
             <HapticPressable
               key={m.label}
               accessibilityRole="button"
               accessibilityLabel={`${m.label} verification`}
-              disabled={isPast}
+              accessibilityState={{ disabled: isPast || isNonScanner }}
+              disabled={isPast || isNonScanner}
               onPress={() => openMethod(m.path)}
               style={styles.amenity}
             >

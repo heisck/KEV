@@ -30,3 +30,7 @@ export async function markAllReportsRead(): Promise<void> {
 export async function markReportsRead(_ids?: number[]): Promise<void> {
   await markAllReportsRead();
 }
+
+export async function deleteReport(id: number): Promise<void> {
+  await api.delete(`/api/reports/${id}`);
+}

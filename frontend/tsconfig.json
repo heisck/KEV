@@ -1,7 +1,7 @@
 {
   "extends": "expo/tsconfig.base",
   "compilerOptions": {
-    "module": "esnext",
+    "module": "ESNext",
     "strict": true,
     "types": ["jest", "react"],
     "paths": {

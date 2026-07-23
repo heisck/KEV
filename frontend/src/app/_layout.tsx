@@ -100,7 +100,14 @@ function RootLayout() {
               <Stack.Screen name="upgrade" options={{ presentation: 'modal' }} />
               <Stack.Screen name="edit-profile" options={{ presentation: 'modal' }} />
               <Stack.Screen name="account-credentials" options={{ presentation: 'modal' }} />
-              <Stack.Screen name="reports" options={{ presentation: 'card' }} />
+              <Stack.Screen
+                name="reports"
+                options={{
+                  fullScreenGestureEnabled: false,
+                  gestureEnabled: false,
+                  presentation: 'card',
+                }}
+              />
             </Stack>
             <ToastHost />
             {showSplash ? (

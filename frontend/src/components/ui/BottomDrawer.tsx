@@ -4,6 +4,7 @@ import {
   Modal,
   Platform,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   View,
@@ -73,7 +74,7 @@ export function BottomDrawer({ visible, onClose, title, children, testID }: Bott
         >
           <Pressable accessibilityRole="button" style={StyleSheet.absoluteFill} onPress={onClose} />
         </Animated.View>
-        <Animated.View style={[styles.sheetClip, sheetStyle]}>
+        <Animated.View style={[styles.sheetClip, { maxHeight: height * 0.85 }, sheetStyle]}>
           <GlassSurface
             fallbackColor={p.surface}
             intensity={70}
@@ -82,7 +83,14 @@ export function BottomDrawer({ visible, onClose, title, children, testID }: Bott
             <View style={[styles.sheet, { paddingBottom: insets.bottom + spacing.xl }]}>
               <View style={[styles.grabber, { backgroundColor: p.hairline }]} />
               {title ? <Text style={[styles.title, { color: p.ink }]}>{title}</Text> : null}
-              {children}
+              <ScrollView
+                bounces={false}
+                contentContainerStyle={styles.scrollContent}
+                keyboardShouldPersistTaps="handled"
+                showsVerticalScrollIndicator={false}
+              >
+                {children}
+              </ScrollView>
             </View>
           </GlassSurface>
         </Animated.View>
@@ -99,12 +107,17 @@ const styles = StyleSheet.create({
   sheetClip: {
     borderTopLeftRadius: radii.xl,
     borderTopRightRadius: radii.xl,
+    maxHeight: '85%',
     overflow: 'hidden',
   },
   sheet: {
     gap: spacing.lg,
+    maxHeight: '100%',
     paddingHorizontal: spacing.xxl,
     paddingTop: spacing.md,
+  },
+  scrollContent: {
+    gap: spacing.md,
   },
   grabber: {
     alignSelf: 'center',

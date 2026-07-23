@@ -12,6 +12,7 @@ jest.mock('expo-router', () => ({
   useRouter: () => ({ back: jest.fn() }),
 }));
 jest.mock('@/api/hooks', () => ({
+  useDeleteReport: () => ({ mutate: jest.fn() }),
   useMarkReportRead: () => ({ mutate: mockMarkReportRead }),
   useMarkReportsRead: () => ({ mutate: jest.fn() }),
   useReports: () => ({
