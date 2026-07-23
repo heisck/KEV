@@ -1,10 +1,11 @@
-import { Platform } from 'react-native';
+import { NativeModules, Platform } from 'react-native';
 import type { TagEvent } from 'react-native-nfc-manager';
 import { logger } from '@/lib/logger';
 
 let started = false;
 
 function getNfcLib(): typeof import('react-native-nfc-manager') | null {
+  if (!NativeModules.NfcManager && !NativeModules.NfcManagerManager) return null;
   try {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     return require('react-native-nfc-manager') as typeof import('react-native-nfc-manager');

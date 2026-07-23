@@ -20,10 +20,12 @@ export function ScanMethodSwitcher({
   active,
   sessionId,
   allowedMethods,
+  onSelectMethod,
 }: {
   active: ScanMethod;
   sessionId: string;
   allowedMethods?: readonly ScanMethod[];
+  onSelectMethod?: (method: ScanMethod) => void;
 }) {
   const p = usePalette();
   const router = useRouter();
@@ -31,6 +33,14 @@ export function ScanMethodSwitcher({
     FACE: <FaceIdIcon color={active === 'FACE' ? p.onPrimary : p.pink} size={19} />,
     NFC: <NfcIcon color={active === 'NFC' ? p.onPrimary : p.blue} size={19} />,
     MANUAL: <KeypadIcon color={active === 'MANUAL' ? p.onPrimary : p.inkSoft} size={19} />,
+  };
+
+  const handleSelect = (method: ScanMethod) => {
+    if (onSelectMethod) {
+      onSelectMethod(method);
+    } else {
+      router.replace({ pathname: ROUTES[method], params: { exam: sessionId } });
+    }
   };
 
   return (
@@ -47,9 +57,7 @@ export function ScanMethodSwitcher({
               accessibilityState={{ selected }}
               disabled={selected}
               haptic="select"
-              onPress={() =>
-                router.replace({ pathname: ROUTES[method], params: { exam: sessionId } })
-              }
+              onPress={() => handleSelect(method)}
               style={[styles.method, selected && { backgroundColor: p.primary }]}
             >
               {icons[method]}

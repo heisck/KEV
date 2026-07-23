@@ -4,7 +4,7 @@ import { Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useSessionDetail } from '@/api/hooks';
-import type { CheckInMethod } from '@/api/schemas';
+import type { CheckInMethod, InvigilatorDto, SessionDetailDto } from '@/api/schemas';
 import { ScreenTopBar } from '@/components/kev/chrome';
 import { FaceIdIcon, KeypadIcon, NfcIcon } from '@/components/kev/icons';
 import { Avatar, initialsFor } from '@/components/kev/people';
@@ -19,9 +19,12 @@ import { useStudentRosterFilters } from '@/hooks/useStudentRosterFilters';
 import { isPastSession, scanBlockMessage } from '@/lib/sessionLifecycle';
 import { allowedScanMethods } from '@/lib/scanMethods';
 import { toast } from '@/lib/toast';
+import { useAuthStore } from '@/store/authStore';
 import { useSessionStore } from '@/store/sessionStore';
 import { useSettingsStore } from '@/store/settingsStore';
 import { colors, radii, spacing, usePalette, type Palette } from '@/theme';
+
+type AttendanceItem = SessionDetailDto['attendance'][number];
 
 const buildMethods = (
   p: Palette,
@@ -44,6 +47,8 @@ export function SessionScanScreen() {
   const { exam } = useLocalSearchParams<{ exam?: string }>();
   const sessionId = exam ?? '1';
   const { goBack } = useScanNavigation(sessionId);
+  const userRole = useAuthStore((s) => s.user?.role);
+  const isNonScanner = userRole === 'ADMIN' || userRole === 'LECTURER';
 
   const { data: detail } = useSessionDetail(Number(sessionId) || 1);
   const scanned = useSessionStore((s) => s.roster[sessionId]);
@@ -54,8 +59,8 @@ export function SessionScanScreen() {
       [
         ...(scanned ?? []),
         ...(detail?.attendance
-          ?.filter((attendance) => attendance.status === 'CHECKED_IN')
-          .map((attendance) =>
+          ?.filter((attendance: AttendanceItem) => attendance.status === 'CHECKED_IN')
+          .map((attendance: AttendanceItem) =>
             studentRecordToScanned(attendance.student, attendance.method, attendance.id),
           ) ?? []),
       ].map((st) => [st.id, st]),
@@ -74,9 +79,11 @@ export function SessionScanScreen() {
     .filter((m) => allowed.includes(m.key as (typeof allowed)[number]))
     // Surface the user's default method first.
     .sort((a, b) => Number(b.key === defaultScanMethod) - Number(a.key === defaultScanMethod));
-  const scanMessage = detail
-    ? scanBlockMessage(detail.session.status)
-    : 'Session details are still loading';
+  const scanMessage = isNonScanner
+    ? 'Admins and Lecturers can view session summaries but cannot perform live student verification.'
+    : detail
+      ? scanBlockMessage(detail.session.status)
+      : 'Session details are still loading';
   const isPast = isPastSession(detail?.session.status);
 
   const goTo = (path: string) => {
@@ -117,7 +124,7 @@ export function SessionScanScreen() {
       <ScrollView contentContainerStyle={styles.body} showsVerticalScrollIndicator={false}>
         <Text style={[styles.sectionTitle, { color: p.ink }]}>Lecturers</Text>
         <View style={styles.lecturers}>
-          {(detail?.invigilators ?? []).map((m) => {
+          {(detail?.invigilators ?? []).map((m: InvigilatorDto) => {
             const initials = initialsFor(m.displayName, m.email);
             return (
               <View key={m.userId} style={[styles.addTile, { backgroundColor: p.primary12 }]}>
@@ -161,21 +168,28 @@ export function SessionScanScreen() {
         {!isPast ? <ScanResultPreference /> : null}
 
         <View style={[styles.methods, scanMessage && styles.methodsBlocked]}>
-          {methods.map((m) => (
-            <HapticPressable
-              key={m.key}
-              accessibilityRole="button"
-              accessibilityLabel={`${m.label} verification`}
-              onPress={() => goTo(m.path)}
-              style={styles.method}
-            >
-              <View style={[styles.methodCircle, { backgroundColor: p.surfaceDim }]}>{m.icon}</View>
-              <Text style={[styles.methodLabel, { color: p.inkSoft }]}>{m.label}</Text>
-              {m.key === defaultScanMethod ? (
-                <Text style={[styles.methodDefault, { color: p.primary }]}>Default</Text>
-              ) : null}
-            </HapticPressable>
-          ))}
+          {methods.map((m) => {
+            const blocked = Boolean(scanMessage);
+            return (
+              <HapticPressable
+                key={m.key}
+                accessibilityRole="button"
+                accessibilityLabel={`${m.label} verification`}
+                accessibilityState={{ disabled: blocked }}
+                disabled={blocked}
+                onPress={() => goTo(m.path)}
+                style={[styles.method, blocked && styles.disabled]}
+              >
+                <View style={[styles.methodCircle, { backgroundColor: p.surfaceDim }]}>
+                  {m.icon}
+                </View>
+                <Text style={[styles.methodLabel, { color: p.inkSoft }]}>{m.label}</Text>
+                {m.key === defaultScanMethod ? (
+                  <Text style={[styles.methodDefault, { color: p.primary }]}>Default</Text>
+                ) : null}
+              </HapticPressable>
+            );
+          })}
         </View>
         {detail && methods.length === 0 ? (
           <Text style={[styles.noMethods, { color: p.muted }]}>
@@ -232,5 +246,6 @@ const styles = StyleSheet.create({
   },
   methodLabel: { color: colors.inkSoft, fontSize: 11, fontWeight: '600' },
   methodDefault: { color: colors.primary, fontSize: 9, fontWeight: '800', letterSpacing: 0.4 },
+  disabled: { opacity: 0.45 },
   noMethods: { fontSize: 12, lineHeight: 18, textAlign: 'center' },
 });

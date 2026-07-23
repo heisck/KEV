@@ -1,28 +1,40 @@
-import { useEffect, useState } from 'react';
+import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { useCreateReport } from '@/api/hooks';
 import { PlusIcon, SendIcon } from '@/components/kev/icons';
-import { RichReportEditor } from '@/components/reports/RichReportEditor';
+import { RichReportEditor, type RichReportEditorRef } from '@/components/reports/RichReportEditor';
 import { HapticPressable } from '@/components/ui/HapticPressable';
 import { hasVisibleReportContent, richHtmlToReportMarkup } from '@/lib/reportRichText';
 import { useReportDraftStore } from '@/store/reportDraftStore';
 import { toast } from '@/lib/toast';
 import { radii, spacing, usePalette } from '@/theme';
 
-export function ReportCreatePanel({
-  onSendingChange,
-}: {
-  onSendingChange: (sending: boolean) => void;
-}) {
+export interface ReportCreatePanelRef {
+  blur: () => void;
+}
+
+export const ReportCreatePanel = forwardRef<
+  ReportCreatePanelRef,
+  {
+    onSendingChange: (sending: boolean) => void;
+  }
+>(function ReportCreatePanel({ onSendingChange }, ref) {
   const p = usePalette();
   const create = useCreateReport();
   const draftHtml = useReportDraftStore((s) => s.draftHtml);
   const setDraftHtml = useReportDraftStore((s) => s.setDraftHtml);
   const clearDraft = useReportDraftStore((s) => s.clearDraft);
+  const editorRef = useRef<RichReportEditorRef>(null);
 
   const [contentHtml, setContentHtml] = useState(draftHtml);
   const [editing, setEditing] = useState(Boolean(draftHtml));
+
+  useImperativeHandle(ref, () => ({
+    blur: () => {
+      editorRef.current?.blur();
+    },
+  }));
 
   useEffect(() => onSendingChange(create.isPending), [create.isPending, onSendingChange]);
 
@@ -49,6 +61,7 @@ export function ReportCreatePanel({
   return (
     <View style={styles.panel}>
       <RichReportEditor
+        ref={editorRef}
         editing={editing}
         html={contentHtml}
         onChange={handleHtmlChange}
@@ -74,7 +87,7 @@ export function ReportCreatePanel({
       </HapticPressable>
     </View>
   );
-}
+});
 
 const styles = StyleSheet.create({
   panel: { flex: 1, gap: spacing.md, paddingHorizontal: spacing.xl },

@@ -9,7 +9,7 @@ public interface StudentReportRepository extends JpaRepository<StudentReport, Lo
     @Query(
             """
             select distinct report from StudentReport report
-            join fetch report.session
+            left join fetch report.session
             left join fetch report.student student
             left join fetch student.courses
             join fetch report.author

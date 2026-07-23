@@ -12,4 +12,6 @@ public interface ExamSessionRepository extends JpaRepository<ExamSession, Long> 
     Optional<ExamSession> findBySessionCodeOrSessionPassword(String sessionCode, String sessionPassword);
 
     boolean existsBySessionCode(String sessionCode);
+
+    java.util.List<ExamSession> findAllByOrderByStartedAtDesc();
 }

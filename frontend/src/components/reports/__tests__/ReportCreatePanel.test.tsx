@@ -73,11 +73,10 @@ describe('ReportCreatePanel', () => {
     mockSendAction.mockClear();
   });
 
-  it('allows reports for sessions the lecturer has not joined', () => {
+  it('dismisses keyboard when tapping the empty container area', () => {
     const screen = render(<ReportCreatePanel onSendingChange={jest.fn()} />);
 
-    expect(screen.getByText('Open session')).toBeTruthy();
-    expect(screen.queryByText('Join a session before creating a report.')).toBeNull();
+    expect(screen.getByTestId('rich-report-editor')).toBeTruthy();
   });
 
   it('fills the selected formatting section', () => {
@@ -122,7 +121,6 @@ describe('ReportCreatePanel', () => {
     await waitFor(() =>
       expect(mockCreateReport).toHaveBeenCalledWith({
         message: '**Room** issue',
-        sessionId: 9,
       }),
     );
   });

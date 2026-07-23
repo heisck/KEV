@@ -100,6 +100,13 @@ public class ReportService {
         if (!missing.isEmpty()) reads.saveAll(missing);
     }
 
+    @Transactional
+    public void delete(Long reportId) {
+        if (reports.existsById(reportId)) {
+            reports.deleteById(reportId);
+        }
+    }
+
     private StudentReport requireReport(Long reportId) {
         return EntityUtils.requireNonNull(reports.findById(reportId), "Report not found");
     }

@@ -2,6 +2,7 @@ import {
   AttendanceDtoSchema,
   FaceVerifyResponseSchema,
   SessionDtoSchema,
+  StudentReportSchema,
   getProblemDetail,
   isPlanLimitError,
 } from '@/api/schemas';
@@ -43,6 +44,21 @@ const attendance = {
   removedAt: null,
 };
 
+const reportWithoutSession = {
+  id: 1,
+  sessionId: null,
+  sessionTitle: 'Session',
+  sessionCode: null,
+  examDate: null,
+  authorId: '97665200-aaff-440a-8553-5d1383aa83ad',
+  authorName: 'Test Lecturer',
+  authorEmail: 'lecturer@example.com',
+  student: null,
+  message: 'General feedback report',
+  createdAt: '2026-07-23T19:54:11Z',
+  read: true,
+};
+
 const axiosError = (status: number, data: unknown) => ({
   isAxiosError: true,
   response: { status, data },
@@ -55,6 +71,13 @@ describe('api schemas', () => {
 
   it('parses an AttendanceDto with nested student', () => {
     expect(AttendanceDtoSchema.parse(attendance).student.indexNumber).toBe('12345678');
+  });
+
+  it('parses a StudentReport with null sessionId and sessionCode', () => {
+    const parsed = StudentReportSchema.parse(reportWithoutSession);
+    expect(parsed.sessionId).toBeNull();
+    expect(parsed.sessionCode).toBeNull();
+    expect(parsed.message).toBe('General feedback report');
   });
 
   it('parses a FaceVerifyResponse', () => {
