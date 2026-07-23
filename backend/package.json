@@ -2,12 +2,9 @@
   "name": "backend",
   "version": "1.0.0",
   "private": true,
-  "description": "Spring Boot backend wrapper package for npm script execution",
+  "description": "Spring Boot backend package",
   "scripts": {
     "start": "node ../scripts/run-backend.mjs spring-boot:run",
-    "dev": "node ../scripts/run-backend.mjs spring-boot:run",
-    "server": "node ../scripts/run-backend.mjs spring-boot:run",
-    "backend": "node ../scripts/run-backend.mjs spring-boot:run",
     "test": "node ../scripts/run-backend.mjs verify"
   }
 }
