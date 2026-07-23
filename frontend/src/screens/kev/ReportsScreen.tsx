@@ -1,6 +1,14 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-native';
+import {
+  ActivityIndicator,
+  Keyboard,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useMarkReportRead, useMarkReportsRead, useReports } from '@/api/hooks';
@@ -85,7 +93,10 @@ export function ReportsScreen() {
   );
 
   return (
-    <View style={[styles.screen, { backgroundColor: p.bg, paddingTop: top + spacing.sm }]}>
+    <Pressable
+      style={[styles.screen, { backgroundColor: p.bg, paddingTop: top + spacing.sm }]}
+      onPress={Keyboard.dismiss}
+    >
       <View style={styles.header}>
         <HapticPressable
           accessibilityLabel="Back to profile"
@@ -125,7 +136,12 @@ export function ReportsScreen() {
       {createMode ? (
         <ReportCreatePanel onSendingChange={setSending} />
       ) : (
-        <ScrollView contentContainerStyle={styles.body} showsVerticalScrollIndicator={false}>
+        <ScrollView
+          contentContainerStyle={styles.body}
+          keyboardShouldPersistTaps="handled"
+          onScrollBeginDrag={Keyboard.dismiss}
+          showsVerticalScrollIndicator={false}
+        >
           {isLoading ? (
             <LoadingSkeleton variant="rows" />
           ) : visible.length ? (
@@ -146,7 +162,7 @@ export function ReportsScreen() {
         </ScrollView>
       )}
       <ReportDetailDrawer report={selected} onClose={() => setSelected(null)} />
-    </View>
+    </Pressable>
   );
 }
 

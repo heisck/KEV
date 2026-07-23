@@ -50,7 +50,9 @@ public class ReportService {
 
     @Transactional
     public StudentReportDto create(UUID userId, CreateStudentReportRequest request) {
-        ExamSession session = sessions.requireMember(userId, request.sessionId());
+        ExamSession session = (request.sessionId() != null && request.sessionId() > 0)
+                ? sessions.find(request.sessionId()).orElse(null)
+                : null;
         DirectoryStudent student = request.studentId() != null
                 ? EntityUtils.requireNonNull(students.findById(request.studentId()), "Student not found")
                 : null;

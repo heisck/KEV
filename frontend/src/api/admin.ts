@@ -1,15 +1,22 @@
 import { z } from 'zod';
 import { api } from '@/api/client';
 import {
+  AdminDashboardDtoSchema,
   InvigilatorDtoSchema,
   SessionDtoSchema,
   SessionSummaryDtoSchema,
   UserDtoSchema,
+  type AdminDashboardDto,
   type InvigilatorDto,
   type SessionDto,
   type SessionSummaryDto,
   type UserDto,
 } from '@/api/schemas';
+
+export async function getDashboard(): Promise<AdminDashboardDto> {
+  const res = await api.get('/api/admin/dashboard');
+  return AdminDashboardDtoSchema.parse(res.data);
+}
 
 export async function listInvigilators(): Promise<UserDto[]> {
   const res = await api.get('/api/admin/invigilators');
@@ -76,9 +83,10 @@ export async function listAdmins(): Promise<UserDto[]> {
 }
 
 export async function createAdmin(req: {
-  fullName: string;
+  firstName: string;
+  lastName: string;
   email: string;
-  password: string;
+  phone?: string;
 }): Promise<UserDto> {
   const res = await api.post('/api/admin/admins', req);
   return UserDtoSchema.parse(res.data);

@@ -10,7 +10,7 @@ import { useNotificationsStore } from '@/store/notificationsStore';
 import { spacing, usePalette } from '@/theme';
 
 /** Only these routes appear in the bottom nav. Everything else is excluded. */
-const TAB_BAR_ROUTES = new Set(['index', 'reminders', 'create', 'chat', 'profile']);
+const TAB_BAR_ROUTES = new Set(['index', 'reminders', 'create', 'chat', 'profile', 'add']);
 
 /** Bottom bar with glass surface; selection haptic on tab change. */
 export function KevTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
@@ -78,9 +78,21 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
     paddingTop: spacing.sm,
   },
-  tab: { alignItems: 'center', flex: 1, gap: 3, paddingVertical: spacing.xs },
-  label: { fontSize: 10, fontWeight: '600' },
-  iconSlot: { position: 'relative' },
+  tab: {
+    alignItems: 'center',
+    flex: 1,
+    gap: 4,
+    justifyContent: 'center',
+    paddingVertical: spacing.xs,
+  },
+  label: { fontSize: 10, fontWeight: '600', lineHeight: 12, textAlign: 'center' },
+  iconSlot: {
+    alignItems: 'center',
+    height: 24,
+    justifyContent: 'center',
+    position: 'relative',
+    width: 24,
+  },
   badge: {
     alignItems: 'center',
     borderRadius: 8,

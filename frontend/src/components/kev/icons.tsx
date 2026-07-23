@@ -78,6 +78,19 @@ export function ProfileTabIcon({ color, size = 24 }: IconProps) {
   );
 }
 
+export function ShieldIcon({ color, size = 22 }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path
+        d="M12 3.5L4.5 7v6c0 5.2 3.4 9.8 7.5 11 4.1-1.2 7.5-5.8 7.5-11V7L12 3.5Z"
+        stroke={color}
+        strokeWidth={1.7}
+        strokeLinejoin="round"
+      />
+    </Svg>
+  );
+}
+
 /* ---------- Chrome ---------- */
 
 export function BellIcon({ color, size = 22 }: IconProps) {
@@ -353,10 +366,10 @@ export function KeypadIcon({ color, size = 24 }: IconProps) {
 
 /* ---------- Group session ---------- */
 
-export function PlusIcon({ color, size = 22 }: IconProps) {
+export function PlusIcon({ color, size = 24 }: IconProps) {
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-      <Path d="M12 5v14M5 12h14" stroke={color} strokeWidth={1.9} strokeLinecap="round" />
+      <Path d="M12 5v14M5 12h14" stroke={color} strokeWidth={1.7} strokeLinecap="round" />
     </Svg>
   );
 }

@@ -115,8 +115,9 @@ export const useAuthStore = create<AuthState>((set, get) => {
           status: 'authenticated',
         });
       } catch {
-        // Token exists but /me failed (e.g. offline). Mark authenticated.
-        set({ status: 'authenticated' });
+        // Token is invalid, expired, or server returned error. Clear tokens and mark unauthenticated.
+        await tokenStore.clear();
+        set({ user: null, status: 'unauthenticated' });
       }
     },
   };

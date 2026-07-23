@@ -18,6 +18,7 @@ const keys = {
   lecturers: ['chat', 'lecturers'] as const,
   conversations: ['chat', 'conversations'] as const,
   invigilators: ['admin', 'invigilators'] as const,
+  adminDashboard: ['admin', 'dashboard'] as const,
   adminSessions: ['admin', 'sessions'] as const,
   adminLecturers: ['admin', 'lecturers'] as const,
   adminAdmins: ['admin', 'admins'] as const,
@@ -198,6 +199,10 @@ export function useMarkReportsRead() {
     mutationFn: reports.markReportsRead,
     onSuccess: () => void qc.invalidateQueries({ queryKey: keys.reports }),
   });
+}
+
+export function useAdminDashboard() {
+  return useQuery({ queryKey: keys.adminDashboard, queryFn: admin.getDashboard });
 }
 
 export function useAdminSessions() {

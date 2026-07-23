@@ -68,13 +68,22 @@ export function SegmentedControl<T extends string>({
 export function SettingToggle({
   value,
   onToggle,
+  disabled,
   testID,
 }: {
   value: boolean;
   onToggle: () => void;
+  disabled?: boolean;
   testID?: string;
 }) {
-  return <NativePreferenceSwitch value={value} onValueChange={onToggle} testID={testID} />;
+  return (
+    <NativePreferenceSwitch
+      disabled={disabled}
+      value={value}
+      onValueChange={onToggle}
+      testID={testID}
+    />
+  );
 }
 
 const styles = StyleSheet.create({

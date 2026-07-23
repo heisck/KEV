@@ -4,7 +4,7 @@ import { api } from '@/api/client';
 import { StudentReportSchema, type StudentReport } from '@/api/schemas';
 
 export type CreateStudentReportInput = {
-  sessionId: number;
+  sessionId?: number | null;
   studentId?: number;
   message: string;
 };

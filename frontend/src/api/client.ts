@@ -16,6 +16,7 @@ type ApiErrorShape = {
 export function isHandledApiError(error: ApiErrorShape): boolean {
   const status = error.response?.status;
   const url = error.config?.url;
+  if (url?.endsWith('/api/auth/me') || url?.endsWith('/api/auth/refresh')) return true;
   if (status === 404 && url?.includes('/api/directory/students/')) return true;
   if (status !== 409 || !url?.endsWith('/attendance')) return false;
   const data = error.response?.data;

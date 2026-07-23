@@ -50,6 +50,36 @@ export const authScreenStyles = StyleSheet.create({
     paddingRight: 24,
   },
   inputFocused: { borderColor: LIMEADE },
+  inputError: { borderColor: '#FF4D4D' },
+  errorSlotContainer: {
+    height: 32,
+    justifyContent: 'center',
+    alignItems: 'center',
+    width: '100%',
+    marginVertical: 2,
+  },
+  errorBanner: {
+    height: 28,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    backgroundColor: 'rgba(255, 59, 48, 0.35)',
+    borderColor: 'rgba(255, 69, 58, 0.75)',
+    borderWidth: 1,
+    borderRadius: 14,
+    alignSelf: 'center',
+    shadowColor: '#FF3B30',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+  },
+  errorBannerText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '700',
+    letterSpacing: 0.2,
+    textAlign: 'center',
+  },
   // Wrapper carries the glow; the glass child carries overflow:hidden (the two can't
   // live on one node — a clipped view drops its shadow).
   primaryButtonWrap: {
@@ -94,20 +124,5 @@ export const authScreenStyles = StyleSheet.create({
     justifyContent: 'center',
     overflow: 'hidden',
     width: 52,
-  },
-  inputError: {
-    borderColor: '#FF4D4D',
-  },
-  errorContainer: {
-    height: 18,
-    justifyContent: 'center',
-    paddingLeft: 16,
-    marginTop: -8,
-    marginBottom: -4,
-  },
-  errorText: {
-    color: '#FF4D4D',
-    fontSize: 12,
-    fontWeight: '600',
   },
 });
