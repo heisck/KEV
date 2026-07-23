@@ -35,7 +35,14 @@ function getDockerCmd() {
 
 function docker(args, opts = {}) {
   const cmd = getDockerCmd();
-  return spawnSync(cmd, args, { cwd: repoRoot, shell: isWin, ...opts });
+  const dockerBinDir = dirname(cmd);
+  const pathEnvKey = Object.keys(process.env).find((k) => k.toLowerCase() === 'path') || 'PATH';
+  const currentPath = process.env[pathEnvKey] || '';
+  const newPath = dockerBinDir && !currentPath.includes(dockerBinDir)
+    ? `${dockerBinDir};${currentPath}`
+    : currentPath;
+  const env = { ...process.env, [pathEnvKey]: newPath };
+  return spawnSync(cmd, args, { cwd: repoRoot, shell: isWin, env, ...opts });
 }
 
 /** @returns {boolean} whether the Docker daemon is reachable. */
