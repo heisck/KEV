@@ -49,7 +49,9 @@ export function normalizeEnv(vars) {
         const host = parsed.hostname;
         const port = parsed.port || '5432';
         const dbName = parsed.pathname.replace(/^\//, '') || 'neondb';
-        const params = parsed.search ? parsed.search : '?sslmode=require';
+        const isLocal = host === 'localhost' || host === '127.0.0.1';
+        const defaultSsl = isLocal ? '?sslmode=prefer' : '?sslmode=require';
+        const params = parsed.search ? parsed.search : defaultSsl;
         if (!merged.SPRING_DATASOURCE_URL) {
           merged.SPRING_DATASOURCE_URL = `jdbc:postgresql://${host}:${port}/${dbName}${params}`;
         }
@@ -113,17 +115,30 @@ export function normalizeEnv(vars) {
     merged.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID = googleIosId;
   }
 
-  // 5. Sentry DSN mappings
+  // 5. Sentry DSN mappings — only pass valid http/https URLs to prevent Spring Boot/FastAPI/Expo crashes on placeholder values
   const frontendSentry = merged.FRONTEND_SENTRY_DSN || merged.EXPO_PUBLIC_SENTRY_DSN;
-  if (frontendSentry) {
+  if (frontendSentry && (frontendSentry.startsWith('http://') || frontendSentry.startsWith('https://'))) {
     merged.FRONTEND_SENTRY_DSN = frontendSentry;
     merged.EXPO_PUBLIC_SENTRY_DSN = frontendSentry;
+  } else {
+    delete merged.FRONTEND_SENTRY_DSN;
+    delete merged.EXPO_PUBLIC_SENTRY_DSN;
   }
 
   const backendSentry = merged.BACKEND_SENTRY_DSN || merged.SENTRY_DSN_BACKEND;
-  if (backendSentry) {
+  if (backendSentry && (backendSentry.startsWith('http://') || backendSentry.startsWith('https://'))) {
     merged.BACKEND_SENTRY_DSN = backendSentry;
     merged.SENTRY_DSN_BACKEND = backendSentry;
+  } else {
+    delete merged.BACKEND_SENTRY_DSN;
+    delete merged.SENTRY_DSN_BACKEND;
+  }
+
+  const mlSentry = merged.ML_SENTRY_DSN;
+  if (mlSentry && (mlSentry.startsWith('http://') || mlSentry.startsWith('https://'))) {
+    merged.ML_SENTRY_DSN = mlSentry;
+  } else {
+    delete merged.ML_SENTRY_DSN;
   }
 
   return merged;

@@ -9,6 +9,7 @@
  *   - Docker isn't installed or the daemon isn't running — we don't block startup;
  *     Spring Boot will surface a clear connection error itself
  */
+import { existsSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
@@ -21,8 +22,20 @@ function isLocalDatasource(jdbc) {
   return /(?:\/\/|@)(?:localhost|127\.0\.0\.1)[:/]/.test(jdbc);
 }
 
+/** Resolve the docker CLI executable path across standard system and Docker Desktop paths. */
+function getDockerCmd() {
+  if (!isWin) return 'docker';
+  const localAppData = process.env.LOCALAPPDATA || join(process.env.USERPROFILE || '', 'AppData', 'Local');
+  const userDockerBin = join(localAppData, 'Programs', 'DockerDesktop', 'resources', 'bin', 'docker.exe');
+  if (existsSync(userDockerBin)) return userDockerBin;
+  const progDockerBin = join(process.env['ProgramFiles'] || 'C:\\Program Files', 'Docker', 'Docker', 'resources', 'bin', 'docker.exe');
+  if (existsSync(progDockerBin)) return progDockerBin;
+  return 'docker';
+}
+
 function docker(args, opts = {}) {
-  return spawnSync('docker', args, { cwd: repoRoot, shell: isWin, ...opts });
+  const cmd = getDockerCmd();
+  return spawnSync(cmd, args, { cwd: repoRoot, shell: isWin, ...opts });
 }
 
 /** @returns {boolean} whether the Docker daemon is reachable. */
