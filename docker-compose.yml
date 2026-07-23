@@ -11,7 +11,7 @@ services:
       POSTGRES_DB: kev
       POSTGRES_USER: kev
       POSTGRES_PASSWORD: kev
-    ports: ['5432:5432']
+    ports: ['5433:5432']
     volumes: ['kev-pg:/var/lib/postgresql/data']
     healthcheck:
       test: ['CMD-SHELL', 'pg_isready -U kev']

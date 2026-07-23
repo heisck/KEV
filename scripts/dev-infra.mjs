@@ -51,12 +51,14 @@ function dockerRunning() {
   return res.status === 0;
 }
 
-/** Block until Postgres reports healthy (or give up after ~timeoutMs). */
+/** Block until Postgres reports healthy and accepts authentication (or give up after ~timeoutMs). */
 function waitForPostgres(timeoutMs = 60_000) {
   const started = Date.now();
   process.stdout.write('[dev-infra] waiting for Postgres to be ready');
   while (Date.now() - started < timeoutMs) {
-    const res = docker(['compose', 'exec', '-T', 'postgres', 'pg_isready', '-U', 'kev'], {
+    // Force set/sync password inside container if needed
+    docker(['compose', 'exec', '-T', 'postgres', 'psql', '-U', 'kev', '-d', 'kev', '-c', "ALTER USER kev WITH PASSWORD 'kev';"], { stdio: 'ignore' });
+    const res = docker(['compose', 'exec', '-T', '-e', 'PGPASSWORD=kev', 'postgres', 'psql', '-U', 'kev', '-d', 'kev', '-c', 'SELECT 1;'], {
       stdio: 'ignore',
     });
     if (res.status === 0) {
