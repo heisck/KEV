@@ -5,6 +5,9 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BackIcon, ChevronRightIcon, CloseIcon } from '@/components/kev/icons';
 import {
   EMPTY_WIZARD_VALUES,
+  isCourseRangeInvalid,
+  isEndTimeInvalid,
+  isScheduleInPast,
   type CourseRange,
   type WizardValues,
 } from '@/components/session/sessionForm';
@@ -60,10 +63,14 @@ export function CreateSessionWizard({
       courses: prev.courses.map((c, idx) => (idx === i ? { ...c, ...patch } : c)),
     }));
 
+  const hasInvalidCourseRange = v.courses.some(isCourseRangeInvalid);
+  const isScheduleInvalid =
+    isScheduleInPast(v.examDate, v.startTime) || isEndTimeInvalid(v.startTime, v.endTime);
+
   const canNext =
     (step === 0 && v.building.trim().length > 0) ||
-    (step === 1 && v.courses.some((c) => c.course.trim())) ||
-    step === 2 ||
+    (step === 1 && v.courses.some((c) => c.course.trim()) && !hasInvalidCourseRange) ||
+    (step === 2 && !isScheduleInvalid) ||
     (step === 3 && v.methods.length > 0) ||
     step === 4;
 
@@ -121,7 +128,7 @@ export function CreateSessionWizard({
         {step === 1 ? (
           <ExamStep values={v} setValues={setV} setCourse={setCourse} styles={s} palette={p} />
         ) : null}
-        {step === 2 ? <ScheduleStep values={v} setValue={set} styles={s} /> : null}
+        {step === 2 ? <ScheduleStep values={v} setValue={set} styles={s} palette={p} /> : null}
         {step === 3 ? <MethodsStep values={v} setValues={setV} styles={s} palette={p} /> : null}
         {step === 4 ? <ReviewStep values={v} styles={s} /> : null}
       </ScrollView>

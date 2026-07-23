@@ -71,7 +71,7 @@ class SessionServiceTest {
         assertThat(dto.courseCodes()).containsExactly("DCIT 301", "DCIT 305");
         // No exam date set → treated as UPCOMING (unscheduled, just created).
         assertThat(dto.status()).isEqualTo("UPCOMING");
-        verify(sessionNotifications).notifyLecturers(1L, "Session created", "JQB 12 is now available");
+        verify(sessionNotifications).notifyLecturers(1L, "Session created", "JQB 12 is scheduled for upcoming date");
     }
 
     @Test
@@ -88,7 +88,7 @@ class SessionServiceTest {
                 new CreateSessionRequest(
                         "Algorithms", "JQB", "GF", "12", List.of("DCIT 301"), null, null, null, null, null, null));
 
-        verify(sessionNotifications).notifyLecturers(12L, "Session created", "Algorithms is now available");
+        verify(sessionNotifications).notifyLecturers(12L, "Session created", "Algorithms is scheduled for upcoming date");
     }
 
     @Test

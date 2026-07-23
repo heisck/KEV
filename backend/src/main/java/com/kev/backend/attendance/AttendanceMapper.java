@@ -23,17 +23,26 @@ public class AttendanceMapper {
     }
 
     public AttendanceDto toDto(AttendanceRecord record) {
-        DirectoryStudent student = students.findById(record.getStudentId())
-                .orElseThrow(() -> new ApiException(HttpStatus.INTERNAL_SERVER_ERROR, "Student row missing"));
-        return AttendanceDto.from(record, StudentRecord.from(student));
+        DirectoryStudent student = students.findById(record.getStudentId()).orElse(null);
+        StudentRecord sr = student != null
+                ? StudentRecord.from(student)
+                : new StudentRecord(record.getStudentId(), "Unknown", "Student #" + record.getStudentId(), "Unknown", 100, null, true, com.kev.backend.directory.FeesStatus.PAID, true, List.of());
+        return AttendanceDto.from(record, sr);
     }
 
     public List<AttendanceDto> toDtos(List<AttendanceRecord> records) {
-        List<Long> ids = records.stream().map(r -> r.getStudentId()).toList();
+        if (records == null || records.isEmpty()) return List.of();
+        List<Long> ids = records.stream().map(r -> r.getStudentId()).filter(id -> id != null).distinct().toList();
         Map<Long, DirectoryStudent> byId =
-                students.findAllById(ids).stream().collect(Collectors.toMap(s -> s.getId(), Function.identity()));
+                students.findAllById(ids).stream().collect(Collectors.toMap(s -> s.getId(), Function.identity(), (left, right) -> left));
         return records.stream()
-                .map(r -> AttendanceDto.from(r, StudentRecord.from(byId.get(r.getStudentId()))))
+                .map(r -> {
+                    DirectoryStudent student = byId.get(r.getStudentId());
+                    StudentRecord sr = student != null
+                            ? StudentRecord.from(student)
+                            : new StudentRecord(r.getStudentId(), "Unknown", "Student #" + r.getStudentId(), "Unknown", 100, null, true, com.kev.backend.directory.FeesStatus.PAID, true, List.of());
+                    return AttendanceDto.from(r, sr);
+                })
                 .toList();
     }
 }

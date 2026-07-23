@@ -38,7 +38,7 @@ export function ExamCard({ exam }: { exam: Exam }) {
             {exam.course}
           </Text>
           <Text style={[styles.dates, { color: p.muted }]}>{exam.dates}</Text>
-          {exam.status !== 'Past' ? <StatusChip status={exam.status} /> : null}
+          <StatusChip status={exam.status} />
         </View>
         <HapticPressable
           accessibilityRole="button"

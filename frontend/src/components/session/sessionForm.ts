@@ -15,6 +15,53 @@ const CourseRangeSchema = z.object({
 
 export type CourseRange = z.infer<typeof CourseRangeSchema>;
 
+export function isCourseRangeInvalid(course: CourseRange): boolean {
+  if (!course.indexFrom.trim() || !course.indexTo.trim()) return false;
+  const from = Number(course.indexFrom);
+  const to = Number(course.indexTo);
+  return Number.isFinite(from) && Number.isFinite(to) && from > to;
+}
+
+export function isScheduleInPast(examDate: string, startTime: string): boolean {
+  if (!examDate.trim()) return false;
+  const now = new Date();
+  const [y, m, d] = examDate.split('-').map(Number);
+  if (!y || !m || !d) return false;
+
+  const examDay = new Date(y, m - 1, d);
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+  if (examDay < today) return true;
+  if (examDay > today) return false;
+
+  if (!startTime.trim()) return false;
+  const [hStr, minStr] = startTime.split(':');
+  const h = Number(hStr);
+  const min = Number(minStr);
+  if (!Number.isFinite(h) || !Number.isFinite(min)) return false;
+
+  const scheduledTime = new Date(now.getFullYear(), now.getMonth(), now.getDate(), h, min);
+  const cutoff = new Date(now.getTime() - 5 * 60 * 1000);
+  return scheduledTime < cutoff;
+}
+
+export function isEndTimeInvalid(startTime: string, endTime: string): boolean {
+  if (!startTime.trim() || !endTime.trim()) return false;
+  const [hStart, mStart] = startTime.split(':').map(Number);
+  const [hEnd, mEnd] = endTime.split(':').map(Number);
+  if (
+    !Number.isFinite(hStart) ||
+    !Number.isFinite(mStart) ||
+    !Number.isFinite(hEnd) ||
+    !Number.isFinite(mEnd)
+  ) {
+    return false;
+  }
+  const startMinutes = hStart * 60 + mStart;
+  const endMinutes = hEnd * 60 + mEnd;
+  return endMinutes <= startMinutes;
+}
+
 export const WizardValuesSchema = z.object({
   building: z.string().max(200),
   floor: z.string().max(20),

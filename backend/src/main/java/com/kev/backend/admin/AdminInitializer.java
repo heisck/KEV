@@ -49,7 +49,7 @@ public class AdminInitializer implements ApplicationRunner {
                 .ifPresentOrElse(existing -> log.info("Root Admin user present in DB: {}", adminEmail), () -> {
                     User admin = new User();
                     admin.setEmail(adminEmail);
-                    admin.setDisplayName("System Admin");
+                    admin.setDisplayName("Kwame Mensah (Admin)");
                     admin.setRole(Role.ADMIN);
                     admin.setPlan(Plan.PREMIUM);
                     admin.setPasswordHash(passwordEncoder.encode(adminPassword));
