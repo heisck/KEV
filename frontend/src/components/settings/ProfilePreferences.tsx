@@ -1,3 +1,5 @@
+import Animated, { FadeInDown, FadeOutUp, LinearTransition } from 'react-native-reanimated';
+
 import type { CheckInMethod } from '@/api/schemas';
 import {
   AppearanceContrastIcon,
@@ -37,18 +39,24 @@ export function ProfilePreferences({ palette }: { palette: Palette }) {
         }
       />
       {settings.theme !== 'system' ? (
-        <ProfileRow
-          icon={<AppearanceContrastIcon color={palette.primary} size={18} />}
-          label="Dark mode"
-          palette={palette}
-          trailing={
-            <SettingToggle
-              value={settings.theme === 'dark'}
-              onToggle={() => settings.setTheme(settings.theme === 'dark' ? 'light' : 'dark')}
-              testID="setting-dark-theme"
-            />
-          }
-        />
+        <Animated.View
+          entering={FadeInDown.duration(200)}
+          exiting={FadeOutUp.duration(150)}
+          layout={LinearTransition.springify()}
+        >
+          <ProfileRow
+            icon={<AppearanceContrastIcon color={palette.primary} size={18} />}
+            label="Dark mode"
+            palette={palette}
+            trailing={
+              <SettingToggle
+                value={settings.theme === 'dark'}
+                onToggle={() => settings.setTheme(settings.theme === 'dark' ? 'light' : 'dark')}
+                testID="setting-dark-theme"
+              />
+            }
+          />
+        </Animated.View>
       ) : null}
       <ProfileRow
         icon={<ScanFrameIcon color={palette.primary} size={18} />}
@@ -63,19 +71,25 @@ export function ProfilePreferences({ palette }: { palette: Palette }) {
         }
       />
       {!settings.useAllScanMethods ? (
-        <ProfileRow
-          icon={<KeypadIcon color={palette.primary} size={18} />}
-          label="Preferred scan method"
-          palette={palette}
-          trailing={
-            <SegmentedControl
-              options={SCAN_OPTIONS}
-              value={settings.defaultScanMethod}
-              onChange={settings.setDefaultScanMethod}
-              palette={palette}
-            />
-          }
-        />
+        <Animated.View
+          entering={FadeInDown.duration(200)}
+          exiting={FadeOutUp.duration(150)}
+          layout={LinearTransition.springify()}
+        >
+          <ProfileRow
+            icon={<KeypadIcon color={palette.primary} size={18} />}
+            label="Preferred scan method"
+            palette={palette}
+            trailing={
+              <SegmentedControl
+                options={SCAN_OPTIONS}
+                value={settings.defaultScanMethod}
+                onChange={settings.setDefaultScanMethod}
+                palette={palette}
+              />
+            }
+          />
+        </Animated.View>
       ) : null}
       <ProfileRow
         icon={<BellIcon color={palette.primary} size={18} />}

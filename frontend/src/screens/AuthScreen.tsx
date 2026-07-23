@@ -13,7 +13,6 @@ import { GlassPressable } from '@/components/ui/GlassPressable';
 import { GlassSurface } from '@/components/ui/GlassSurface';
 import { HapticPressable } from '@/components/ui/HapticPressable';
 import { AuthScaffold } from '@/screens/AuthScaffold';
-import { AUTH_OVERLAY_VERTICAL_PADDING } from '@/screens/authConfig';
 import { authScreenStyles as styles } from '@/screens/authScreenStyles';
 import { usePalette } from '@/theme';
 

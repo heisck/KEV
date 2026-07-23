@@ -1,5 +1,11 @@
 import { type ReactNode } from 'react';
 import { Pressable, type AccessibilityRole, type StyleProp, type ViewStyle } from 'react-native';
+import Animated, {
+  createAnimatedComponent,
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
+} from 'react-native-reanimated';
 
 import { GlassSurface, isGlassReady } from '@/components/ui/GlassSurface';
 import { haptic, type HapticKind } from '@/lib/haptics';
@@ -24,6 +30,11 @@ type GlassPressableProps = {
   testID?: string;
 };
 
+const makeAnimated =
+  createAnimatedComponent ?? Animated?.createAnimatedComponent ?? ((c: any) => c);
+const AnimatedPressable = makeAnimated(Pressable);
+const SPRING_CONFIG = { damping: 14, stiffness: 220, mass: 0.5 };
+
 /** Soften a #RRGGBB tint so liquid glass still refracts (Apple: tint, not fill). */
 function glassTint(color?: string): string | undefined {
   if (!color) return undefined;
@@ -43,15 +54,12 @@ function glassTint(color?: string): string | undefined {
 }
 
 /**
- * Custom control with Liquid Glass press morph (iOS 26).
+ * Custom control with Liquid Glass press morph & spring expansion.
  *
- * Apple (Applying Liquid Glass to custom views):
- * - use interactive glass for touch-reactive materials
- * - assign a tint for prominence, not a solid background
- * - do not put opacity < 1 on the glass node or its parents
- *
- * Expo: `GlassView` + `isInteractive` via GlassSurface (ExpoGlassEffect).
- * Available in this app's native binary (ExpoUI is not linked).
+ * Apple Liquid Glass & Interactive Touch Model:
+ * - Tapping & holding expands the control slightly (scale: 1.04) with tactile spring physics.
+ * - Interactive glass material refracts background content on iOS.
+ * - Light haptic fires on press-in for an instant physical feel.
  */
 export function GlassPressable({
   children,
@@ -68,26 +76,35 @@ export function GlassPressable({
 }: GlassPressableProps) {
   const glass = isGlassReady();
   const tint = glass ? glassTint(tintColor) : tintColor;
+  const scale = useSharedValue(1);
 
-  // When liquid glass is live, skip JS scale / parent opacity — the system
-  // interactive morph is the press feel (Apple/Expo: don't fight the material).
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+  }));
+
+  const handlePressIn = () => {
+    if (disabled) return;
+    haptic(kind);
+    scale.value = withSpring(1.04, SPRING_CONFIG);
+  };
+
+  const handlePressOut = () => {
+    scale.value = withSpring(1.0, SPRING_CONFIG);
+  };
+
   return (
-    <Pressable
+    <AnimatedPressable
       accessibilityLabel={accessibilityLabel}
       accessibilityRole={accessibilityRole}
       disabled={disabled}
       testID={testID}
       onPress={() => {
         if (disabled) return;
-        haptic(kind);
         onPress?.();
       }}
-      style={({ pressed }) => [
-        style,
-        !glass && pressed && !disabled ? { transform: [{ scale: 0.98 }] } : null,
-        // Never opacity-dim GlassView parents (breaks the effect). Dim only fallbacks.
-        !glass && disabled ? { opacity: 0.45 } : null,
-      ]}
+      onPressIn={handlePressIn}
+      onPressOut={handlePressOut}
+      style={[style, animatedStyle, !glass && disabled ? { opacity: 0.45 } : null]}
     >
       <GlassSurface
         key={`glass-${glassEffectStyle}-${Boolean(tint)}`}
@@ -99,6 +116,6 @@ export function GlassPressable({
       >
         {children}
       </GlassSurface>
-    </Pressable>
+    </AnimatedPressable>
   );
 }

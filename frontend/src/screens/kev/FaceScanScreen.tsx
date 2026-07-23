@@ -1,5 +1,4 @@
-import { CameraView, useCameraPermissions, type CameraType } from 'expo-camera';
-import { useState } from 'react';
+import { CameraView, useCameraPermissions } from 'expo-camera';
 import { StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import Svg, { Circle, Path } from 'react-native-svg';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -13,6 +12,7 @@ import { useScanCheckIn } from '@/hooks/useScanCheckIn';
 import { useScanMethodGuard } from '@/hooks/useScanMethodGuard';
 import { useScanNavigation } from '@/hooks/useScanNavigation';
 import { useScanSessionId } from '@/hooks/useScanSession';
+import { useSettingsStore } from '@/store/settingsStore';
 import { radii, spacing, usePalette } from '@/theme';
 
 function CameraFlipIcon({ color }: { color: string }) {
@@ -41,7 +41,8 @@ export function FaceScanScreen() {
   const completeScan = useScanCheckIn(sessionId, 'FACE');
   const { allowedMethods, canUse } = useScanMethodGuard(sessionId, 'FACE');
   const [permission, requestPermission] = useCameraPermissions();
-  const [facing, setFacing] = useState<CameraType>('front');
+  const facing = useSettingsStore((s) => s.cameraFacing);
+  const setFacing = useSettingsStore((s) => s.setCameraFacing);
   const previewHeight = Math.min(Math.max(height * 0.46, 320), 520);
 
   return (
@@ -66,7 +67,7 @@ export function FaceScanScreen() {
               accessibilityLabel="Switch camera"
               accessibilityRole="button"
               haptic="select"
-              onPress={() => setFacing((value) => (value === 'front' ? 'back' : 'front'))}
+              onPress={() => setFacing(facing === 'front' ? 'back' : 'front')}
               style={[styles.switchButton, { backgroundColor: p.surface }]}
             >
               <CameraFlipIcon color={p.ink} />
@@ -79,28 +80,30 @@ export function FaceScanScreen() {
         </Text>
       </View>
 
-      <ScanMethodSwitcher active="FACE" sessionId={sessionId} allowedMethods={allowedMethods} />
-      {permission?.granted ? (
-        <HapticPressable
-          accessibilityRole="button"
-          disabled={!canUse}
-          onPress={() => completeScan()}
-          style={[styles.cta, { backgroundColor: p.primary }, !canUse && styles.disabled]}
-          testID="face-capture"
-        >
-          <Text style={[styles.ctaText, { color: p.onPrimary }]}>Capture</Text>
-        </HapticPressable>
-      ) : (
-        <HapticPressable
-          accessibilityRole="button"
-          disabled={!canUse}
-          onPress={() => void requestPermission()}
-          style={[styles.cta, { backgroundColor: p.primary }, !canUse && styles.disabled]}
-          testID="face-permission"
-        >
-          <Text style={[styles.ctaText, { color: p.onPrimary }]}>Allow camera</Text>
-        </HapticPressable>
-      )}
+      <View style={styles.bottomDock}>
+        <ScanMethodSwitcher active="FACE" sessionId={sessionId} allowedMethods={allowedMethods} />
+        {permission?.granted ? (
+          <HapticPressable
+            accessibilityRole="button"
+            disabled={!canUse}
+            onPress={() => completeScan()}
+            style={[styles.cta, { backgroundColor: p.primary }, !canUse && styles.disabled]}
+            testID="face-capture"
+          >
+            <Text style={[styles.ctaText, { color: p.onPrimary }]}>Capture</Text>
+          </HapticPressable>
+        ) : (
+          <HapticPressable
+            accessibilityRole="button"
+            disabled={!canUse}
+            onPress={() => void requestPermission()}
+            style={[styles.cta, { backgroundColor: p.primary }, !canUse && styles.disabled]}
+            testID="face-permission"
+          >
+            <Text style={[styles.ctaText, { color: p.onPrimary }]}>Allow camera</Text>
+          </HapticPressable>
+        )}
+      </View>
     </View>
   );
 }
@@ -108,10 +111,13 @@ export function FaceScanScreen() {
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    gap: spacing.md,
-    paddingBottom: spacing.xl,
     paddingHorizontal: spacing.xl,
   },
+  bottomDock: {
+    gap: spacing.md,
+    paddingBottom: spacing.lg,
+  },
+
   stage: { alignItems: 'center', flex: 1, justifyContent: 'center' },
   preview: {
     alignSelf: 'stretch',

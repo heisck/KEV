@@ -23,11 +23,15 @@ type GlassSurfaceProps = {
   testID?: string;
 };
 
-/** iOS 26 liquid glass, guarded: probes can throw on betas / tests. */
+/** iOS 26 liquid glass, guarded: probes can throw in Expo Go / web / tests. */
 export function isGlassReady(): boolean {
   if (Platform.OS !== 'ios') return false;
   try {
-    return isGlassEffectAPIAvailable() && isLiquidGlassAvailable();
+    return Boolean(
+      typeof isGlassEffectAPIAvailable === 'function' &&
+      isGlassEffectAPIAvailable() &&
+      isLiquidGlassAvailable(),
+    );
   } catch {
     return false;
   }
@@ -52,22 +56,25 @@ export function GlassSurface({
   const colorScheme = palette.isDark ? 'dark' : 'light';
 
   if (isGlassReady()) {
-    // Apple/Expo: never put opacity < 1 on GlassView or ancestors.
-    // Interactive must be fixed at mount (remount with key to change).
-    return (
-      <GlassView
-        colorScheme={colorScheme}
-        glassEffectStyle={glassEffectStyle}
-        isInteractive={interactive}
-        style={style}
-        testID={testID}
-        tintColor={tintColor}
-      >
-        {children}
-      </GlassView>
-    );
+    try {
+      return (
+        <GlassView
+          colorScheme={colorScheme}
+          glassEffectStyle={glassEffectStyle}
+          isInteractive={interactive}
+          style={style}
+          testID={testID}
+          tintColor={tintColor}
+        >
+          {children}
+        </GlassView>
+      );
+    } catch {
+      // Fallback if GlassView fails in Expo Go
+    }
   }
   const fillColor = fallbackColor ?? (palette.isDark ? 'rgba(30, 30, 38, 0.82)' : undefined);
+
   const fill = fillColor ? { backgroundColor: fillColor } : null;
   if (Platform.OS === 'ios' || Platform.OS === 'android') {
     return (

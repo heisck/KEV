@@ -5,11 +5,15 @@ import { createJSONStorage, persist } from 'zustand/middleware';
 import type { CheckInMethod } from '@/api/schemas';
 
 export type ThemePreference = 'light' | 'dark' | 'system';
+export type CameraFacingPreference = 'front' | 'back';
 
 type SettingsState = {
   /** 'system' follows the OS appearance; light/dark force it. */
   theme: ThemePreference;
   setTheme: (value: ThemePreference) => void;
+  /** Persisted camera direction for face verification. Default: front. */
+  cameraFacing: CameraFacingPreference;
+  setCameraFacing: (value: CameraFacingPreference) => void;
   /** Verification method the scan hub opens with. */
   defaultScanMethod: CheckInMethod;
   setDefaultScanMethod: (value: CheckInMethod) => void;
@@ -30,6 +34,8 @@ export const useSettingsStore = create<SettingsState>()(
     (set) => ({
       theme: 'system',
       setTheme: (theme) => set({ theme }),
+      cameraFacing: 'front',
+      setCameraFacing: (cameraFacing) => set({ cameraFacing }),
       defaultScanMethod: 'FACE',
       setDefaultScanMethod: (defaultScanMethod) => set({ defaultScanMethod }),
       useAllScanMethods: true,
@@ -53,6 +59,7 @@ export const useSettingsStore = create<SettingsState>()(
         return {
           ...prior,
           theme,
+          cameraFacing: prior.cameraFacing ?? 'front',
           hapticsEnabled: prior.hapticsEnabled ?? true,
           useAllScanMethods: prior.useAllScanMethods ?? true,
         } as SettingsState;

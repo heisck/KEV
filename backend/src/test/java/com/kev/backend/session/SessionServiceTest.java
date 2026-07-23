@@ -88,7 +88,8 @@ class SessionServiceTest {
                 new CreateSessionRequest(
                         "Algorithms", "JQB", "GF", "12", List.of("DCIT 301"), null, null, null, null, null, null));
 
-        verify(sessionNotifications).notifyLecturers(12L, "Session created", "Algorithms is scheduled for upcoming date");
+        verify(sessionNotifications)
+                .notifyLecturers(12L, "Session created", "Algorithms is scheduled for upcoming date");
     }
 
     @Test

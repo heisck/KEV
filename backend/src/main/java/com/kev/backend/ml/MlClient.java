@@ -12,6 +12,7 @@ import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
+import org.springframework.web.client.HttpStatusCodeException;
 import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestClient;
 
@@ -56,6 +57,15 @@ public class MlClient {
                     .body(form)
                     .retrieve()
                     .body(VerifyFaceResponse.class);
+        } catch (HttpStatusCodeException e) {
+            String body = e.getResponseBodyAsString();
+            if (body != null && body.contains("No face detected")) {
+                throw new ApiException(HttpStatus.valueOf(422), "No face detected in photo");
+            }
+            throw new ApiException(
+                    HttpStatus.BAD_REQUEST,
+                    "Face verification failed: " + e.getStatusCode().value(),
+                    e);
         } catch (ResourceAccessException e) {
             throw new ApiException(HttpStatus.BAD_GATEWAY, "Face verification service unavailable", e);
         }
