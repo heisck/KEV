@@ -2,12 +2,9 @@
   "name": "ml",
   "version": "1.0.0",
   "private": true,
-  "description": "Python FastAPI ML wrapper package for npm script execution",
+  "description": "Python FastAPI ML package",
   "scripts": {
     "start": "node ../scripts/run-ml.mjs dev",
-    "dev": "node ../scripts/run-ml.mjs dev",
-    "serve": "node ../scripts/run-ml.mjs dev",
-    "ml": "node ../scripts/run-ml.mjs dev",
     "test": "node ../scripts/run-ml.mjs test"
   }
 }
