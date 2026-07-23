@@ -1,17 +1,19 @@
 import { useRouter } from 'expo-router';
 import { useMemo, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import Animated, { LinearTransition } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useAdminsList, useAdminSessions, useLecturersList } from '@/api/hooks';
 import type { SessionDto, UserDto } from '@/api/schemas';
 import { CircleButton } from '@/components/kev/chrome';
+import { ExamCard } from '@/components/kev/ExamCard';
 import { BellIcon, ExamsTabIcon, ProfileTabIcon, SearchIcon } from '@/components/kev/icons';
 import { Avatar, personForId } from '@/components/kev/people';
-import { AppButton, BottomDrawer, Card, EmptyState, ListRow, StatusPill } from '@/components/ui';
+import { BottomDrawer, EmptyState, ListRow, StatusPill } from '@/components/ui';
 import { HapticPressable } from '@/components/ui/HapticPressable';
 import { LoadingSkeleton } from '@/components/ui/LoadingSkeleton';
+import { sessionToExam } from '@/data/exams';
 import { AssignSheet, ReportSheet } from '@/screens/AdminSheets';
 import { useAuthStore } from '@/store/authStore';
 import { radii, spacing, usePalette } from '@/theme';
@@ -41,10 +43,7 @@ export function AdminDashboardScreen() {
   const isLoading = loadingSessions || loadingLecturers || loadingAdmins;
 
   // Counts for category badges
-  const activeSessionsCount = useMemo(
-    () => sessions?.filter((s) => s.status === 'ACTIVE').length ?? 0,
-    [sessions],
-  );
+  const totalSessionsCount = sessions?.length ?? 0;
   const lecturersCount = lecturers?.length ?? 0;
   const adminsCount = admins?.length ?? 0;
 
@@ -112,7 +111,7 @@ export function AdminDashboardScreen() {
     {
       id: 'sessions',
       label: 'Sessions',
-      count: activeSessionsCount,
+      count: totalSessionsCount,
       icon: (color) => <ExamsTabIcon color={color} size={20} />,
     },
     {
@@ -257,35 +256,7 @@ export function AdminDashboardScreen() {
                 />
               ) : (
                 filteredSessions.map((session: SessionDto) => (
-                  <Pressable
-                    key={session.id}
-                    accessibilityRole="button"
-                    onPress={() => setSheet({ kind: 'report', sessionId: session.id })}
-                  >
-                    <Card style={styles.sessionCard}>
-                      <View style={styles.cardTop}>
-                        <Text style={[styles.cardCode, { color: p.ink }]}>
-                          {session.sessionCode}
-                        </Text>
-                        <StatusPill
-                          label={session.status === 'ACTIVE' ? 'Active' : session.status}
-                          tone={session.status === 'ACTIVE' ? 'success' : 'neutral'}
-                        />
-                      </View>
-                      <Text style={[styles.cardMeta, { color: p.muted }]}>
-                        {session.building} {session.room ? `· Room ${session.room}` : ''}
-                      </Text>
-                      <Text style={[styles.cardMeta, { color: p.muted }]}>
-                        {session.checkedInCount} checked in · {session.invigilatorCount}{' '}
-                        invigilators
-                      </Text>
-                      <AppButton
-                        label="Assign Invigilators"
-                        variant="ghost"
-                        onPress={() => setSheet({ kind: 'assign', sessionId: session.id })}
-                      />
-                    </Card>
-                  </Pressable>
+                  <ExamCard key={session.id} exam={sessionToExam(session)} />
                 ))
               )
             ) : null}

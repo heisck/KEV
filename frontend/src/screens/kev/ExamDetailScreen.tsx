@@ -25,6 +25,7 @@ import { isPastSession, scanBlockMessage } from '@/lib/sessionLifecycle';
 import { allowedScanMethods } from '@/lib/scanMethods';
 import { toast } from '@/lib/toast';
 import { spacing, usePalette } from '@/theme';
+import { useAuthStore } from '@/store/authStore';
 import { useSettingsStore } from '@/store/settingsStore';
 import { examDetailStyles as styles } from '@/screens/kev/examDetailStyles';
 
@@ -57,11 +58,19 @@ export function ExamDetailScreen() {
     },
   ] as const;
 
+  const user = useAuthStore((state) => state.user);
   const { data: allSessions, isLoading: sessionsLoading } = useSessions();
   const listedSession = allSessions?.find((s) => String(s.id) === examId);
-  const joined = joinedLocally || listedSession?.joined === true;
-  const { data: detail, isLoading: detailLoading } = useSessionDetail(numericExamId, joined);
+  const isPast = isPastSession(listedSession?.status);
+  const isUserAdmin = user?.role === 'ADMIN';
+  const canViewDetailDirectly =
+    joinedLocally || listedSession?.joined === true || isPast || isUserAdmin;
+  const { data: detail, isLoading: detailLoading } = useSessionDetail(
+    numericExamId,
+    canViewDetailDirectly,
+  );
   const session = detail?.session ?? listedSession;
+  const joined = canViewDetailDirectly;
 
   // Only the methods this session enabled (fall back to all when unset).
   const allowed = allowedScanMethods(
@@ -72,7 +81,6 @@ export function ExamDetailScreen() {
   const methods = METHODS.filter((method) => allowed.includes(method.key));
 
   const isUpcoming = session?.status === 'UPCOMING';
-  const isPast = isPastSession(session?.status);
   const scanMessage = session
     ? scanBlockMessage(session.status)
     : 'Session details are still loading';
@@ -90,13 +98,15 @@ export function ExamDetailScreen() {
     session?.examDate ?? new Date(session?.startedAt ?? Date.now()).toLocaleDateString();
 
   const openScanHub = () => {
-    if (!joined) return setJoinOpen(true);
+    if (isPast) return toast.info('This session is closed.');
+    if (!joined && !isUserAdmin) return setJoinOpen(true);
     if (scanMessage) return toast.info(scanMessage);
     router.push({ pathname: '/group-session', params: { exam: examId } });
   };
 
   const openMethod = (path: (typeof METHODS)[number]['path']) => {
-    if (!joined) return setJoinOpen(true);
+    if (isPast) return toast.info('This session is closed.');
+    if (!joined && !isUserAdmin) return setJoinOpen(true);
     if (scanMessage) return toast.info(scanMessage);
     router.push({ pathname: path, params: { exam: examId } });
   };
@@ -116,7 +126,11 @@ export function ExamDetailScreen() {
         title="Session details"
         onBack={() => router.replace('/(tabs)')}
         trailing={
-          isPast ? (
+          isUserAdmin ? (
+            <View style={[styles.closedPill, { backgroundColor: p.surfaceDim }]}>
+              <Text style={[styles.closedText, { color: p.muted }]}>View Only</Text>
+            </View>
+          ) : isPast ? (
             <View style={[styles.closedPill, { backgroundColor: p.surfaceDim }]}>
               <Text style={[styles.closedText, { color: p.muted }]}>Closed</Text>
             </View>

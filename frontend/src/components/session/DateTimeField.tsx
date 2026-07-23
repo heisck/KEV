@@ -38,12 +38,18 @@ export function DateTimeField({
   value,
   onChange,
   placeholder,
+  showAction = true,
+  actionLabel,
+  onActionPress,
 }: {
   label: string;
   mode: Mode;
   value: string;
   onChange: (next: string) => void;
   placeholder: string;
+  showAction?: boolean;
+  actionLabel?: string;
+  onActionPress?: () => void;
 }) {
   const p = usePalette();
   const s = makeStyles(p);
@@ -57,6 +63,16 @@ export function DateTimeField({
 
   const commit = (d: Date) => onChange(mode === 'date' ? toDateString(d) : toTimeString(d));
 
+  const resolvedActionLabel = actionLabel ?? (mode === 'date' ? 'Today' : 'Now');
+
+  const handleAction = () => {
+    if (onActionPress) {
+      onActionPress();
+    } else {
+      commit(new Date());
+    }
+  };
+
   // Android shows its own dialog; commit immediately on selection.
   const handleAndroidChange = (event: DateTimePickerEvent, picked?: Date) => {
     setOpen(false);
@@ -66,7 +82,14 @@ export function DateTimeField({
 
   return (
     <View style={s.field}>
-      <Text style={s.fieldLabel}>{label}</Text>
+      <View style={s.labelRow}>
+        <Text style={s.fieldLabel}>{label}</Text>
+        {showAction ? (
+          <HapticPressable haptic="select" onPress={handleAction} style={s.nowButton}>
+            <Text style={[s.nowText, { color: p.primary }]}>{resolvedActionLabel}</Text>
+          </HapticPressable>
+        ) : null}
+      </View>
       <HapticPressable
         accessibilityRole="button"
         accessibilityLabel={`Pick ${label}`}
@@ -127,7 +150,10 @@ export function DateTimeField({
 const makeStyles = (p: Palette) =>
   StyleSheet.create({
     field: { gap: spacing.xs },
+    labelRow: { alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between' },
     fieldLabel: { color: p.inkSoft, fontSize: 13, fontWeight: '700' },
+    nowButton: { paddingHorizontal: 6, paddingVertical: 2 },
+    nowText: { fontSize: 12, fontWeight: '700' },
     control: {
       backgroundColor: p.surfaceDim,
       borderColor: p.hairline,

@@ -7,6 +7,9 @@ import { FloorStepper, RoomSlider } from '@/components/session/LocationControls'
 import {
   ALL_METHODS,
   floorLabel,
+  isCourseRangeInvalid,
+  isEndTimeInvalid,
+  isScheduleInPast,
   type CourseRange,
   type VerificationMethod,
   type WizardValues,
@@ -115,6 +118,11 @@ export function ExamStep({
               />
             </View>
           </View>
+          {isCourseRangeInvalid(course) ? (
+            <Text style={{ color: palette.error, fontSize: 12, fontWeight: '600', marginTop: 4 }}>
+              End index must be greater than or equal to start index
+            </Text>
+          ) : null}
         </View>
       ))}
       <HapticPressable
@@ -137,11 +145,49 @@ export function ScheduleStep({
   values,
   setValue,
   styles,
-}: {
+  palette,
+}: Shared & {
   values: WizardValues;
   setValue: SetValue;
-  styles: WizardStyles;
 }) {
+  const isPast = isScheduleInPast(values.examDate, values.startTime);
+  const isEndInvalid = isEndTimeInvalid(values.startTime, values.endTime);
+
+  const handleTodayPress = () => {
+    const d = new Date();
+    const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    setValue('examDate', dateStr);
+  };
+
+  const handleStartTimeChange = (startTimeText: string) => {
+    setValue('startTime', startTimeText);
+    const [hStr, mStr] = startTimeText.split(':');
+    const h = Number(hStr);
+    const m = Number(mStr) || 0;
+    if (Number.isFinite(h)) {
+      const nextH = (h + 1) % 24;
+      setValue('endTime', `${String(nextH).padStart(2, '0')}:${String(m).padStart(2, '0')}`);
+    }
+  };
+
+  const handleNowStartPress = () => {
+    const d = new Date();
+    const timeStr = `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+    handleStartTimeChange(timeStr);
+  };
+
+  const handleIncrementEndTime = () => {
+    const baseTime =
+      values.endTime || values.startTime || `${String(new Date().getHours()).padStart(2, '0')}:00`;
+    const [hStr, mStr] = baseTime.split(':');
+    const h = Number(hStr);
+    const m = Number(mStr) || 0;
+    if (Number.isFinite(h)) {
+      const nextH = (h + 1) % 24;
+      setValue('endTime', `${String(nextH).padStart(2, '0')}:${String(m).padStart(2, '0')}`);
+    }
+  };
+
   return (
     <View style={styles.section}>
       <DateTimeField
@@ -150,6 +196,8 @@ export function ScheduleStep({
         value={values.examDate}
         onChange={(text) => setValue('examDate', text)}
         placeholder="Select a date"
+        actionLabel="Today"
+        onActionPress={handleTodayPress}
       />
       <View style={styles.row}>
         <View style={styles.flex}>
@@ -157,8 +205,10 @@ export function ScheduleStep({
             label="Start time"
             mode="time"
             value={values.startTime}
-            onChange={(text) => setValue('startTime', text)}
+            onChange={handleStartTimeChange}
             placeholder="09:00"
+            actionLabel="Now"
+            onActionPress={handleNowStartPress}
           />
         </View>
         <View style={styles.flex}>
@@ -168,9 +218,20 @@ export function ScheduleStep({
             value={values.endTime}
             onChange={(text) => setValue('endTime', text)}
             placeholder="12:00"
+            actionLabel="+1h"
+            onActionPress={handleIncrementEndTime}
           />
         </View>
       </View>
+      {isPast ? (
+        <Text style={{ color: palette.error, fontSize: 12, fontWeight: '600', marginTop: 4 }}>
+          {"Start time cannot be in the past for today's session"}
+        </Text>
+      ) : isEndInvalid ? (
+        <Text style={{ color: palette.error, fontSize: 12, fontWeight: '600', marginTop: 4 }}>
+          End time must be after start time
+        </Text>
+      ) : null}
     </View>
   );
 }

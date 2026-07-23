@@ -86,7 +86,7 @@ class ReportServiceTest {
         member.setSessionId(2L);
         member.setUserId(colleagueId);
         when(invigilators.findBySessionId(2L)).thenReturn(List.of(member));
-        when(sessions.requireMember(authorId, 2L)).thenReturn(session);
+        when(sessions.find(2L)).thenReturn(Optional.of(session));
         when(students.findById(7L)).thenReturn(Optional.of(student));
         when(users.findById(authorId)).thenReturn(Optional.of(author));
         when(reports.save(any())).thenAnswer(invocation -> {
@@ -132,7 +132,7 @@ class ReportServiceTest {
 
     @Test
     void createAllowsGeneralSessionReportWithoutStudent() {
-        when(sessions.requireMember(authorId, 2L)).thenReturn(session);
+        when(sessions.find(2L)).thenReturn(Optional.of(session));
         when(users.findById(authorId)).thenReturn(Optional.of(author));
         when(reports.save(any())).thenAnswer(invocation -> {
             StudentReport report = invocation.getArgument(0);

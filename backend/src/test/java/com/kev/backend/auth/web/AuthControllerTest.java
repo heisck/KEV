@@ -48,7 +48,8 @@ class AuthControllerTest {
                 null,
                 null,
                 "ACTIVE",
-                true);
+                true,
+                java.time.Instant.now());
         when(authService.loginWithGoogle(any())).thenReturn(new AuthResponse("access-tok", "refresh-tok", user));
 
         mockMvc.perform(post("/api/auth/google")

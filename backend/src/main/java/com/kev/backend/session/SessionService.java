@@ -3,6 +3,7 @@ package com.kev.backend.session;
 import com.kev.backend.attendance.AttendanceMapper;
 import com.kev.backend.attendance.AttendanceRecordRepository;
 import com.kev.backend.attendance.AttendanceStatus;
+import com.kev.backend.auth.Role;
 import com.kev.backend.auth.User;
 import com.kev.backend.auth.UserRepository;
 import com.kev.backend.common.ApiException;
@@ -57,11 +58,41 @@ public class SessionService {
         session.setSessionCode(uniqueCode());
         session.setSessionPassword(uniquePassword());
         applyEditableFields(session, req);
+        if (session.getExamDate() != null) {
+            java.time.LocalDate today = java.time.LocalDate.now();
+            if (session.getExamDate().isBefore(today)) {
+                throw new ApiException(HttpStatus.BAD_REQUEST, "Cannot create a session in the past");
+            }
+            if (session.getExamDate().isEqual(today)) {
+                java.time.LocalTime cutoff = java.time.LocalTime.now().minusMinutes(5);
+                if (session.getStartTime() != null && !session.getStartTime().isBlank()) {
+                    try {
+                        java.time.LocalTime start = java.time.LocalTime.parse(session.getStartTime().trim());
+                        if (start.isBefore(cutoff)) {
+                            throw new ApiException(HttpStatus.BAD_REQUEST, "Cannot create a session in the past");
+                        }
+                    } catch (Exception ignored) {
+                    }
+                }
+                if (session.getEndTime() != null && !session.getEndTime().isBlank()) {
+                    try {
+                        java.time.LocalTime end = java.time.LocalTime.parse(session.getEndTime().trim());
+                        if (end.isBefore(cutoff)) {
+                            throw new ApiException(HttpStatus.BAD_REQUEST, "Cannot create a session in the past");
+                        }
+                    } catch (Exception ignored) {
+                    }
+                }
+            }
+        }
         session.setCreatedBy(userId);
         ExamSession saved = sessions.save(session);
         addMember(saved.getId(), userId, null, "CREATOR");
-        sessionNotifications.notifyLecturers(
-                saved.getId(), "Session created", sessionTitle(saved) + " is now available");
+        SessionStatus status = resolvedStatus(saved);
+        String msg = status == SessionStatus.ACTIVE
+                ? sessionTitle(saved) + " is now active and ready for check-in"
+                : sessionTitle(saved) + " is scheduled for " + (saved.getExamDate() != null ? saved.getExamDate() : "upcoming date");
+        sessionNotifications.notifyLecturers(saved.getId(), "Session created", msg);
         return toDto(saved);
     }
 
@@ -162,12 +193,15 @@ public class SessionService {
         return new SessionDetailDto(toDto(session), members, attendanceMapper.toDtos(records));
     }
 
-    /** Loads the session and rejects callers who are neither creator nor invigilator. */
+    /** Loads the session and rejects callers who are neither creator, invigilator, nor admin. */
     @Transactional(readOnly = true)
     public ExamSession requireMember(UUID userId, Long sessionId) {
         ExamSession session = require(sessionId);
-        boolean member =
-                session.getCreatedBy().equals(userId) || invigilators.existsBySessionIdAndUserId(sessionId, userId);
+        User user = users.findById(userId).orElse(null);
+        boolean isAdmin = user != null && user.getRole() == Role.ADMIN;
+        boolean member = isAdmin
+                || session.getCreatedBy().equals(userId)
+                || invigilators.existsBySessionIdAndUserId(sessionId, userId);
         if (!member) {
             throw new ApiException(HttpStatus.FORBIDDEN, "Not an invigilator of this session");
         }
@@ -191,6 +225,10 @@ public class SessionService {
             throw new ApiException(HttpStatus.CONFLICT, "Session is closed");
         }
         return session;
+    }
+
+    public java.util.Optional<ExamSession> find(Long sessionId) {
+        return sessionId != null ? sessions.findById(sessionId) : java.util.Optional.empty();
     }
 
     public ExamSession require(Long sessionId) {

@@ -51,19 +51,15 @@ export function ScreenTopBar({
   );
 }
 
-/** Pink "Upcoming" / green "Ongoing" pill — icon + label on one row. */
-export function StatusChip({ status }: { status: 'Upcoming' | 'Ongoing' }) {
+/** Pink "Upcoming" / green "Ongoing" / neutral "Past" pill — icon + label on one row. */
+export function StatusChip({ status }: { status: 'Upcoming' | 'Ongoing' | 'Past' }) {
   const p = usePalette();
-  const upcoming = status === 'Upcoming';
-  const tint = upcoming ? p.pink : p.success;
+  const isUpcoming = status === 'Upcoming';
+  const isOngoing = status === 'Ongoing';
+  const tint = isOngoing ? p.success : isUpcoming ? p.pink : p.muted;
+  const bg = isOngoing ? p.successSoft : isUpcoming ? p.pinkSoft : p.surfaceDim;
   return (
-    <View
-      style={[
-        styles.chip,
-        styles.chipRow,
-        { backgroundColor: upcoming ? p.pinkSoft : p.successSoft },
-      ]}
-    >
+    <View style={[styles.chip, styles.chipRow, { backgroundColor: bg }]}>
       <ClockIcon color={tint} />
       <Text style={[styles.chipText, { color: tint }]}>{status}</Text>
     </View>
