@@ -9,8 +9,8 @@ type Props = ComponentProps<typeof Pressable> & {
 };
 
 /**
- * Drop-in Pressable that always fires haptics on touch-down.
- * Prefer this (or GlassPressable) over raw RN Pressable for any control.
+ * Drop-in Pressable that fires tactile haptics on touch-down.
+ * Provides clean, instant response across standard controls, switches, and setting rows.
  */
 export function HapticPressable({
   haptic: kind = 'tap',

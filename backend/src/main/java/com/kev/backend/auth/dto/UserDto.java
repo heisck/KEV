@@ -1,6 +1,7 @@
 package com.kev.backend.auth.dto;
 
 import com.kev.backend.auth.User;
+import java.time.Instant;
 import java.util.UUID;
 
 public record UserDto(
@@ -14,7 +15,8 @@ public record UserDto(
         String personalEmail,
         String phone,
         String status,
-        Boolean active) {
+        Boolean active,
+        Instant createdAt) {
 
     public static UserDto from(User u) {
         return new UserDto(
@@ -28,6 +30,7 @@ public record UserDto(
                 u.getPersonalEmail(),
                 u.getPhone(),
                 u.getStatus(),
-                u.isActive());
+                u.isActive(),
+                u.getCreatedAt());
     }
 }

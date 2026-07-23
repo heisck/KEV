@@ -1,3 +1,3 @@
-import { AdminScreen } from '@/screens/AdminScreen';
+import { AdminAddUserScreen } from '@/screens/AdminAddUserScreen';
 
-export default AdminScreen;
+export default AdminAddUserScreen;

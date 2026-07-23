@@ -51,6 +51,7 @@ export const UserDtoSchema = z.object({
   phone: z.string().nullable().optional(),
   status: z.string().nullable().optional(),
   active: z.boolean().nullable().optional(),
+  createdAt: z.string().nullable().optional(),
 });
 export type UserDto = z.infer<typeof UserDtoSchema>;
 
@@ -64,11 +65,21 @@ export const CreateLecturerRequestSchema = z.object({
 export type CreateLecturerRequest = z.infer<typeof CreateLecturerRequestSchema>;
 
 export const CreateAdminRequestSchema = z.object({
-  fullName: z.string().min(1, 'Full name is required'),
+  firstName: z.string().min(1, 'First name is required'),
+  lastName: z.string().min(1, 'Last name is required'),
   email: z.string().email('Invalid email address'),
-  password: z.string().min(6, 'Password must be at least 6 characters'),
+  phone: z.string().optional(),
 });
 export type CreateAdminRequest = z.infer<typeof CreateAdminRequestSchema>;
+
+export const AdminDashboardDtoSchema = z.object({
+  totalLecturers: z.number(),
+  activeLecturers: z.number(),
+  totalSessions: z.number(),
+  recentSessions: z.array(z.lazy(() => SessionDtoSchema)),
+  recentLecturers: z.array(UserDtoSchema),
+});
+export type AdminDashboardDto = z.infer<typeof AdminDashboardDtoSchema>;
 
 export const AuthResponseSchema = z.object({
   accessToken: z.string(),

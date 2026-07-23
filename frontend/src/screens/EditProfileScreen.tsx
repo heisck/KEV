@@ -69,7 +69,7 @@ export function EditProfileScreen() {
         >
           <BackIcon color={p.onPrimary} size={20} />
         </HapticPressable>
-        <Text style={[styles.bandTitle, { color: p.onPrimary }]}>Edit profile</Text>
+        <Text style={[styles.bandTitle, { color: p.onPrimary }]}>Edit Profile</Text>
         <View style={styles.bandBtn} />
       </View>
 

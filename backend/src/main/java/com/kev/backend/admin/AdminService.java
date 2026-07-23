@@ -82,16 +82,34 @@ public class AdminService {
         if (users.findByEmail(email).isPresent()) {
             throw new ApiException(HttpStatus.CONFLICT, "User with email already exists");
         }
+        String displayName = (req.firstName().trim() + " " + req.lastName().trim()).strip();
+        String randomPassword = UUID.randomUUID().toString().substring(0, 8).toUpperCase();
+
         User admin = new User();
         admin.setEmail(email);
-        admin.setDisplayName(req.fullName().trim());
+        admin.setDisplayName(displayName);
         admin.setRole(Role.ADMIN);
         admin.setPlan(Plan.PREMIUM);
-        admin.setPasswordHash(passwordEncoder.encode(req.password()));
+        admin.setPasswordHash(passwordEncoder.encode(randomPassword));
+        admin.setPhone(req.phone() != null ? req.phone().trim() : null);
         admin.setStatus("ACTIVE");
         admin.setActive(true);
         admin.setCreatedByAdmin(creatorAdminId);
         User saved = users.save(admin);
+
+        String credMsg = "Welcome to KEV (Admin).\nEmail: " + saved.getEmail()
+                + "\nPassword: " + randomPassword + "\nDownload the app to sign in.";
+        if (saved.getPhone() != null && !saved.getPhone().isBlank()) {
+            arkesel.sendSms(saved.getPhone(), credMsg);
+        }
+        arkesel.sendEmail(saved.getEmail(), "Your KEV Admin Credentials", credMsg);
+
+        Notification n = new Notification();
+        n.setUserId(saved.getId());
+        n.setTitle("Admin Account Created");
+        n.setMessage("Welcome to KEV! Your credentials have been sent to your email.");
+        notifications.save(n);
+
         return UserDto.from(saved);
     }
 

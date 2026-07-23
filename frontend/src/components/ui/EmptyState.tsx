@@ -1,6 +1,6 @@
 import { StyleSheet, Text, View } from 'react-native';
 
-import { spacing, typography, usePalette } from '@/theme';
+import { spacing, usePalette } from '@/theme';
 
 type EmptyStateProps = {
   title: string;
@@ -31,9 +31,9 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.xxxl,
   },
   title: {
-    fontFamily: typography.display,
-    fontSize: 22,
+    fontSize: 16,
+    fontWeight: '700',
     textAlign: 'center',
   },
-  message: { fontSize: 14, lineHeight: 20, textAlign: 'center' },
+  message: { fontSize: 13, lineHeight: 18, textAlign: 'center' },
 });

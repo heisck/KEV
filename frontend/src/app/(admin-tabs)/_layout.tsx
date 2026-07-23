@@ -1,4 +1,4 @@
-import { Redirect, router, Tabs, type Href } from 'expo-router';
+import { Redirect, router, Tabs } from 'expo-router';
 
 import {
   ChatTabIcon,
@@ -11,13 +11,17 @@ import { KevTabBar } from '@/components/kev/KevTabBar';
 import { useAuthStore } from '@/store/authStore';
 import { usePalette } from '@/theme';
 
-export default function TabsLayout() {
+/**
+ * Admin tab layout — shown only to ADMIN users.
+ * Tabs: Dashboard, Reminders, Add (+), Chat, Profile
+ */
+export default function AdminTabsLayout() {
   const status = useAuthStore((s) => s.status);
   const role = useAuthStore((s) => s.user?.role);
   const p = usePalette();
 
   if (status !== 'authenticated') return <Redirect href="/(auth)" />;
-  if (role === 'ADMIN') return <Redirect href={'/(admin-tabs)' as Href} />;
+  if (role !== 'ADMIN') return <Redirect href="/(tabs)" />;
 
   return (
     <Tabs
@@ -30,7 +34,7 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Home',
+          title: 'Dashboard',
           tabBarIcon: ({ color, size }) => <HomeTabIcon color={color} size={size} />,
         }}
       />
@@ -42,16 +46,15 @@ export default function TabsLayout() {
         }}
       />
       <Tabs.Screen
-        name="create"
+        name="add"
         options={{
-          title: 'Create',
+          title: 'Add',
           tabBarIcon: ({ color, size }) => <PlusIcon color={color} size={size} />,
         }}
         listeners={{
           tabPress: (e) => {
-            // The Create tab is an action: open the wizard instead of switching tabs.
             e.preventDefault();
-            router.push('/room-setup');
+            router.push('/admin');
           },
         }}
       />
@@ -69,8 +72,6 @@ export default function TabsLayout() {
           tabBarIcon: ({ color, size }) => <ProfileTabIcon color={color} size={size} />,
         }}
       />
-      {/* Still under (tabs) for existing deep links — never in the bar. */}
-      <Tabs.Screen name="scan" options={{ href: null }} />
     </Tabs>
   );
 }

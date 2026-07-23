@@ -14,7 +14,9 @@
   },
   "packageManager": "npm@10.9.2",
   "scripts": {
-    "dev": "concurrently -k -n web,api,ml -c cyan,green,magenta \"npm:frontend\" \"npm:backend\" \"npm:ml\"",
+    "dev": "node scripts/dev.mjs",
+    "dev:inline": "concurrently -k -n web,api,ml -c cyan,green,magenta \"npm:frontend\" \"npm:backend\" \"npm:ml\"",
+    "services": "concurrently -k -n api,ml -c green,magenta \"npm:backend\" \"npm:ml\"",
     "frontend": "npm run start --workspace frontend",
     "backend": "node scripts/run-backend.mjs spring-boot:run",
     "backend:test": "node scripts/run-backend.mjs verify",

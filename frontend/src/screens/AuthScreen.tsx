@@ -1,6 +1,5 @@
 import { useCallback, useState, type ReactNode } from 'react';
-import { Text, TextInput, useWindowDimensions, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Text, TextInput, View } from 'react-native';
 
 import {
   AppleIcon,
@@ -42,25 +41,18 @@ export function AuthScreen({
   const [emailError, setEmailError] = useState<string | null>(null);
   const [isEmailTouched, setIsEmailTouched] = useState(false);
 
-  const { height } = useWindowDimensions();
-  const { bottom, top } = useSafeAreaInsets();
   const palette = usePalette();
-
-  const fullMinHeight = Math.max(height - top - bottom - AUTH_OVERLAY_VERTICAL_PADDING * 2, 0);
-  const layoutMinHeight = Math.max(fullMinHeight, 300);
 
   const validateEmail = useCallback((val: string) => {
     const trimmed = val.trim();
     if (!trimmed) return 'Email is required';
-    if (!EMAIL_REGEX.test(trimmed)) return 'Incorrect email address';
+    if (!EMAIL_REGEX.test(trimmed)) return 'Please enter a valid email address';
     return null;
   }, []);
 
   const handleEmailBlur = useCallback(() => {
     setFocusedField(null);
-    setIsEmailTouched(true);
-    setEmailError(validateEmail(email));
-  }, [email, validateEmail]);
+  }, []);
 
   const handleEmailChange = useCallback(
     (text: string) => {
@@ -91,8 +83,16 @@ export function AuthScreen({
         </Text>
       }
     >
-      <View style={[styles.layout, { minHeight: layoutMinHeight }]}>
+      <View style={styles.layout}>
         <View style={styles.bottomGroup}>
+          <View style={styles.errorSlotContainer}>
+            {Boolean(emailError && isEmailTouched) ? (
+              <View style={styles.errorBanner}>
+                <Text style={styles.errorBannerText}>⚠️ {emailError}</Text>
+              </View>
+            ) : null}
+          </View>
+
           <GlassSurface fallbackColor={palette.input} intensity={60} style={styles.inputShell}>
             <View pointerEvents="none" style={styles.inputIcon}>
               <EmailIcon />
@@ -106,7 +106,7 @@ export function AuthScreen({
               onBlur={handleEmailBlur}
               onChangeText={handleEmailChange}
               onFocus={() => setFocusedField('email')}
-              placeholder="Write your gmail"
+              placeholder="Write your email *"
               placeholderTextColor={palette.muted}
               selectionColor={palette.ink}
               style={[
@@ -120,11 +120,6 @@ export function AuthScreen({
               value={email}
             />
           </GlassSurface>
-          <View style={styles.errorContainer}>
-            <Text style={[styles.errorText, { opacity: emailError && isEmailTouched ? 1 : 0 }]}>
-              {emailError ?? ' '}
-            </Text>
-          </View>
 
           <GlassSurface fallbackColor={palette.input} intensity={60} style={styles.inputShell}>
             <View pointerEvents="none" style={styles.inputIcon}>
@@ -138,7 +133,7 @@ export function AuthScreen({
               onBlur={() => setFocusedField(null)}
               onChangeText={setPassword}
               onFocus={() => setFocusedField('password')}
-              placeholder="Your password"
+              placeholder="Your password *"
               placeholderTextColor={palette.muted}
               secureTextEntry={!isPasswordVisible}
               selectionColor={palette.ink}

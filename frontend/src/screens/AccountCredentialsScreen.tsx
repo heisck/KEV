@@ -1,86 +1,79 @@
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import {
-  ActivityIndicator,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from 'react-native';
+import { ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { getProblemDetail } from '@/api/schemas';
-import { CredentialsKeyIcon } from '@/components/auth/CredentialsKeyIcon';
-import { BackIcon } from '@/components/kev/icons';
+import { BackIcon, LockIcon } from '@/components/kev/icons';
+import { AppButton } from '@/components/ui/AppButton';
 import { HapticPressable } from '@/components/ui/HapticPressable';
+import { InitialAvatar } from '@/components/ui/InitialAvatar';
 import { toast } from '@/lib/toast';
 import { useAuthStore } from '@/store/authStore';
 import { radii, spacing, usePalette, type Palette } from '@/theme';
 
-function SecureField({
+/** Labelled text field matching the EditProfileScreen form input style. */
+function Field({
   label,
   value,
   onChange,
+  secureTextEntry,
+  keyboardType,
   p,
-  email,
 }: {
   label: string;
   value: string;
-  onChange: (value: string) => void;
+  onChange: (t: string) => void;
+  secureTextEntry?: boolean;
+  keyboardType?: 'email-address' | 'default';
   p: Palette;
-  email?: boolean;
 }) {
   return (
     <View style={styles.field}>
-      <Text style={[styles.label, { color: p.muted }]}>{label}</Text>
+      <Text style={[styles.fieldLabel, { color: p.muted }]}>{label}</Text>
       <TextInput
-        autoCapitalize="none"
-        autoCorrect={false}
-        keyboardType={email ? 'email-address' : 'default'}
+        value={value}
         onChangeText={onChange}
         placeholder={label}
         placeholderTextColor={p.muted}
-        secureTextEntry={!email}
-        style={[styles.input, { backgroundColor: p.input, color: p.ink }]}
-        value={value}
+        keyboardType={keyboardType ?? 'default'}
+        secureTextEntry={secureTextEntry}
+        autoCapitalize="none"
+        style={[styles.input, { color: p.ink, borderBottomColor: p.hairline }]}
       />
     </View>
   );
 }
 
+/** Change Password / Credentials — styled identical to Edit Profile drawer. */
 export function AccountCredentialsScreen() {
   const router = useRouter();
   const { top } = useSafeAreaInsets();
   const p = usePalette();
   const user = useAuthStore((state) => state.user);
   const updateCredentials = useAuthStore((state) => state.updateCredentials);
-  const [email, setEmail] = useState(user?.email ?? '');
+
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [saving, setSaving] = useState(false);
 
   const save = async () => {
-    const changedEmail = email.trim().toLowerCase() !== user?.email.toLowerCase();
     if (!currentPassword) return toast.error('Enter your current password');
-    if (!changedEmail && !newPassword) return toast.error('Enter a new email or password');
-    if (newPassword && newPassword.length < 8)
-      return toast.error('Password needs at least 8 characters');
+    if (!newPassword) return toast.error('Enter a new password');
+    if (newPassword.length < 8) return toast.error('Password needs at least 8 characters');
     if (newPassword !== confirmPassword) return toast.error('New passwords do not match');
+
     setSaving(true);
     try {
       await updateCredentials({
         currentPassword,
-        email: changedEmail ? email.trim() : undefined,
-        newPassword: newPassword || undefined,
+        newPassword,
       });
-      toast.success('Sign-in details updated');
+      toast.success('Password updated successfully');
       router.back();
     } catch (error: unknown) {
-      toast.error(getProblemDetail(error)?.detail ?? 'Could not update sign-in details');
+      toast.error(getProblemDetail(error)?.detail ?? 'Could not update password');
     } finally {
       setSaving(false);
     }
@@ -88,109 +81,142 @@ export function AccountCredentialsScreen() {
 
   return (
     <View style={[styles.screen, { backgroundColor: p.primary }]}>
-      <View style={[styles.header, { paddingTop: top + spacing.sm }]}>
+      <View style={[styles.band, { paddingTop: top + spacing.sm }]}>
         <HapticPressable
-          accessibilityLabel="Back to profile"
           accessibilityRole="button"
+          accessibilityLabel="Cancel"
           haptic="select"
           onPress={() => router.back()}
-          style={styles.back}
+          style={styles.bandBtn}
         >
-          <BackIcon color={p.onPrimary} />
+          <BackIcon color={p.onPrimary} size={20} />
         </HapticPressable>
-        <Text style={[styles.title, { color: p.onPrimary }]}>Account Credentials</Text>
-        <View style={styles.back} />
+        <Text style={[styles.bandTitle, { color: p.onPrimary }]}>Change Password</Text>
+        <View style={styles.bandBtn} />
       </View>
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+
+      <ScrollView
         style={[styles.sheet, { backgroundColor: p.bg }]}
+        contentContainerStyle={styles.sheetBody}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
       >
-        <ScrollView
-          contentContainerStyle={styles.body}
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
-        >
-          <CredentialsKeyIcon color={p.inkSoft} outline={p.hairline} surface={p.surfaceDim} />
-          <Text style={[styles.intro, { color: p.ink }]}>Reset Password</Text>
-          <Text style={[styles.hint, { color: p.muted }]}>
-            Update your sign-in email address or password below
-          </Text>
-          <View style={styles.form}>
-            <SecureField email label="Sign-in email" onChange={setEmail} p={p} value={email} />
-            <SecureField
-              label="Current Password"
-              onChange={setCurrentPassword}
-              p={p}
-              value={currentPassword}
+        <View style={styles.identity}>
+          <View style={[styles.avatarRing, { borderColor: p.hairline }]}>
+            <InitialAvatar
+              uri={user?.pictureUrl}
+              seed={user?.displayName || 'K'}
+              imageStyle={styles.avatar}
+              fallbackStyle={[
+                styles.avatar,
+                styles.avatarFallback,
+                { backgroundColor: p.primary12 },
+              ]}
+              initialStyle={[styles.avatarInitial, { color: p.primary }]}
             />
-            <SecureField label="New Password" onChange={setNewPassword} p={p} value={newPassword} />
-            <SecureField
-              label="Confirm Password"
-              onChange={setConfirmPassword}
-              p={p}
-              value={confirmPassword}
-            />
-            <HapticPressable
-              accessibilityRole="button"
-              disabled={saving}
-              haptic="success"
-              onPress={save}
-              style={styles.saveShell}
-              testID="credentials-save"
-            >
-              <View style={[styles.save, { backgroundColor: p.primary }]}>
-                {saving ? (
-                  <ActivityIndicator color="#FFFFFF" />
-                ) : (
-                  <Text style={styles.saveText}>SAVE</Text>
-                )}
-              </View>
-            </HapticPressable>
+            <View style={[styles.editBadge, { backgroundColor: p.primary, borderColor: p.bg }]}>
+              <LockIcon color={p.onPrimary} size={12} />
+            </View>
           </View>
-        </ScrollView>
-      </KeyboardAvoidingView>
+        </View>
+
+        <Field
+          label="Current Password"
+          value={currentPassword}
+          onChange={setCurrentPassword}
+          secureTextEntry
+          p={p}
+        />
+        <Field
+          label="New Password"
+          value={newPassword}
+          onChange={setNewPassword}
+          secureTextEntry
+          p={p}
+        />
+        <Field
+          label="Confirm New Password"
+          value={confirmPassword}
+          onChange={setConfirmPassword}
+          secureTextEntry
+          p={p}
+        />
+
+        <View style={styles.actions}>
+          <AppButton
+            label="Cancel"
+            variant="ghost"
+            onPress={() => router.back()}
+            style={styles.action}
+          />
+          <AppButton
+            label={saving ? 'Saving...' : 'Save'}
+            disabled={saving}
+            onPress={save}
+            style={styles.action}
+            testID="credentials-save"
+          />
+        </View>
+      </ScrollView>
     </View>
   );
 }
 
+const AVATAR = 92;
+
 const styles = StyleSheet.create({
   screen: { flex: 1 },
-  header: {
+  band: {
     alignItems: 'center',
     flexDirection: 'row',
     justifyContent: 'space-between',
     paddingBottom: spacing.xl,
     paddingHorizontal: spacing.xl,
   },
-  back: { alignItems: 'center', height: 40, justifyContent: 'center', width: 40 },
-  title: { fontSize: 18, fontWeight: '700' },
+  bandBtn: {
+    alignItems: 'center',
+    borderRadius: radii.pill,
+    height: 40,
+    justifyContent: 'center',
+    width: 40,
+  },
+  bandTitle: { fontSize: 18, fontWeight: '700' },
   sheet: {
     borderTopLeftRadius: radii.xl,
     borderTopRightRadius: radii.xl,
     flex: 1,
     marginTop: -spacing.md,
   },
-  body: {
+  sheetBody: { paddingBottom: spacing.xxxl, paddingHorizontal: spacing.xl },
+  identity: { alignItems: 'center', paddingBottom: spacing.lg, paddingTop: spacing.xl },
+  avatarRing: { borderRadius: (AVATAR + 12) / 2, borderWidth: 3, padding: 3 },
+  avatar: { borderRadius: AVATAR / 2, height: AVATAR, width: AVATAR },
+  avatarFallback: { alignItems: 'center', justifyContent: 'center' },
+  avatarInitial: { fontSize: 34, fontWeight: '800' },
+  editBadge: {
     alignItems: 'center',
-    paddingBottom: spacing.xxxl,
-    paddingHorizontal: spacing.xl,
-    paddingTop: spacing.xxl,
-  },
-  intro: { fontSize: 18, fontWeight: '700', marginTop: spacing.md },
-  hint: { fontSize: 12, lineHeight: 17, marginTop: spacing.sm, maxWidth: 240, textAlign: 'center' },
-  form: { gap: spacing.md, marginTop: spacing.xxl, maxWidth: 360, width: '100%' },
-  field: { alignItems: 'center', gap: spacing.xs },
-  label: { fontSize: 11, fontWeight: '500' },
-  input: {
     borderRadius: radii.pill,
-    fontSize: 14,
-    minHeight: 42,
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.sm,
-    textAlign: 'center',
-    width: '100%',
+    borderWidth: 2,
+    bottom: 2,
+    height: 26,
+    justifyContent: 'center',
+    position: 'absolute',
+    right: 2,
+    width: 26,
   },
-  saveShell: { borderRadius: radii.pill, marginTop: spacing.sm, overflow: 'hidden' },
-  save: { alignItems: 'center', borderRadius: radii.pill, height: 44, justifyContent: 'center' },
-  saveText: { color: '#FFFFFF', fontSize: 12, fontWeight: '900' },
+  field: { gap: spacing.xs, paddingTop: spacing.lg },
+  fieldLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 0.6,
+    textTransform: 'uppercase',
+  },
+  input: {
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    fontSize: 16,
+    fontWeight: '500',
+    paddingVertical: spacing.sm,
+  },
+  actions: { flexDirection: 'row', gap: spacing.md, paddingTop: spacing.xxxl },
+  action: { flex: 1 },
 });

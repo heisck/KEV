@@ -1,20 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
-import {
-  Dimensions,
-  Keyboard,
-  Platform,
-  StyleSheet,
-  Text,
-  View,
-  type KeyboardEvent,
-} from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { actions, RichEditor } from 'react-native-pell-rich-editor';
 
 import {
   ReportFormattingToolbar,
   type ReportFormat,
 } from '@/components/reports/ReportFormattingToolbar';
-import { HapticPressable } from '@/components/ui/HapticPressable';
 import { radii, spacing, usePalette } from '@/theme';
 
 const LIST_FORMATS: ReportFormat[] = ['numbered-list', 'circle-list', 'bullet-list'];
@@ -28,22 +19,6 @@ const ACTIONS: Record<Exclude<ReportFormat, 'circle-list'>, actions> = {
   'numbered-list': actions.insertOrderedList,
   'bullet-list': actions.insertBulletsList,
 };
-
-function useKeyboardHeight(active: boolean): number {
-  const [height, setHeight] = useState(0);
-  useEffect(() => {
-    if (!active || Platform.OS !== 'ios') return;
-    const change = ({ endCoordinates }: KeyboardEvent) =>
-      setHeight(Math.max(0, Dimensions.get('screen').height - endCoordinates.screenY));
-    const frame = Keyboard.addListener('keyboardWillChangeFrame', change);
-    const hide = Keyboard.addListener('keyboardWillHide', () => setHeight(0));
-    return () => {
-      frame.remove();
-      hide.remove();
-    };
-  }, [active]);
-  return height;
-}
 
 export function RichReportEditor({
   editing,
@@ -60,8 +35,7 @@ export function RichReportEditor({
   const editor = useRef<RichEditor>(null);
   const unorderedStyle = useRef<'bullet-list' | 'circle-list'>('bullet-list');
   const [active, setActive] = useState<Set<ReportFormat>>(new Set());
-  const [focused, setFocused] = useState(false);
-  const keyboardHeight = useKeyboardHeight(focused);
+  const [, setFocused] = useState(false);
 
   useEffect(() => {
     if (!editing) {
@@ -131,7 +105,7 @@ export function RichReportEditor({
           backgroundColor: p.surfaceDim,
           caretColor: p.primary,
           color: p.ink,
-          contentCSSText: 'font-size:16px;line-height:24px;padding:4px 2px;',
+          contentCSSText: 'font-size:15px;line-height:22px;padding:12px 14px;',
           placeholderColor: p.muted,
         }}
         enterKeyHint="done"
@@ -144,22 +118,6 @@ export function RichReportEditor({
         style={[styles.editor, { backgroundColor: p.surfaceDim }]}
         testID="rich-report-editor"
       />
-      {keyboardHeight > 0 ? (
-        <View
-          style={[
-            styles.accessory,
-            { backgroundColor: p.surface, borderTopColor: p.hairline, bottom: keyboardHeight },
-          ]}
-        >
-          <HapticPressable
-            accessibilityLabel="Hide keyboard"
-            onPress={() => editor.current?.blurContentEditor()}
-            style={[styles.done, { backgroundColor: p.primary }]}
-          >
-            <Text style={[styles.doneText, { color: p.onPrimary }]}>Go</Text>
-          </HapticPressable>
-        </View>
-      ) : null}
     </View>
   );
 }

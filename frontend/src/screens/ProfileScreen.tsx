@@ -4,14 +4,7 @@ import { ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AppLogoMark } from '@/components/AppLogoMark';
-import {
-  BackIcon,
-  DocIcon,
-  LogoutIcon,
-  MailIcon,
-  PencilIcon,
-  PinIcon,
-} from '@/components/kev/icons';
+import { BackIcon, DocIcon, LockIcon, LogoutIcon, PencilIcon } from '@/components/kev/icons';
 import { ProfilePreferences } from '@/components/settings/ProfilePreferences';
 import { ProfileRow as Row, SectionLabel } from '@/components/settings/ProfileSettingsRows';
 import { HapticPressable } from '@/components/ui/HapticPressable';
@@ -78,17 +71,17 @@ export function ProfileScreen() {
           <Text style={[styles.email, { color: p.muted }]}>{email}</Text>
         </View>
 
-        <SectionLabel text="Location" palette={p} />
+        <SectionLabel text="Profile" palette={p} />
         <Row
-          icon={<PinIcon color={p.primary} size={16} />}
-          label="KNUST Campus"
+          icon={<PencilIcon color={p.primary} size={18} />}
+          label="Edit Profile"
           palette={p}
           onPress={() => router.push('/edit-profile')}
         />
 
         <ProfilePreferences palette={p} />
 
-        <SectionLabel text="Account" palette={p} />
+        <SectionLabel text="Account Security" palette={p} />
         <Row
           icon={<DocIcon color={p.primary} size={18} />}
           label="Reports"
@@ -96,8 +89,8 @@ export function ProfileScreen() {
           onPress={() => router.push('/reports')}
         />
         <Row
-          icon={<MailIcon color={p.primary} size={18} />}
-          label="Email in"
+          icon={<LockIcon color={p.primary} size={18} />}
+          label="Change Password"
           palette={p}
           onPress={() => router.push('/account-credentials')}
         />
