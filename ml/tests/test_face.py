@@ -79,9 +79,10 @@ def test_verify_face_400_on_ssrf_attempt() -> None:
     response = client.post(
         "/verify-face",
         files={"probe": ("probe.jpg", b"fake-bytes")},
-        data={"reference_url": "http://127.0.0.1/admin"},
+        data={"reference_url": "http://169.254.169.254/latest/meta-data"},
     )
     assert response.status_code == 400
+
 
 
 

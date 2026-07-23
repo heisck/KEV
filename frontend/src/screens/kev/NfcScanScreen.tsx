@@ -10,17 +10,19 @@ import Animated, {
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { lookupStudent } from '@/api/directory';
 import { ScreenTopBar } from '@/components/kev/chrome';
 import { NfcIcon } from '@/components/kev/icons';
 import { ScanMethodSwitcher } from '@/components/scan/ScanMethodSwitcher';
 import { SessionLockButton } from '@/components/scan/SessionLockButton';
+import { AppButton } from '@/components/ui/AppButton';
+import { studentRecordToScanned } from '@/data/exams';
+import { useNfcScan } from '@/hooks/useNfcScan';
 import { useScanCheckIn } from '@/hooks/useScanCheckIn';
 import { useScanMethodGuard } from '@/hooks/useScanMethodGuard';
 import { useScanNavigation } from '@/hooks/useScanNavigation';
 import { useScanSessionId } from '@/hooks/useScanSession';
 import { radii, shadows, spacing, usePalette } from '@/theme';
-
-const SCAN_DELAY_MS = 3000;
 
 /** NFC scan — card floats to the phone and back until a tag is detected. */
 export function NfcScanScreen() {
@@ -30,6 +32,17 @@ export function NfcScanScreen() {
   const { goBack } = useScanNavigation(sessionId);
   const completeScan = useScanCheckIn(sessionId, 'NFC');
   const { allowedMethods, canUse } = useScanMethodGuard(sessionId, 'NFC');
+
+  const handleIndexNumber = async (idx: string) => {
+    try {
+      const student = await lookupStudent(idx);
+      await completeScan(studentRecordToScanned(student));
+    } catch {
+      await completeScan();
+    }
+  };
+
+  const nfc = useNfcScan({ onIndexNumber: handleIndexNumber });
 
   const drift = useSharedValue(0);
 
@@ -42,10 +55,9 @@ export function NfcScanScreen() {
       ),
       -1,
     );
-    // Simulated tag detection until react-native-nfc-manager is wired here.
-    const timer = setTimeout(completeScan, SCAN_DELAY_MS);
-    return () => clearTimeout(timer);
-  }, [canUse, completeScan, drift]);
+    nfc.start();
+    return () => nfc.cancel();
+  }, [canUse, drift, nfc]);
 
   const cardStyle = useAnimatedStyle(() => ({
     transform: [{ translateY: drift.value * -84 }, { rotate: `${-8 + drift.value * 8}deg` }],
@@ -83,17 +95,35 @@ export function NfcScanScreen() {
       <View style={styles.copy}>
         <Text style={[styles.title, { color: p.ink }]}>Hold the card near the phone</Text>
         <Text style={[styles.sub, { color: p.muted }]}>
-          Keep the student ID steady until it reads.
+          {nfc.error === 'unsupported'
+            ? 'NFC hardware unavailable on simulator'
+            : 'Keep the student ID steady until it reads.'}
         </Text>
       </View>
-      <ScanMethodSwitcher active="NFC" sessionId={sessionId} allowedMethods={allowedMethods} />
+
+      <View style={styles.bottomDock}>
+        <ScanMethodSwitcher active="NFC" sessionId={sessionId} allowedMethods={allowedMethods} />
+        {nfc.error === 'unsupported' ? (
+          <AppButton
+            label="Simulate NFC Tag"
+            variant="ghost"
+            onPress={() => void completeScan()}
+            testID="nfc-simulate-tag"
+          />
+        ) : null}
+      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   screen: { flex: 1, paddingHorizontal: spacing.xl },
+  bottomDock: {
+    gap: spacing.md,
+    paddingBottom: spacing.lg,
+  },
   stage: { alignItems: 'center', flex: 1, justifyContent: 'center' },
+
   phone: {
     alignItems: 'center',
     borderRadius: radii.xl,

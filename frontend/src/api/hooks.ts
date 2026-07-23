@@ -49,10 +49,11 @@ export function useSessionDetail(id: number, enabled = true) {
 
 export function useSessionSummary(id: number) {
   const userId = useAuthStore((state) => state.user?.id);
+  const valid = Number.isInteger(id) && id > 0;
   return useQuery({
     queryKey: [...keys.summary(id), userId],
     queryFn: () => sessions.getSummary(id),
-    enabled: Boolean(userId),
+    enabled: valid && Boolean(userId),
   });
 }
 

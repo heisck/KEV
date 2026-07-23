@@ -4,6 +4,7 @@ import { StyleSheet, Text, View } from 'react-native';
 
 import { useFaceVerify } from '@/api/hooks';
 import { AppButton, ProgressRing, StatusPill } from '@/components/ui';
+import { useSettingsStore } from '@/store/settingsStore';
 import { colors, radii, spacing, usePalette } from '@/theme';
 
 type FaceVerifyPanelProps = {
@@ -12,10 +13,11 @@ type FaceVerifyPanelProps = {
   onMatch: () => void;
 };
 
-/** Inline front-camera capture → face verify → similarity ring + verdict. */
+/** Inline front/rear camera capture → face verify → similarity ring + verdict. */
 export function FaceVerifyPanel({ indexNumber, onMatch }: FaceVerifyPanelProps) {
   const [permission, requestPermission] = useCameraPermissions();
   const cameraRef = useRef<CameraView>(null);
+  const facing = useSettingsStore((s) => s.cameraFacing);
   const faceVerify = useFaceVerify();
   const result = faceVerify.data;
   const p = usePalette();
@@ -59,7 +61,7 @@ export function FaceVerifyPanel({ indexNumber, onMatch }: FaceVerifyPanelProps) 
   return (
     <View style={styles.panel}>
       <View style={styles.cameraWrap}>
-        <CameraView ref={cameraRef} facing="front" style={StyleSheet.absoluteFill} />
+        <CameraView ref={cameraRef} facing={facing} style={StyleSheet.absoluteFill} />
       </View>
       {faceVerify.isError ? (
         <Text style={[styles.error, { color: p.error }]}>Verification failed. Try again.</Text>

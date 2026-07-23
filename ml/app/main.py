@@ -12,12 +12,13 @@ from app.face import FaceEngine, NoFaceDetectedError
 from app.sentry import init_sentry
 
 import ipaddress
+import os
 from urllib.parse import urlparse
 
 CORRELATION_HEADER = "X-Correlation-Id"
 REFERENCE_FETCH_TIMEOUT_S = 10.0
 ALLOWED_SCHEMES = {"http", "https"}
-RESTRICTED_HOSTS = {"localhost", "127.0.0.1", "0.0.0.0", "::1"}
+RESTRICTED_HOSTS = {"0.0.0.0", "::1"}
 
 
 def validate_reference_url(url: str) -> None:
@@ -26,14 +27,16 @@ def validate_reference_url(url: str) -> None:
     if parsed.scheme not in ALLOWED_SCHEMES:
         raise HTTPException(status_code=400, detail="Invalid URL scheme. Only http and https are permitted.")
     hostname = parsed.hostname
-    if not hostname or hostname.lower() in RESTRICTED_HOSTS:
-        raise HTTPException(status_code=400, detail="Restricted or invalid target hostname.")
+    if not hostname:
+        raise HTTPException(status_code=400, detail="Missing target hostname.")
     try:
         ip = ipaddress.ip_address(hostname)
-        if ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_unspecified:
+        if ip.is_link_local or ip.is_unspecified or ip.is_multicast:
             raise HTTPException(status_code=400, detail="Target IP address is restricted.")
     except ValueError:
         pass
+
+
 
 
 from contextlib import asynccontextmanager

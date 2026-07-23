@@ -67,7 +67,8 @@ public class SessionService {
                 java.time.LocalTime cutoff = java.time.LocalTime.now().minusMinutes(5);
                 if (session.getStartTime() != null && !session.getStartTime().isBlank()) {
                     try {
-                        java.time.LocalTime start = java.time.LocalTime.parse(session.getStartTime().trim());
+                        java.time.LocalTime start =
+                                java.time.LocalTime.parse(session.getStartTime().trim());
                         if (start.isBefore(cutoff)) {
                             throw new ApiException(HttpStatus.BAD_REQUEST, "Cannot create a session in the past");
                         }
@@ -76,7 +77,8 @@ public class SessionService {
                 }
                 if (session.getEndTime() != null && !session.getEndTime().isBlank()) {
                     try {
-                        java.time.LocalTime end = java.time.LocalTime.parse(session.getEndTime().trim());
+                        java.time.LocalTime end =
+                                java.time.LocalTime.parse(session.getEndTime().trim());
                         if (end.isBefore(cutoff)) {
                             throw new ApiException(HttpStatus.BAD_REQUEST, "Cannot create a session in the past");
                         }
@@ -91,7 +93,8 @@ public class SessionService {
         SessionStatus status = resolvedStatus(saved);
         String msg = status == SessionStatus.ACTIVE
                 ? sessionTitle(saved) + " is now active and ready for check-in"
-                : sessionTitle(saved) + " is scheduled for " + (saved.getExamDate() != null ? saved.getExamDate() : "upcoming date");
+                : sessionTitle(saved) + " is scheduled for "
+                        + (saved.getExamDate() != null ? saved.getExamDate() : "upcoming date");
         sessionNotifications.notifyLecturers(saved.getId(), "Session created", msg);
         return toDto(saved);
     }

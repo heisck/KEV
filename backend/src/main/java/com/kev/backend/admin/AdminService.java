@@ -97,8 +97,8 @@ public class AdminService {
         admin.setCreatedByAdmin(creatorAdminId);
         User saved = users.save(admin);
 
-        String credMsg = "Welcome to KEV (Admin).\nEmail: " + saved.getEmail()
-                + "\nPassword: " + randomPassword + "\nDownload the app to sign in.";
+        String credMsg = "Welcome to KEV (Admin).\nEmail: " + saved.getEmail() + "\nPassword: " + randomPassword
+                + "\nDownload the app to sign in.";
         if (saved.getPhone() != null && !saved.getPhone().isBlank()) {
             arkesel.sendSms(saved.getPhone(), credMsg);
         }

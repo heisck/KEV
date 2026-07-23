@@ -12,12 +12,19 @@ type ApiErrorShape = {
   response?: { data?: unknown; status?: number };
 };
 
-/** Scanner conflicts are rendered on the result page, so the global client stays quiet. */
+/** Scanner conflicts & handled queries are quiet, so the global client stays clean. */
 export function isHandledApiError(error: ApiErrorShape): boolean {
   const status = error.response?.status;
   const url = error.config?.url;
   if (url?.endsWith('/api/auth/me') || url?.endsWith('/api/auth/refresh')) return true;
-  if (status === 404 && url?.includes('/api/directory/students/')) return true;
+  if (status === 401) return true;
+  if (
+    status === 404 &&
+    (url?.includes('/api/directory/students/') ||
+      url?.includes('/api/sessions/') ||
+      url?.includes('/api/chat/'))
+  )
+    return true;
   if (status !== 409 || !url?.endsWith('/attendance')) return false;
   const data = error.response?.data;
   return (
