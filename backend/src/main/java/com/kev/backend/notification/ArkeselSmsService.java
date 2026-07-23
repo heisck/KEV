@@ -26,10 +26,10 @@ public class ArkeselSmsService {
     public ArkeselSmsService(
             @Value("${ARKESEL_API_KEY:}") String apiKey,
             @Value("${ARKESEL_SENDER_ID:KEV-EXAM}") String senderId,
-            ObjectMapper objectMapper) {
+            org.springframework.beans.factory.ObjectProvider<ObjectMapper> objectMapperProvider) {
         this.apiKey = apiKey;
         this.senderId = senderId;
-        this.objectMapper = objectMapper;
+        this.objectMapper = objectMapperProvider.getIfAvailable(ObjectMapper::new);
     }
 
     public void sendSms(String phone, String message) {
