@@ -5,6 +5,9 @@ import { ManualEntryScreen } from '@/screens/kev/ManualEntryScreen';
 const mockCompleteScan = jest.fn();
 const mockLookupStudent = jest.fn();
 
+jest.mock('@/api/hooks', () => ({
+  useSessionDetail: () => ({ data: undefined }),
+}));
 jest.mock('@/api/directory', () => ({
   lookupStudent: (...args: unknown[]) => mockLookupStudent(...args),
 }));
