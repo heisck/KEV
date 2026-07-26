@@ -2,6 +2,7 @@ import { create } from 'zustand';
 
 import {
   autoClearEndedSessionRoster,
+  cacheSessionStudents,
   clearSessionStudents,
   fetchStudentsFromExternalSync,
   flushPendingResults,
