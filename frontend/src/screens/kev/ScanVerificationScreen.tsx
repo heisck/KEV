@@ -21,6 +21,10 @@ import Svg, { Circle, Path } from 'react-native-svg';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { lookupStudent } from '@/api/directory';
+import { useSessionDetail } from '@/api/hooks';
+import { type AttendanceDto } from '@/api/schemas';
+import { toast } from '@/lib/toast';
+import { useSessionStore } from '@/store/sessionStore';
 import { ScreenTopBar } from '@/components/kev/chrome';
 import { FaceIdIcon, NfcIcon } from '@/components/kev/icons';
 import { ScanMethodSwitcher, type ScanMethod } from '@/components/scan/ScanMethodSwitcher';
@@ -95,22 +99,50 @@ export function ScanVerificationScreen({ initialMode = 'FACE' }: { initialMode?:
       });
     }
   };
+  const scannedRoster = useSessionStore((s) =>
+    sessionId ? s.roster[String(sessionId)] : undefined,
+  );
+  const { data: detail } = useSessionDetail(Number(sessionId) || 1);
 
   const handleFaceCapture = async () => {
     if (!canUseMode) return;
     const sId = sessionId ? String(sessionId) : undefined;
-    const roster = (sId ? cachedRoster[sId] : undefined) ?? Object.values(cachedRoster)[0];
-    const candidateIndex = roster?.[0]?.indexNumber ?? '6180724';
+    const roster = (sId ? cachedRoster[sId] : undefined) ?? Object.values(cachedRoster)[0] ?? [];
+
+    if (roster.length === 0) {
+      toast.error('No synced student roster found for this session. Please sync data first.');
+      return;
+    }
+
+    // Set of index numbers that are already checked in for this session
+    const checkedInSet = new Set(
+      [
+        ...(detail?.attendance?.map((a: AttendanceDto) => a.student.indexNumber) ?? []),
+        ...(scannedRoster?.map((s) => s.index) ?? []),
+      ]
+        .filter(Boolean)
+        .map((idx) => String(idx).trim().toLowerCase()),
+    );
+
+    // Find the next student in the synced roster who has not been checked in yet
+    const candidate = roster.find(
+      (s) => !checkedInSet.has(String(s.indexNumber).trim().toLowerCase()),
+    );
+
+    if (!candidate) {
+      toast.info('All synced students for this session have already been checked in.');
+      return;
+    }
 
     try {
       const student = sId
-        ? await lookupStudent(candidateIndex, sId)
-        : await lookupStudent(candidateIndex);
+        ? await lookupStudent(candidate.indexNumber, sId)
+        : await lookupStudent(candidate.indexNumber);
       await completeFaceScan(studentRecordToScanned(student));
       await logVerification(student.indexNumber, true, 'FACE');
     } catch {
-      await completeFaceScan(candidateIndex);
-      await logVerification(candidateIndex, false, 'FACE');
+      toast.error('Face not recognized or student not enrolled in this session');
+      await logVerification(candidate.indexNumber, false, 'FACE');
     }
   };
 
