@@ -1,4 +1,5 @@
 import { act, renderHook, waitFor } from '@testing-library/react-native';
+import { NativeModules } from 'react-native';
 import NfcManager from 'react-native-nfc-manager';
 import { useNfcScan } from '@/hooks/useNfcScan';
 
@@ -14,6 +15,7 @@ const toPayload = (text: string) => Array.from(text, (c) => c.charCodeAt(0));
 
 describe('useNfcScan', () => {
   beforeEach(() => {
+    NativeModules.NfcManager = {};
     nfc.start.mockResolvedValue(undefined);
     nfc.isSupported.mockResolvedValue(true);
     nfc.requestTechnology.mockResolvedValue(undefined);

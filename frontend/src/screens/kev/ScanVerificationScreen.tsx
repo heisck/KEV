@@ -34,6 +34,7 @@ import { useScanMethodGuard } from '@/hooks/useScanMethodGuard';
 import { useScanNavigation } from '@/hooks/useScanNavigation';
 import { useScanSessionId } from '@/hooks/useScanSession';
 import { useSettingsStore } from '@/store/settingsStore';
+import { useSyncStore } from '@/store/syncStore';
 import { radii, shadows, spacing, usePalette } from '@/theme';
 
 function CameraFlipIcon({ color }: { color: string }) {
@@ -65,6 +66,7 @@ export function ScanVerificationScreen({ initialMode = 'FACE' }: { initialMode?:
   const sessionId = useScanSessionId();
   const { goBack } = useScanNavigation(sessionId);
   const [mode, setMode] = useState<ScanMethod>(initialMode);
+  const recordVerification = useSyncStore((s) => s.recordVerification);
 
   // Scan methods guard
   const completeFaceScan = useScanCheckIn(sessionId, 'FACE');
@@ -78,13 +80,30 @@ export function ScanVerificationScreen({ initialMode = 'FACE' }: { initialMode?:
   const setFacing = useSettingsStore((s) => s.setCameraFacing);
   const previewHeight = Math.min(Math.max(height * 0.44, 280), 480);
 
+  // Helper to record verification result in sync store
+  const logVerification = async (indexNum: string, verified: boolean, method: string) => {
+    if (sessionId) {
+      await recordVerification(String(sessionId), {
+        indexNumber: indexNum,
+        verified,
+        verifiedAt: new Date().toISOString(),
+        verifiedBy: 'Lecturer',
+        confidence: verified ? 0.95 : 0,
+        metadata: `${method} verification`,
+      });
+    }
+  };
+
   // NFC state
   const handleNfcIndexNumber = async (idx: string) => {
     try {
-      const student = await lookupStudent(idx);
+      const sId = sessionId ? String(sessionId) : undefined;
+      const student = sId ? await lookupStudent(idx, sId) : await lookupStudent(idx);
       await completeNfcScan(studentRecordToScanned(student));
+      await logVerification(student.indexNumber, true, 'NFC');
     } catch {
       await completeNfcScan();
+      await logVerification(idx, false, 'NFC');
     }
   };
   const nfc = useNfcScan({ onIndexNumber: handleNfcIndexNumber });
@@ -117,10 +136,15 @@ export function ScanVerificationScreen({ initialMode = 'FACE' }: { initialMode?:
     if (!canUseMode || !manualIndex.trim() || manualSubmitting) return;
     setManualSubmitting(true);
     try {
-      const student = await lookupStudent(manualIndex.trim());
+      const sId = sessionId ? String(sessionId) : undefined;
+      const student = sId
+        ? await lookupStudent(manualIndex.trim(), sId)
+        : await lookupStudent(manualIndex.trim());
       await completeManualScan(studentRecordToScanned(student));
+      await logVerification(student.indexNumber, true, 'MANUAL');
     } catch {
       setManualNotFound(true);
+      await logVerification(manualIndex.trim(), false, 'MANUAL');
     } finally {
       setManualSubmitting(false);
     }

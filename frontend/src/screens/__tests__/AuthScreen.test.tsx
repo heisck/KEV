@@ -38,8 +38,8 @@ describe('AuthScreen', () => {
     const { getByLabelText, getByPlaceholderText, getByText } = renderAuthScreen();
 
     expect(getByLabelText('Verify Account')).toBeTruthy();
-    expect(getByPlaceholderText('Write your gmail')).toBeTruthy();
-    expect(getByPlaceholderText('Your password')).toBeTruthy();
+    expect(getByPlaceholderText('Write your email *')).toBeTruthy();
+    expect(getByPlaceholderText('Your password *')).toBeTruthy();
     expect(getByText('Sign In')).toBeTruthy();
     expect(getByLabelText('Google')).toBeTruthy();
     expect(getByLabelText('Apple')).toBeTruthy();
@@ -49,8 +49,8 @@ describe('AuthScreen', () => {
     const onEmailSignIn = jest.fn();
     const { getByPlaceholderText, getByText } = renderAuthScreen(onEmailSignIn);
 
-    fireEvent.changeText(getByPlaceholderText('Write your gmail'), ' lecturer@kev.app ');
-    fireEvent.changeText(getByPlaceholderText('Your password'), 'Lecturer@1234');
+    fireEvent.changeText(getByPlaceholderText('Write your email *'), ' lecturer@kev.app ');
+    fireEvent.changeText(getByPlaceholderText('Your password *'), 'Lecturer@1234');
     fireEvent.press(getByText('Sign In'));
 
     expect(onEmailSignIn).toHaveBeenCalledWith('lecturer@kev.app', 'Lecturer@1234');
@@ -58,7 +58,7 @@ describe('AuthScreen', () => {
 
   it('toggles password visibility with the eye button', () => {
     const { getByLabelText, getByPlaceholderText } = renderAuthScreen();
-    const passwordInput = getByPlaceholderText('Your password');
+    const passwordInput = getByPlaceholderText('Your password *');
 
     expect(passwordInput.props.secureTextEntry).toBe(true);
     fireEvent.press(getByLabelText('Show password'));
@@ -74,14 +74,14 @@ describe('AuthScreen', () => {
   it('moves the full form as one layer on iOS', () => {
     const keyboardView = renderKeyboardView('ios');
 
-    expect(keyboardView.props.behavior).toBe('position');
-    expect(keyboardView.props.contentContainerStyle).toEqual(expect.objectContaining({ flex: 1 }));
+    expect(keyboardView.props.behavior).toBeUndefined();
+    expect(keyboardView.props.contentContainerStyle).toBeUndefined();
   });
 
   it('uses the dark hero and readable dark form controls', () => {
     useSettingsStore.setState({ theme: 'dark' });
     const { UNSAFE_getByType, getByPlaceholderText } = renderAuthScreen();
-    const emailInput = getByPlaceholderText('Write your gmail');
+    const emailInput = getByPlaceholderText('Write your email *');
     const darkPalette = getPalette(true);
 
     expect(UNSAFE_getByType(Image).props.source).toBe(AUTH_HERO_DARK_IMAGE);

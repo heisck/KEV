@@ -17,6 +17,9 @@ import { CreateSessionWizard } from '@/screens/CreateSessionWizard';
 import { useAuthStore } from '@/store/authStore';
 import { radii, spacing, usePalette } from '@/theme';
 
+import { CircularSyncLoader } from '@/components/ui/CircularSyncLoader';
+import { useSyncStore } from '@/store/syncStore';
+
 /** Modal hosting the 5-step create-session wizard; submits straight to the DB. */
 export default function RoomSetupModal() {
   const { sessionId: sessionIdParam } = useLocalSearchParams<{ sessionId?: string }>();
@@ -24,13 +27,16 @@ export default function RoomSetupModal() {
   const editing = Number.isInteger(sessionId) && sessionId > 0;
   const { top } = useSafeAreaInsets();
   const p = usePalette();
-  const userId = useAuthStore((state) => state.user?.id ?? 'signed-out');
+  const user = useAuthStore((state) => state.user);
+  const userId = user?.id ?? 'signed-out';
   const sessionQuery = useSessionDetail(editing ? sessionId : 0);
   const createSession = useCreateSession();
   const updateSession = useUpdateSession(sessionId);
   const draftKey = getSessionDraftKey(userId, editing ? sessionId : undefined);
   const { clear, draft, ready, save } = useSessionDraft(draftKey);
   const [error, setError] = useState<string | null>(null);
+
+  const { isSyncing, startSync, syncMessage, syncProgress } = useSyncStore();
 
   const initialValues = useMemo(() => {
     if (draft) return draft.values;
@@ -43,13 +49,29 @@ export default function RoomSetupModal() {
     [save],
   );
 
-  const handleSubmit = (values: WizardValues) => {
+  const handleSubmit = async (values: WizardValues) => {
     const input = toCreateInput(values);
     if (!input.building) {
       setError('Add a building or college before saving the session.');
       return;
     }
     setError(null);
+
+    const firstCourse = values.courses[0];
+    const indexFrom = firstCourse?.indexFrom ? Number(firstCourse.indexFrom) : 1;
+    const indexTo = firstCourse?.indexTo ? Number(firstCourse.indexTo) : 334;
+
+    try {
+      await startSync({
+        indexFrom,
+        indexTo,
+        requestedBy: user?.displayName ?? user?.email ?? 'Lecturer',
+        deviceInfo: 'Mobile Device',
+      });
+    } catch {
+      // Sync warning handled in store, proceed with session creation offline
+    }
+
     const mutation = editing ? updateSession : createSession;
     mutation.mutate(input, {
       onSuccess: (session) => {
@@ -78,10 +100,15 @@ export default function RoomSetupModal() {
           onSubmit={handleSubmit}
           onBack={() => (router.canGoBack() ? router.back() : router.replace('/(tabs)'))}
           submitLabel={editing ? 'Save changes' : 'Create session'}
-          submitting={createSession.isPending || updateSession.isPending}
+          submitting={createSession.isPending || updateSession.isPending || isSyncing}
           title={editing ? 'Edit session' : 'New session'}
         />
       ) : null}
+      <CircularSyncLoader
+        visible={isSyncing}
+        progress={syncProgress}
+        message={syncMessage || 'Syncing student records...'}
+      />
       {error || loadError ? (
         <View
           pointerEvents="none"

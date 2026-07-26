@@ -16,3 +16,4 @@ export { ProgressRing } from './ProgressRing';
 export { ScreenHeader } from './ScreenHeader';
 export { StatTile } from './StatTile';
 export { StatusPill } from './StatusPill';
+export { CircularSyncLoader } from './CircularSyncLoader';

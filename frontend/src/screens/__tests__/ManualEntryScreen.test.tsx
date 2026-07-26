@@ -44,7 +44,7 @@ it('submits manual entry from a visible Send button instead of the keyboard Go a
   fireEvent.changeText(input, '4211020');
   fireEvent.press(screen.getByText('Send'));
 
-  await waitFor(() => expect(mockLookupStudent).toHaveBeenCalledWith('4211020'));
+  await waitFor(() => expect(mockLookupStudent).toHaveBeenCalledWith('4211020', '42'));
   expect(mockCompleteScan).toHaveBeenCalledWith(
     expect.objectContaining({ index: '4211020', name: 'Ama Boateng' }),
   );

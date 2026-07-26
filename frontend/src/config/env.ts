@@ -3,6 +3,7 @@ import { Platform } from 'react-native';
 
 type Extra = {
   apiUrl: string;
+  externalSyncUrl: string;
   appEnv: string;
   sentryDsn: string;
   googleWebClientId: string;
@@ -38,6 +39,7 @@ function resolveApiUrl(rawUrl: string): string {
 /** Typed, validated access to public runtime config (from app.config.ts `extra`). */
 export const env = {
   apiUrl: resolveApiUrl(extra.apiUrl ?? 'http://localhost:8080'),
+  externalSyncUrl: extra.externalSyncUrl ?? 'https://kev-uits-rep.vercel.app',
   appEnv: extra.appEnv ?? 'development',
   sentryDsn: extra.sentryDsn ?? '',
   googleWebClientId: extra.googleWebClientId ?? '',

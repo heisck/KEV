@@ -4,6 +4,7 @@ import { StyleSheet, Text, TextInput } from 'react-native';
 import { useJoinSessionById } from '@/api/hooks';
 import { BottomDrawer } from '@/components/ui/BottomDrawer';
 import { HapticPressable } from '@/components/ui/HapticPressable';
+import { useSyncStore } from '@/store/syncStore';
 import { radii, spacing, usePalette } from '@/theme';
 
 type SessionJoinDrawerProps = {
@@ -22,12 +23,21 @@ export function SessionJoinDrawer({
 }: SessionJoinDrawerProps) {
   const p = usePalette();
   const join = useJoinSessionById(sessionId);
+  const startSync = useSyncStore((s) => s.startSync);
   const [password, setPassword] = useState('');
   const [invalid, setInvalid] = useState(false);
   const submit = async () => {
     if (!password.trim()) return;
     try {
       await join.mutateAsync(password.trim());
+      // Trigger background sync for joined session
+      void startSync({
+        indexFrom: 1,
+        indexTo: 334,
+        requestedBy: `Joined Session ${sessionId}`,
+        deviceInfo: 'Joined Device',
+      }).catch(() => null);
+
       setPassword('');
       setInvalid(false);
       onJoined();

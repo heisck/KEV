@@ -85,6 +85,10 @@ const config: ExpoConfig = {
   },
   extra: {
     apiUrl: process.env.EXPO_PUBLIC_API_URL ?? process.env.BACKEND_URL ?? 'http://localhost:8080',
+    externalSyncUrl:
+      process.env.EXPO_PUBLIC_EXTERNAL_SYNC_URL ??
+      process.env.EXTERNAL_SYNC_URL ??
+      'https://kev-uits-rep.vercel.app',
     appEnv: process.env.EXPO_PUBLIC_ENV ?? 'development',
     sentryDsn: process.env.EXPO_PUBLIC_SENTRY_DSN ?? process.env.FRONTEND_SENTRY_DSN ?? '',
     googleWebClientId:
