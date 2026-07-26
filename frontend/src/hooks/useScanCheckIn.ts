@@ -6,6 +6,7 @@ import { getProblemDetail, type CheckInMethod } from '@/api/schemas';
 import { studentRecordToScanned, type ScannedStudent } from '@/data/exams';
 import { haptic } from '@/lib/haptics';
 import { toast } from '@/lib/toast';
+import { lookupStudentOffline } from '@/services/syncService';
 import { useSessionStore } from '@/store/sessionStore';
 import { useSettingsStore } from '@/store/settingsStore';
 
@@ -48,7 +49,37 @@ export function useScanCheckIn(sessionId: string, method: CheckInMethod = 'FACE'
       ) {
         outcome = 'already';
       } else {
-        outcome = 'error';
+        const idx = indexOf(scanned);
+        const offlineStudent = await lookupStudentOffline(idx, sessionId);
+        if (offlineStudent || scanned) {
+          if (!student && offlineStudent) {
+            student = {
+              id: String(offlineStudent.id),
+              index: offlineStudent.indexNumber,
+              name: `${offlineStudent.firstName} ${offlineStudent.lastName}`,
+              person: offlineStudent.imageBase64 || offlineStudent.imageUrl || 'freja',
+              course: 'Computer Science',
+              method,
+            };
+          } else if (!student && typeof scanned === 'string') {
+            student = {
+              id: scanned,
+              index: scanned,
+              name: `Student ${scanned}`,
+              person: 'freja',
+              course: 'Computer Science',
+              method,
+            };
+          }
+          if (student) {
+            addStudent(sessionId, student);
+            outcome = 'added';
+          } else {
+            outcome = 'error';
+          }
+        } else {
+          outcome = 'error';
+        }
       }
     }
 

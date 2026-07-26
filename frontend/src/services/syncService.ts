@@ -126,10 +126,16 @@ export async function sendVerificationResults(
 export async function cacheSessionStudents(
   sessionId: string,
   students: ExternalStudentData[],
-  metaInfo?: { indexFrom?: number | string; indexTo?: number | string; count?: number },
+  metaInfo?: {
+    indexFrom?: number | string;
+    indexTo?: number | string;
+    count?: number;
+    appSessionId?: string;
+  },
 ): Promise<void> {
   try {
     const meta = {
+      externalSessionId: sessionId,
       sessionId,
       count: students.length,
       syncedAt: new Date().toISOString(),
@@ -137,13 +143,23 @@ export async function cacheSessionStudents(
     };
     await AsyncStorage.setItem(STORAGE_KEYS.students(sessionId), JSON.stringify(students));
     await AsyncStorage.setItem(STORAGE_KEYS.meta(sessionId), JSON.stringify(meta));
+    if (metaInfo?.appSessionId) {
+      await AsyncStorage.setItem(
+        STORAGE_KEYS.students(metaInfo.appSessionId),
+        JSON.stringify(students),
+      );
+      await AsyncStorage.setItem(STORAGE_KEYS.meta(metaInfo.appSessionId), JSON.stringify(meta));
+    }
 
     const existingListRaw = await AsyncStorage.getItem(STORAGE_KEYS.allSessions);
     const existingList: string[] = existingListRaw ? JSON.parse(existingListRaw) : [];
     if (!existingList.includes(sessionId)) {
       existingList.push(sessionId);
-      await AsyncStorage.setItem(STORAGE_KEYS.allSessions, JSON.stringify(existingList));
     }
+    if (metaInfo?.appSessionId && !existingList.includes(metaInfo.appSessionId)) {
+      existingList.push(metaInfo.appSessionId);
+    }
+    await AsyncStorage.setItem(STORAGE_KEYS.allSessions, JSON.stringify(existingList));
   } catch (error) {
     logger.warn('Failed to cache session students offline', { error: String(error) });
   }
@@ -224,11 +240,25 @@ export async function clearQueueForSession(sessionId: string): Promise<void> {
   }
 }
 
+export async function getMappedExternalSessionId(sessionId: string): Promise<string> {
+  try {
+    const raw = await AsyncStorage.getItem(STORAGE_KEYS.meta(sessionId));
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (parsed.externalSessionId) return parsed.externalSessionId;
+    }
+  } catch {
+    // Ignore error
+  }
+  return sessionId;
+}
+
 export async function flushPendingResults(sessionId: string): Promise<SyncResultsResponse | null> {
   const pending = await getPendingResultsForSession(sessionId);
   if (pending.length === 0) return null;
+  const targetSessionId = await getMappedExternalSessionId(sessionId);
   try {
-    return await sendVerificationResults({ sessionId, results: pending });
+    return await sendVerificationResults({ sessionId: targetSessionId, results: pending });
   } catch (error) {
     if (process.env.NODE_ENV !== 'test') {
       logger.warn('Background sync flush failed, will retry later', { error: String(error) });

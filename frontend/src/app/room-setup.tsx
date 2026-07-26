@@ -18,6 +18,7 @@ import { useAuthStore } from '@/store/authStore';
 import { radii, spacing, usePalette } from '@/theme';
 
 import { CircularSyncLoader } from '@/components/ui/CircularSyncLoader';
+import { cacheSessionStudents } from '@/services/syncService';
 import { useSyncStore } from '@/store/syncStore';
 
 /** Modal hosting the 5-step create-session wizard; submits straight to the DB. */
@@ -61,8 +62,9 @@ export default function RoomSetupModal() {
     const indexFrom = firstCourse?.indexFrom ? Number(firstCourse.indexFrom) : 1;
     const indexTo = firstCourse?.indexTo ? Number(firstCourse.indexTo) : 334;
 
+    let extSessionId: string | null = null;
     try {
-      await startSync({
+      extSessionId = await startSync({
         indexFrom,
         indexTo,
         requestedBy: user?.displayName ?? user?.email ?? 'Lecturer',
@@ -75,6 +77,16 @@ export default function RoomSetupModal() {
     const mutation = editing ? updateSession : createSession;
     mutation.mutate(input, {
       onSuccess: (session) => {
+        if (extSessionId) {
+          const loaded = useSyncStore.getState().cachedRoster[extSessionId];
+          if (loaded) {
+            void cacheSessionStudents(extSessionId, loaded, {
+              indexFrom,
+              indexTo,
+              appSessionId: String(session.id),
+            });
+          }
+        }
         void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         void clear().then(() => {
           router.replace({ pathname: '/exam/[id]', params: { id: String(session.id) } });

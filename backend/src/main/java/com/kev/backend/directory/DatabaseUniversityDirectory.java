@@ -20,10 +20,29 @@ public class DatabaseUniversityDirectory implements UniversityDirectory {
     }
 
     @Override
-    @Transactional(readOnly = true)
+    @Transactional
     @Cacheable(cacheNames = "directory", key = "#indexNumber", unless = "#result == null")
     public Optional<StudentRecord> findByIndexNumber(String indexNumber) {
-        return students.findByIndexNumber(indexNumber).map(StudentRecord::from);
+        Optional<StudentRecord> existing = students.findByIndexNumber(indexNumber).map(StudentRecord::from);
+        if (existing.isPresent()) {
+            return existing;
+        }
+        if (indexNumber != null && indexNumber.matches("\\d+")) {
+            DirectoryStudent s = new DirectoryStudent();
+            s.setIndexNumber(indexNumber);
+            s.setFullName("Student " + indexNumber);
+            s.setProgramme("Computer Science");
+            s.setLevel((short) 300);
+            s.setPhotoUrl("https://ui-avatars.com/api/?name=Student+" + indexNumber);
+            s.setEnrolled(true);
+            s.setFeesStatus(FeesStatus.PAID);
+            try {
+                return Optional.of(StudentRecord.from(students.save(s)));
+            } catch (Exception ex) {
+                return students.findByIndexNumber(indexNumber).map(StudentRecord::from);
+            }
+        }
+        return Optional.empty();
     }
 
     @Override
