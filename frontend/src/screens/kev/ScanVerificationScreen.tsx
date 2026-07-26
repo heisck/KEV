@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import {
   Keyboard,
@@ -23,6 +23,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { lookupStudent } from '@/api/directory';
 import { useSessionDetail } from '@/api/hooks';
 import { type AttendanceDto } from '@/api/schemas';
+import { verifyFace } from '@/api/verify';
 import { toast } from '@/lib/toast';
 import { useSessionStore } from '@/store/sessionStore';
 import { ScreenTopBar } from '@/components/kev/chrome';
@@ -104,8 +105,11 @@ export function ScanVerificationScreen({ initialMode = 'FACE' }: { initialMode?:
   );
   const { data: detail } = useSessionDetail(Number(sessionId) || 1);
 
+  const cameraRef = useRef<CameraView>(null);
+  const [verifyingFace, setVerifyingFace] = useState(false);
+
   const handleFaceCapture = async () => {
-    if (!canUseMode) return;
+    if (!canUseMode || verifyingFace) return;
     const sId = sessionId ? String(sessionId) : undefined;
     const roster = (sId ? cachedRoster[sId] : undefined) ?? Object.values(cachedRoster)[0] ?? [];
 
@@ -134,15 +138,54 @@ export function ScanVerificationScreen({ initialMode = 'FACE' }: { initialMode?:
       return;
     }
 
+    setVerifyingFace(true);
+
     try {
+      // 1. Capture camera frame
+      const photo = await cameraRef.current?.takePictureAsync({ quality: 0.8 });
+      const probeUri = photo?.uri;
+
       const student = sId
         ? await lookupStudent(candidate.indexNumber, sId)
         : await lookupStudent(candidate.indexNumber);
+
+      if (probeUri) {
+        try {
+          // 2. Execute InsightFace ML verification via backend
+          const res = await verifyFace(candidate.indexNumber, {
+            uri: probeUri,
+            name: 'probe.jpg',
+            type: 'image/jpeg',
+          });
+
+          if (!res.match) {
+            const simPct = Math.round((res.similarity ?? 0) * 100);
+            toast.error(
+              `Face match failed (${simPct}% similarity). Face does not match directory reference.`,
+            );
+            await logVerification(candidate.indexNumber, false, 'FACE');
+            return;
+          }
+
+          const simPct = Math.round((res.similarity ?? 0) * 100);
+          toast.success(`Face verified! (${simPct}% similarity match)`);
+        } catch (err: unknown) {
+          const msg = err instanceof Error ? err.message : String(err);
+          if (msg.includes('No face detected')) {
+            toast.error('No face detected in camera capture. Align face and try again.');
+            await logVerification(candidate.indexNumber, false, 'FACE');
+            return;
+          }
+        }
+      }
+
       await completeFaceScan(studentRecordToScanned(student));
       await logVerification(student.indexNumber, true, 'FACE');
     } catch {
       toast.error('Face not recognized or student not enrolled in this session');
       await logVerification(candidate.indexNumber, false, 'FACE');
+    } finally {
+      setVerifyingFace(false);
     }
   };
 
@@ -228,7 +271,7 @@ export function ScanVerificationScreen({ initialMode = 'FACE' }: { initialMode?:
             <View style={styles.faceStage}>
               <View style={[styles.preview, { borderColor: p.primary20, height: previewHeight }]}>
                 {permission?.granted ? (
-                  <CameraView facing={facing} style={StyleSheet.absoluteFill} />
+                  <CameraView ref={cameraRef} facing={facing} style={StyleSheet.absoluteFill} />
                 ) : (
                   <View style={[styles.facePlaceholder, { backgroundColor: p.surfaceDim }]}>
                     <FaceIdIcon color={p.muted} size={44} />

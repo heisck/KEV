@@ -7,6 +7,7 @@ import com.kev.backend.ml.MlClient;
 import com.kev.backend.verification.dto.FaceVerifyResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import java.io.IOException;
+import java.util.Base64;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -40,8 +41,20 @@ public class FaceVerifyController {
         } catch (IOException e) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "Could not read probe image", e);
         }
+
         String filename = probe.getOriginalFilename() != null ? probe.getOriginalFilename() : "probe.jpg";
-        MlClient.VerifyFaceResponse result = ml.verifyFace(probeBytes, filename, student.photoUrl());
+        String photoUrl = student.photoUrl();
+        MlClient.VerifyFaceResponse result;
+
+        if (photoUrl != null && (photoUrl.startsWith("data:image/") || photoUrl.length() > 200)) {
+            String base64Data = photoUrl.contains(",") ? photoUrl.split(",", 2)[1] : photoUrl;
+            byte[] refBytes = Base64.getDecoder().decode(base64Data.trim());
+            result = ml.verifyFaceDirect(probeBytes, filename, refBytes, "reference.jpg");
+        } else if (photoUrl != null && (photoUrl.startsWith("http://") || photoUrl.startsWith("https://"))) {
+            result = ml.verifyFace(probeBytes, filename, photoUrl);
+        } else {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Student reference photo is unavailable for verification");
+        }
         return new FaceVerifyResponse(indexNumber, result.similarity(), result.match(), student);
     }
 }

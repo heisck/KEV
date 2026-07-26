@@ -70,4 +70,41 @@ public class MlClient {
             throw new ApiException(HttpStatus.BAD_GATEWAY, "Face verification service unavailable", e);
         }
     }
+
+    /** Verify a probe image against a reference image directly (bytes vs bytes). */
+    public VerifyFaceResponse verifyFaceDirect(
+            byte[] probeImage, String probeFilename, byte[] referenceImage, String referenceFilename) {
+        MultiValueMap<String, Object> form = new LinkedMultiValueMap<>();
+        form.add("probe", new ByteArrayResource(probeImage) {
+            @Override
+            public String getFilename() {
+                return probeFilename;
+            }
+        });
+        form.add("reference", new ByteArrayResource(referenceImage) {
+            @Override
+            public String getFilename() {
+                return referenceFilename;
+            }
+        });
+        try {
+            return client.post()
+                    .uri("/verify-face-direct")
+                    .contentType(MediaType.MULTIPART_FORM_DATA)
+                    .body(form)
+                    .retrieve()
+                    .body(VerifyFaceResponse.class);
+        } catch (HttpStatusCodeException e) {
+            String body = e.getResponseBodyAsString();
+            if (body != null && body.contains("No face detected")) {
+                throw new ApiException(HttpStatus.valueOf(422), "No face detected in photo");
+            }
+            throw new ApiException(
+                    HttpStatus.BAD_REQUEST,
+                    "Face verification failed: " + e.getStatusCode().value(),
+                    e);
+        } catch (ResourceAccessException e) {
+            throw new ApiException(HttpStatus.BAD_GATEWAY, "Face verification service unavailable", e);
+        }
+    }
 }
