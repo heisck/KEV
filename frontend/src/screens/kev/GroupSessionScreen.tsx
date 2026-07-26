@@ -395,6 +395,8 @@ export function GroupSessionScreen() {
         visible={syncedRosterOpen}
         onClose={() => setSyncedRosterOpen(false)}
         sessionId={sessionId}
+        indexFrom={detail?.session.indexRangeStart ?? undefined}
+        indexTo={detail?.session.indexRangeEnd ?? undefined}
       />
     </View>
   );

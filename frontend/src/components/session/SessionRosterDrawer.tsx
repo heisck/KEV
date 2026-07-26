@@ -16,6 +16,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useSessionDetail } from '@/api/hooks';
 import { isPastSession } from '@/lib/sessionLifecycle';
 import { toast } from '@/lib/toast';
+import { useSessionStore } from '@/store/sessionStore';
 import { useSyncStore } from '@/store/syncStore';
 import { radii, spacing, usePalette } from '@/theme';
 
@@ -46,15 +47,16 @@ export function SessionRosterDrawer({
   const students = cachedRoster[sessionId] ?? [];
 
   useEffect(() => {
-    if (visible && sessionId) {
+    if (visible && sessionId && cachedRoster[sessionId] === undefined) {
       setLoading(true);
       void loadCachedStudents(sessionId).finally(() => setLoading(false));
     }
-  }, [visible, sessionId, loadCachedStudents]);
+  }, [visible, sessionId, loadCachedStudents, cachedRoster]);
 
   const handleClear = useCallback(async () => {
     await clearRoster(sessionId);
-    toast.info('Session student roster cleared from local cache');
+    useSessionStore.setState((s) => ({ roster: { ...s.roster, [sessionId]: [] } }));
+    toast.info('Session student roster cleared');
   }, [clearRoster, sessionId]);
 
   const handleResync = useCallback(async () => {
@@ -64,11 +66,15 @@ export function SessionRosterDrawer({
       );
       return;
     }
+
+    const effectiveFrom = detail?.session?.indexRangeStart ?? indexFrom;
+    const effectiveTo = detail?.session?.indexRangeEnd ?? indexTo;
+
     try {
       await startSync(
         {
-          indexFrom: Number(indexFrom),
-          indexTo: Number(indexTo),
+          indexFrom: Number(effectiveFrom),
+          indexTo: Number(effectiveTo),
           requestedBy: 'Lecturer',
           deviceInfo: 'Mobile App',
         },
@@ -79,7 +85,16 @@ export function SessionRosterDrawer({
     } catch {
       toast.error('Could not sync student roster from external server');
     }
-  }, [isClosed, startSync, indexFrom, indexTo, sessionId, loadCachedStudents]);
+  }, [
+    isClosed,
+    startSync,
+    detail?.session?.indexRangeStart,
+    detail?.session?.indexRangeEnd,
+    indexFrom,
+    indexTo,
+    sessionId,
+    loadCachedStudents,
+  ]);
 
   const filtered = students.filter((s) => {
     if (!query.trim()) return true;

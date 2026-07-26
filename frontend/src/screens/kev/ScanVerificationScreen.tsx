@@ -119,13 +119,12 @@ export function ScanVerificationScreen({ initialMode = 'FACE' }: { initialMode?:
     }
 
     // Set of index numbers that are already checked in for this session
+    const checkedInList = detail?.attendance
+      ? detail.attendance.map((a: AttendanceDto) => a.student?.indexNumber)
+      : (scannedRoster?.map((s) => s.index) ?? []);
+
     const checkedInSet = new Set(
-      [
-        ...(detail?.attendance?.map((a: AttendanceDto) => a.student.indexNumber) ?? []),
-        ...(scannedRoster?.map((s) => s.index) ?? []),
-      ]
-        .filter(Boolean)
-        .map((idx) => String(idx).trim().toLowerCase()),
+      checkedInList.filter(Boolean).map((idx) => String(idx).trim().toLowerCase()),
     );
 
     // Find the next student in the synced roster who has not been checked in yet
