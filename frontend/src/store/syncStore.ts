@@ -1,6 +1,8 @@
 import { create } from 'zustand';
 
 import {
+  autoClearEndedSessionRoster,
+  clearSessionStudents,
   fetchStudentsFromExternalSync,
   flushPendingResults,
   getCachedStudents,
@@ -20,6 +22,8 @@ type SyncState = {
   recordVerification: (sessionId: string, result: VerificationResultItem) => Promise<void>;
   syncSessionResults: (sessionId: string) => Promise<boolean>;
   loadCachedStudents: (sessionId: string) => Promise<ExternalStudentData[]>;
+  clearRoster: (sessionId: string) => Promise<void>;
+  purgeEndedSessionRoster: (sessionId: string) => Promise<void>;
   setSyncProgress: (progress: number, message?: string) => void;
 };
 
@@ -83,5 +87,23 @@ export const useSyncStore = create<SyncState>((set, get) => ({
       cachedRoster: { ...s.cachedRoster, [sessionId]: loaded },
     }));
     return loaded;
+  },
+
+  clearRoster: async (sessionId) => {
+    await clearSessionStudents(sessionId);
+    set((s) => {
+      const next = { ...s.cachedRoster };
+      delete next[sessionId];
+      return { cachedRoster: next };
+    });
+  },
+
+  purgeEndedSessionRoster: async (sessionId) => {
+    await autoClearEndedSessionRoster(sessionId);
+    set((s) => {
+      const next = { ...s.cachedRoster };
+      delete next[sessionId];
+      return { cachedRoster: next };
+    });
   },
 }));

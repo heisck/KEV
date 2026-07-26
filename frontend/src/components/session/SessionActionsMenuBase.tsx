@@ -14,6 +14,7 @@ export type SessionActionsMenuProps = {
   lecturers: InvigilatorDto[];
   joined: boolean;
   onJoin: () => void;
+  onOpenRoster?: () => void;
 };
 
 /** Compact context overlay anchored below the top-right session action. */
@@ -23,6 +24,7 @@ export function SessionActionsMenu({
   lecturers,
   joined,
   onJoin,
+  onOpenRoster,
 }: SessionActionsMenuProps) {
   const p = usePalette();
   const [visible, setVisible] = useState(false);
@@ -30,6 +32,10 @@ export function SessionActionsMenu({
   const join = () => {
     close();
     onJoin();
+  };
+  const openRoster = () => {
+    close();
+    onOpenRoster?.();
   };
 
   return (
@@ -55,6 +61,15 @@ export function SessionActionsMenu({
                 <Text selectable style={[styles.item, { color: p.inkSoft }]}>
                   Password: {password ?? 'Loading'}
                 </Text>
+                {onOpenRoster && (
+                  <HapticPressable
+                    accessibilityRole="button"
+                    onPress={openRoster}
+                    style={styles.rosterBtn}
+                  >
+                    <Text style={[styles.title, { color: p.primary }]}>View Synced Roster</Text>
+                  </HapticPressable>
+                )}
                 <View style={[styles.divider, { backgroundColor: p.hairline }]} />
                 <Text style={[styles.title, { color: p.ink }]}>Lecturers</Text>
                 <Text style={[styles.item, { color: p.success }]}>Added to this session</Text>
@@ -89,4 +104,5 @@ const styles = StyleSheet.create({
   item: { fontSize: 13, fontWeight: '500' },
   divider: { height: StyleSheet.hairlineWidth },
   join: { paddingVertical: spacing.sm },
+  rosterBtn: { paddingVertical: spacing.xs, marginTop: spacing.xs },
 });

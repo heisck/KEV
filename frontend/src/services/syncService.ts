@@ -174,6 +174,30 @@ export async function getCachedStudents(sessionId: string): Promise<ExternalStud
   }
 }
 
+export async function clearSessionStudents(sessionId: string): Promise<void> {
+  try {
+    await AsyncStorage.removeItem(STORAGE_KEYS.students(sessionId));
+    await AsyncStorage.removeItem(STORAGE_KEYS.meta(sessionId));
+  } catch (error) {
+    logger.warn('Failed to clear session student cache', { error: String(error) });
+  }
+}
+
+export async function autoClearEndedSessionRoster(sessionId: string): Promise<void> {
+  try {
+    const rawMeta = await AsyncStorage.getItem(STORAGE_KEYS.meta(sessionId));
+    if (rawMeta) {
+      const meta = JSON.parse(rawMeta);
+      meta.clearedAt = new Date().toISOString();
+      meta.rosterPurged = true;
+      await AsyncStorage.setItem(STORAGE_KEYS.meta(sessionId), JSON.stringify(meta));
+    }
+    await AsyncStorage.removeItem(STORAGE_KEYS.students(sessionId));
+  } catch (error) {
+    logger.warn('Failed to auto-clear ended session roster', { error: String(error) });
+  }
+}
+
 export async function lookupStudentOffline(
   indexNumber: string,
   sessionId?: string,

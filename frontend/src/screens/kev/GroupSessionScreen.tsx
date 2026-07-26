@@ -1,9 +1,10 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Alert, ScrollView, Text, TextInput, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useJoinSession, useSessionDetail } from '@/api/hooks';
+import type { AttendanceDto, InvigilatorDto } from '@/api/schemas';
 import { BlueChip, ScreenTopBar } from '@/components/kev/chrome';
 import {
   ChevronRightIcon,
@@ -18,6 +19,7 @@ import { ScanResultPreference } from '@/components/scan/ScanResultPreference';
 import { StudentRosterControls } from '@/components/scan/StudentRosterControls';
 import { SessionActionsMenu } from '@/components/session/SessionActionsMenu';
 import { SessionArtwork } from '@/components/session/SessionArtwork';
+import { SessionRosterDrawer } from '@/components/session/SessionRosterDrawer';
 import { BottomDrawer } from '@/components/ui/BottomDrawer';
 import { HapticPressable } from '@/components/ui/HapticPressable';
 import { LoadingSkeleton } from '@/components/ui/LoadingSkeleton';
@@ -29,6 +31,7 @@ import { toast } from '@/lib/toast';
 import { useAuthStore } from '@/store/authStore';
 import { useSessionStore } from '@/store/sessionStore';
 import { useSettingsStore } from '@/store/settingsStore';
+import { useSyncStore } from '@/store/syncStore';
 import { colors, spacing, usePalette } from '@/theme';
 import { makeGroupSessionStyles } from '@/screens/kev/groupSessionStyles';
 
@@ -63,9 +66,12 @@ export function GroupSessionScreen() {
   const userId = useAuthStore((state) => state.user?.id);
   const preferredMethod = useSettingsStore((state) => state.defaultScanMethod);
   const useAllScanMethods = useSettingsStore((state) => state.useAllScanMethods);
-  const chatPeerId = detail?.invigilators.find((member) => member.userId !== userId)?.userId;
+  const chatPeerId = detail?.invigilators.find(
+    (member: InvigilatorDto) => member.userId !== userId,
+  )?.userId;
 
-  const joined = detail?.invigilators.some((member) => member.userId === userId) ?? false;
+  const joined =
+    detail?.invigilators.some((member: InvigilatorDto) => member.userId === userId) ?? false;
   const scanned = useSessionStore((s) => s.roster[sessionId]);
   // Merge DB attendance with the local scan roster, de-duplicating by id.
   const roster = Array.from(
@@ -73,8 +79,8 @@ export function GroupSessionScreen() {
       [
         ...(scanned ?? []),
         ...(detail?.attendance
-          ?.filter((attendance) => attendance.status === 'CHECKED_IN')
-          .map((attendance) =>
+          ?.filter((attendance: AttendanceDto) => attendance.status === 'CHECKED_IN')
+          .map((attendance: AttendanceDto) =>
             studentRecordToScanned(attendance.student, attendance.method, attendance.id),
           ) ?? []),
       ].map((st) => [st.id, st]),
@@ -82,6 +88,7 @@ export function GroupSessionScreen() {
   );
   const { students, controls } = useStudentRosterFilters(roster);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [syncedRosterOpen, setSyncedRosterOpen] = useState(false);
   const [code, setCode] = useState('');
   const [error, setError] = useState(false);
   const [reportStudent, setReportStudent] = useState<ReportStudent | null>(null);
@@ -89,6 +96,12 @@ export function GroupSessionScreen() {
     ? scanBlockMessage(detail.session.status)
     : 'Session details are loading';
   const closed = isPastSession(detail?.session.status);
+
+  useEffect(() => {
+    if (closed && sessionId) {
+      void useSyncStore.getState().purgeEndedSessionRoster(sessionId);
+    }
+  }, [closed, sessionId]);
   const methods = METHODS.filter((method) =>
     allowedScanMethods(
       detail?.session.verificationMethods,
@@ -163,6 +176,7 @@ export function GroupSessionScreen() {
               lecturers={detail?.invigilators ?? []}
               joined={joined}
               onJoin={() => setDrawerOpen(true)}
+              onOpenRoster={() => setSyncedRosterOpen(true)}
             />
           )
         }
@@ -325,6 +339,11 @@ export function GroupSessionScreen() {
           student={reportStudent}
         />
       ) : null}
+      <SessionRosterDrawer
+        visible={syncedRosterOpen}
+        onClose={() => setSyncedRosterOpen(false)}
+        sessionId={sessionId}
+      />
     </View>
   );
 }

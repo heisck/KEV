@@ -20,7 +20,7 @@ export function shouldShowScanResult(showSuccessPage: boolean, outcome: Outcome)
 function indexOf(scanned?: ScannedStudent | string): string {
   if (typeof scanned === 'string') return scanned.trim();
   if (scanned?.index) return scanned.index.trim();
-  throw new Error('Valid student index number is required for check-in');
+  return '';
 }
 
 /**
@@ -33,12 +33,19 @@ export function useScanCheckIn(sessionId: string, method: CheckInMethod = 'FACE'
   const addStudent = useSessionStore((s) => s.addStudent);
 
   return async (scanned?: ScannedStudent | string) => {
+    const idx = indexOf(scanned);
+    if (!idx) {
+      haptic('error');
+      toast.error('Please enter or scan a valid student index number');
+      return;
+    }
+
     const sid = Number(sessionId) || 1;
     let student: ScannedStudent | null = typeof scanned === 'object' ? scanned : null;
     let outcome: Outcome = 'added';
 
     try {
-      const record = await checkIn(sid, { indexNumber: indexOf(scanned), method });
+      const record = await checkIn(sid, { indexNumber: idx, method });
       student = studentRecordToScanned(record.student, record.method, record.id);
       addStudent(sessionId, student);
     } catch (err) {
@@ -49,7 +56,6 @@ export function useScanCheckIn(sessionId: string, method: CheckInMethod = 'FACE'
       ) {
         outcome = 'already';
       } else {
-        const idx = indexOf(scanned);
         const offlineStudent = await lookupStudentOffline(idx, sessionId);
         if (offlineStudent || scanned) {
           if (!student && offlineStudent) {
