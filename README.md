@@ -4,7 +4,7 @@ Campus/exam mobile app — a polyglot monorepo: **Expo** (React Native) frontend
 backend, and a **Python/FastAPI** ML service for Hugging Face face models.
 
 > Status: **wired monorepo** — auth, API client, sessions/attendance, NFC/face verify, Expo UI shell,
-> observability, CI. Agents: read [AGENTS.md](./AGENTS.md) first; do not invent scope.
+> observability, CI.
 
 ## Structure
 

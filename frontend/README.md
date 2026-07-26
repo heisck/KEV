@@ -1,7 +1,7 @@
 # KEV Frontend
 
 Expo SDK 54 + React Native 0.81 + TypeScript app using **Expo Router** (file-based routes in
-`src/app/`). Part of the KEV monorepo — see the [root README](../README.md) and [AGENTS.md](../AGENTS.md).
+`src/app/`). Part of the KEV monorepo — see the [root README](../README.md).
 
 ## Run
 
