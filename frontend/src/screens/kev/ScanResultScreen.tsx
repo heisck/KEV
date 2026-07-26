@@ -33,6 +33,7 @@ export function ScanResultScreen() {
   const params = useLocalSearchParams<{
     exam?: string;
     student?: string;
+    index?: string;
     status?: Status;
     method?: string;
     mode?: 'profile';
@@ -45,11 +46,16 @@ export function ScanResultScreen() {
   const targetId = String(params.student ?? '')
     .trim()
     .toLowerCase();
+  const targetIdx = String(params.index ?? '')
+    .trim()
+    .toLowerCase();
+
   const localStudent = useSessionStore((state) =>
     state.roster[sessionId]?.find(
       (s) =>
-        String(s.id).trim().toLowerCase() === targetId ||
-        String(s.index).trim().toLowerCase() === targetId,
+        (targetId && String(s.id).trim().toLowerCase() === targetId) ||
+        (targetIdx && String(s.index).trim().toLowerCase() === targetIdx) ||
+        (targetId && String(s.index).trim().toLowerCase() === targetId),
     ),
   );
   const preferredMethod = useSettingsStore((state) => state.defaultScanMethod);
@@ -68,15 +74,22 @@ export function ScanResultScreen() {
     : allowed[0];
   const scanAgainRoute = nextMethod ? METHOD_ROUTE[nextMethod] : '/verify';
   const attendance = detail?.attendance?.find(
-    (a: AttendanceDto) => String(a.student.id) === params.student,
+    (a: AttendanceDto) =>
+      String(a.student.id) === params.student ||
+      a.student.indexNumber === params.index ||
+      a.student.indexNumber === params.student,
   );
   const baseStudent: ScannedStudent = attendance
     ? studentRecordToScanned(attendance.student, attendance.method, attendance.id)
     : (localStudent ?? {
         id: params.student ?? '1',
-        name: params.student ? `Student ${params.student}` : 'Student',
+        name: params.index
+          ? `Student ${params.index}`
+          : params.student
+            ? `Student ${params.student}`
+            : 'Student',
         person: 'me',
-        index: params.student ?? 'Profile unavailable',
+        index: params.index ?? params.student ?? 'Profile unavailable',
         course: '',
       });
 
@@ -87,9 +100,11 @@ export function ScanResultScreen() {
   } | null>(null);
 
   useEffect(() => {
-    const targetIdx = params.student ?? baseStudent.index;
-    if (targetIdx) {
-      void lookupStudentOffline(targetIdx, sessionId).then((cached) => {
+    const lookupKey =
+      params.index ||
+      (params.student && params.student.length > 3 ? params.student : baseStudent.index);
+    if (lookupKey && lookupKey !== 'Profile unavailable') {
+      void lookupStudentOffline(lookupKey, sessionId).then((cached) => {
         if (cached) {
           setOfflineData({
             name: `${cached.firstName} ${cached.lastName}`.trim(),
@@ -99,18 +114,18 @@ export function ScanResultScreen() {
         }
       });
     }
-  }, [params.student, sessionId, baseStudent.index]);
+  }, [params.index, params.student, sessionId, baseStudent.index]);
 
   const student: ScannedStudent = {
     ...baseStudent,
     name:
       offlineData?.name && (baseStudent.name.startsWith('Student ') || !baseStudent.name)
         ? offlineData.name
-        : baseStudent.name,
+        : (offlineData?.name ?? baseStudent.name),
     person:
       offlineData?.person && (!baseStudent.person || !baseStudent.person.startsWith('data:image/'))
         ? offlineData.person
-        : baseStudent.person,
+        : (offlineData?.person ?? baseStudent.person),
     index: offlineData?.index ?? baseStudent.index,
   };
 

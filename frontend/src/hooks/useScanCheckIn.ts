@@ -103,7 +103,13 @@ export function useScanCheckIn(sessionId: string, method: CheckInMethod = 'FACE'
     if (shouldShowScanResult(showSuccessPage, outcome)) {
       router.replace({
         pathname: '/verify/result',
-        params: { exam: sessionId, student: student?.id ?? '0', status: outcome, method },
+        params: {
+          exam: sessionId,
+          student: student?.id ?? '0',
+          index: student?.index ?? idx,
+          status: outcome,
+          method,
+        },
       });
       return;
     }
