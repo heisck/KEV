@@ -1,16 +1,18 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useRemoveAttendance, useSessionDetail } from '@/api/hooks';
+import { type AttendanceDto } from '@/api/schemas';
 import { BackIcon, CheckCircleIcon, ClockIcon, CloseIcon, DocIcon } from '@/components/kev/icons';
 import { Avatar } from '@/components/kev/people';
 import { StudentReportDrawer } from '@/components/reports/StudentReportDrawer';
 import { HapticPressable } from '@/components/ui/HapticPressable';
 import { studentRecordToScanned, type ScannedStudent } from '@/data/exams';
-import { toast } from '@/lib/toast';
 import { allowedScanMethods } from '@/lib/scanMethods';
+import { toast } from '@/lib/toast';
+import { lookupStudentOffline } from '@/services/syncService';
 import { useSessionStore } from '@/store/sessionStore';
 import { useSettingsStore } from '@/store/settingsStore';
 import { radii, spacing, usePalette } from '@/theme';
@@ -40,8 +42,15 @@ export function ScanResultScreen() {
   const sessionId = params.exam ?? lockedSessionId ?? '1';
   const addStudent = useSessionStore((s) => s.addStudent);
   const removeStudent = useSessionStore((state) => state.removeStudent);
+  const targetId = String(params.student ?? '')
+    .trim()
+    .toLowerCase();
   const localStudent = useSessionStore((state) =>
-    state.roster[sessionId]?.find((student) => student.id === params.student),
+    state.roster[sessionId]?.find(
+      (s) =>
+        String(s.id).trim().toLowerCase() === targetId ||
+        String(s.index).trim().toLowerCase() === targetId,
+    ),
   );
   const preferredMethod = useSettingsStore((state) => state.defaultScanMethod);
   const useAllScanMethods = useSettingsStore((state) => state.useAllScanMethods);
@@ -58,16 +67,52 @@ export function ScanResultScreen() {
     ? params.method
     : allowed[0];
   const scanAgainRoute = nextMethod ? METHOD_ROUTE[nextMethod] : '/verify';
-  const attendance = detail?.attendance?.find((a) => String(a.student.id) === params.student);
-  const student: ScannedStudent = attendance
+  const attendance = detail?.attendance?.find(
+    (a: AttendanceDto) => String(a.student.id) === params.student,
+  );
+  const baseStudent: ScannedStudent = attendance
     ? studentRecordToScanned(attendance.student, attendance.method, attendance.id)
     : (localStudent ?? {
         id: params.student ?? '1',
-        name: 'Student',
+        name: params.student ? `Student ${params.student}` : 'Student',
         person: 'me',
-        index: 'Profile unavailable',
+        index: params.student ?? 'Profile unavailable',
         course: '',
       });
+
+  const [offlineData, setOfflineData] = useState<{
+    name?: string;
+    person?: string;
+    index?: string;
+  } | null>(null);
+
+  useEffect(() => {
+    const targetIdx = params.student ?? baseStudent.index;
+    if (targetIdx) {
+      void lookupStudentOffline(targetIdx, sessionId).then((cached) => {
+        if (cached) {
+          setOfflineData({
+            name: `${cached.firstName} ${cached.lastName}`.trim(),
+            person: cached.imageBase64 || cached.imageUrl || undefined,
+            index: cached.indexNumber,
+          });
+        }
+      });
+    }
+  }, [params.student, sessionId, baseStudent.index]);
+
+  const student: ScannedStudent = {
+    ...baseStudent,
+    name:
+      offlineData?.name && (baseStudent.name.startsWith('Student ') || !baseStudent.name)
+        ? offlineData.name
+        : baseStudent.name,
+    person:
+      offlineData?.person && (!baseStudent.person || !baseStudent.person.startsWith('data:image/'))
+        ? offlineData.person
+        : baseStudent.person,
+    index: offlineData?.index ?? baseStudent.index,
+  };
 
   const [statusOverride, setStatus] = useState<Status | null>(params.status ?? null);
   const [reportOpen, setReportOpen] = useState(false);

@@ -86,7 +86,30 @@ export function GroupSessionScreen() {
       ].map((st) => [st.id, st]),
     ).values(),
   );
-  const { students, controls } = useStudentRosterFilters(roster);
+  const cachedRoster = useSyncStore((s) => s.cachedRoster);
+  const sessionStudents = cachedRoster[sessionId] ?? [];
+
+  const enrichedRoster = roster.map((st) => {
+    const targetIdx = String(st.index || st.id)
+      .trim()
+      .toLowerCase();
+    const match = sessionStudents.find(
+      (cs) =>
+        String(cs.indexNumber).trim().toLowerCase() === targetIdx ||
+        String(cs.studentId).trim().toLowerCase() === targetIdx,
+    );
+    if (match) {
+      const fullName = `${match.firstName} ${match.lastName}`.trim();
+      return {
+        ...st,
+        name: fullName && (st.name.startsWith('Student ') || !st.name) ? fullName : st.name,
+        person: match.imageBase64 || match.imageUrl || st.person,
+      };
+    }
+    return st;
+  });
+
+  const { students, controls } = useStudentRosterFilters(enrichedRoster);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [syncedRosterOpen, setSyncedRosterOpen] = useState(false);
   const [code, setCode] = useState('');

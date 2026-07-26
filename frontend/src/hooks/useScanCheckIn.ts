@@ -47,6 +47,16 @@ export function useScanCheckIn(sessionId: string, method: CheckInMethod = 'FACE'
     try {
       const record = await checkIn(sid, { indexNumber: idx, method });
       student = studentRecordToScanned(record.student, record.method, record.id);
+      const offlineStudent = await lookupStudentOffline(idx, sessionId);
+      if (offlineStudent) {
+        const syncedName = `${offlineStudent.firstName} ${offlineStudent.lastName}`.trim();
+        if (syncedName && (student.name.startsWith('Student ') || !student.name)) {
+          student.name = syncedName;
+        }
+        if (offlineStudent.imageBase64 || offlineStudent.imageUrl) {
+          student.person = offlineStudent.imageBase64 || offlineStudent.imageUrl || student.person;
+        }
+      }
       addStudent(sessionId, student);
     } catch (err) {
       if (
