@@ -170,12 +170,17 @@ export function ScanVerificationScreen({ initialMode = 'FACE' }: { initialMode?:
           const simPct = Math.round((res.similarity ?? 0) * 100);
           toast.success(`Face verified! (${simPct}% similarity match)`);
         } catch (err: unknown) {
-          const msg = err instanceof Error ? err.message : String(err);
-          if (msg.includes('No face detected')) {
-            toast.error('No face detected in camera capture. Align face and try again.');
-            await logVerification(candidate.indexNumber, false, 'FACE');
-            return;
-          }
+          const apiErr = err as {
+            response?: { status?: number; data?: { message?: string } };
+            message?: string;
+          };
+          const rawMsg = apiErr?.response?.data?.message || apiErr?.message || String(err);
+          const userMsg = rawMsg.includes('No face detected')
+            ? 'No face detected in camera photo. Align face and try again.'
+            : `Face verification failed: ${rawMsg}`;
+          toast.error(userMsg);
+          await logVerification(candidate.indexNumber, false, 'FACE');
+          return;
         }
       }
 
