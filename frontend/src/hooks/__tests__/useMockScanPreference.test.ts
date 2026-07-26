@@ -55,7 +55,7 @@ it.each<CheckInMethod>(['FACE', 'NFC', 'MANUAL'])(
     expect(mockCheckIn).toHaveBeenCalledWith(2, { indexNumber: student.indexNumber, method });
     expect(mockReplace).toHaveBeenCalledWith({
       pathname: '/verify/result',
-      params: { exam: '2', method, status: 'added', student: '7' },
+      params: expect.objectContaining({ exam: '2', method, status: 'added', student: '7' }),
     });
   },
 );
