@@ -202,9 +202,26 @@ export async function lookupStudentOffline(
   indexNumber: string,
   sessionId?: string,
 ): Promise<ExternalStudentData | null> {
+  const target = String(indexNumber).trim().toLowerCase();
+  if (!target) return null;
+
+  const isMatch = (s: ExternalStudentData) => {
+    if (!s) return false;
+    const sIndex = String(s.indexNumber ?? '')
+      .trim()
+      .toLowerCase();
+    const sStudentId = String(s.studentId ?? '')
+      .trim()
+      .toLowerCase();
+    const sNfc = String(s.nfcCode ?? '')
+      .trim()
+      .toLowerCase();
+    return sIndex === target || sStudentId === target || sNfc === target;
+  };
+
   if (sessionId) {
     const students = await getCachedStudents(sessionId);
-    const match = students.find((s) => s.indexNumber === indexNumber || s.nfcCode === indexNumber);
+    const match = students.find(isMatch);
     if (match) return match;
   }
 
@@ -214,9 +231,7 @@ export async function lookupStudentOffline(
     const sessionIds: string[] = existingListRaw ? JSON.parse(existingListRaw) : [];
     for (const id of sessionIds) {
       const students = await getCachedStudents(id);
-      const found = students.find(
-        (s) => s.indexNumber === indexNumber || s.nfcCode === indexNumber,
-      );
+      const found = students.find(isMatch);
       if (found) return found;
     }
   } catch {

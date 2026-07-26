@@ -102,6 +102,7 @@ export type ScannedStudent = {
 export type StudentMethodFilter = Extract<CheckInMethod, 'FACE' | 'MANUAL' | 'NFC'> | null;
 
 export function resolveStudentPhotoUrl(photoUrl: string, apiUrl = env.apiUrl): string {
+  if (photoUrl.startsWith('data:image/')) return photoUrl;
   const apiOrigin = apiUrl.replace(/\/+$/, '');
   if (photoUrl.startsWith('/')) return `${apiOrigin}${photoUrl}`;
   return photoUrl.replace(/^https?:\/\/(?:localhost|127\.0\.0\.1)(?::\d+)?/i, apiOrigin);

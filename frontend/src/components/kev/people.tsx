@@ -27,7 +27,7 @@ export function personForId(id: string | undefined): PersonKey {
   return PERSON_KEYS[hash % PERSON_KEYS.length] ?? 'me';
 }
 
-const isUrl = (v: string) => /^https?:\/\//i.test(v);
+const isImageUri = (v: string) => /^https?:\/\/|^data:image\//i.test(v);
 
 export function initialsFor(displayName: string | null, email: string | null): string {
   return (displayName ?? email ?? '?')
@@ -40,8 +40,8 @@ export function initialsFor(displayName: string | null, email: string | null): s
 }
 
 /**
- * Illustrated portrait stand-in, or a real photo when `person` is a URL
- * (student records carry photo URLs). Unknown keys fall back to a default look.
+ * Illustrated portrait stand-in, or a real photo when `person` is a URL or Base64 URI
+ * (student records carry photo URLs or base64 data). Unknown keys fall back to a default look.
  */
 export function Avatar({
   person,
@@ -54,7 +54,7 @@ export function Avatar({
 }) {
   const p = usePalette();
 
-  if (typeof person === 'string' && isUrl(person)) {
+  if (typeof person === 'string' && isImageUri(person)) {
     return (
       <View style={{ width: size, height: size }}>
         <Image

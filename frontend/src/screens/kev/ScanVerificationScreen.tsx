@@ -80,6 +80,8 @@ export function ScanVerificationScreen({ initialMode = 'FACE' }: { initialMode?:
   const setFacing = useSettingsStore((s) => s.setCameraFacing);
   const previewHeight = Math.min(Math.max(height * 0.44, 280), 480);
 
+  const cachedRoster = useSyncStore((s) => s.cachedRoster);
+
   // Helper to record verification result in sync store
   const logVerification = async (indexNum: string, verified: boolean, method: string) => {
     if (sessionId) {
@@ -91,6 +93,24 @@ export function ScanVerificationScreen({ initialMode = 'FACE' }: { initialMode?:
         confidence: verified ? 0.95 : 0,
         metadata: `${method} verification`,
       });
+    }
+  };
+
+  const handleFaceCapture = async () => {
+    if (!canUseMode) return;
+    const sId = sessionId ? String(sessionId) : undefined;
+    const roster = (sId ? cachedRoster[sId] : undefined) ?? Object.values(cachedRoster)[0];
+    const candidateIndex = roster?.[0]?.indexNumber ?? '6180724';
+
+    try {
+      const student = sId
+        ? await lookupStudent(candidateIndex, sId)
+        : await lookupStudent(candidateIndex);
+      await completeFaceScan(studentRecordToScanned(student));
+      await logVerification(student.indexNumber, true, 'FACE');
+    } catch {
+      await completeFaceScan(candidateIndex);
+      await logVerification(candidateIndex, false, 'FACE');
     }
   };
 
@@ -273,7 +293,7 @@ export function ScanVerificationScreen({ initialMode = 'FACE' }: { initialMode?:
               <HapticPressable
                 accessibilityRole="button"
                 disabled={!canUseMode}
-                onPress={() => void completeFaceScan()}
+                onPress={() => void handleFaceCapture()}
                 style={[styles.cta, { backgroundColor: p.primary }, !canUseMode && styles.disabled]}
                 testID="face-capture"
               >

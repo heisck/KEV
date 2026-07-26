@@ -101,6 +101,7 @@ export function SessionRosterDrawer({
             styles.container,
             {
               backgroundColor: palette.card,
+              paddingTop: Math.max(insets.top, spacing.md),
               paddingBottom: Math.max(insets.bottom, spacing.md),
             },
           ]}
@@ -225,10 +226,9 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   container: {
-    height: '80%',
-    borderTopLeftRadius: radii.xl,
-    borderTopRightRadius: radii.xl,
-    paddingTop: spacing.md,
+    height: '100%',
+    width: '100%',
+    borderRadius: 0,
   },
   header: {
     flexDirection: 'row',
