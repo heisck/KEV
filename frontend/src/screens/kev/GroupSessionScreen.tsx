@@ -120,11 +120,40 @@ export function GroupSessionScreen() {
     : 'Session details are loading';
   const closed = isPastSession(detail?.session.status);
 
+  const startSync = useSyncStore((s) => s.startSync);
+
   useEffect(() => {
     if (closed && sessionId) {
       void useSyncStore.getState().purgeEndedSessionRoster(sessionId);
+    } else if (joined && !closed && sessionId) {
+      const hasCached = (cachedRoster[sessionId]?.length ?? 0) > 0;
+      if (!hasCached) {
+        const indexFrom = detail?.session?.indexRangeStart
+          ? Number(detail.session.indexRangeStart)
+          : 6180723;
+        const indexTo = detail?.session?.indexRangeEnd
+          ? Number(detail.session.indexRangeEnd)
+          : 6180824;
+        void startSync(
+          {
+            indexFrom,
+            indexTo,
+            requestedBy: `Joined Lecturer ${sessionId}`,
+            deviceInfo: 'Mobile Device',
+          },
+          String(sessionId),
+        ).catch(() => null);
+      }
     }
-  }, [closed, sessionId]);
+  }, [
+    closed,
+    joined,
+    sessionId,
+    cachedRoster,
+    detail?.session?.indexRangeStart,
+    detail?.session?.indexRangeEnd,
+    startSync,
+  ]);
   const methods = METHODS.filter((method) =>
     allowedScanMethods(
       detail?.session.verificationMethods,

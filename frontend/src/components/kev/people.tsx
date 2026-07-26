@@ -27,7 +27,9 @@ export function personForId(id: string | undefined): PersonKey {
   return PERSON_KEYS[hash % PERSON_KEYS.length] ?? 'me';
 }
 
-const isImageUri = (v: string) => /^https?:\/\/|^data:image\//i.test(v);
+const isImageUri = (v: string) =>
+  typeof v === 'string' &&
+  (/^https?:\/\/|^data:image\//i.test(v) || v.length > 100 || /^\/9j\/|^iVBORw0KGgo/i.test(v));
 
 export function initialsFor(displayName: string | null, email: string | null): string {
   return (displayName ?? email ?? '?')
@@ -55,10 +57,15 @@ export function Avatar({
   const p = usePalette();
 
   if (typeof person === 'string' && isImageUri(person)) {
+    const imageUri =
+      person.startsWith('data:') || person.startsWith('http')
+        ? person
+        : `data:image/jpeg;base64,${person}`;
+
     return (
       <View style={{ width: size, height: size }}>
         <Image
-          source={{ uri: person }}
+          source={{ uri: imageUri }}
           style={[styles.clip, { borderRadius: size / 2, height: size, width: size }]}
         />
         {verified ? (
