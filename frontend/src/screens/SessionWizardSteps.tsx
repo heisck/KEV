@@ -102,6 +102,7 @@ export function ExamStep({
                 label="Index from"
                 value={course.indexFrom}
                 onChange={(text) => setCourse(index, { indexFrom: text })}
+                placeholder="e.g. 6180723"
                 numeric
                 styles={styles}
                 palette={palette}
@@ -112,6 +113,7 @@ export function ExamStep({
                 label="Index to"
                 value={course.indexTo}
                 onChange={(text) => setCourse(index, { indexTo: text })}
+                placeholder="e.g. 6180824"
                 numeric
                 styles={styles}
                 palette={palette}
@@ -361,6 +363,7 @@ function Field({
   label,
   value,
   onChange,
+  placeholder,
   numeric = false,
   styles,
   palette,
@@ -368,6 +371,7 @@ function Field({
   label: string;
   value: string;
   onChange: (text: string) => void;
+  placeholder?: string;
   numeric?: boolean;
 }) {
   return (
@@ -376,7 +380,7 @@ function Field({
       <TextInput
         value={value}
         onChangeText={(text) => onChange(numeric ? text.replace(/[^0-9]/g, '') : text)}
-        placeholder={label}
+        placeholder={placeholder ?? label}
         placeholderTextColor={palette.muted}
         style={styles.input}
         autoCapitalize="characters"

@@ -59,8 +59,8 @@ export default function RoomSetupModal() {
     setError(null);
 
     const firstCourse = values.courses[0];
-    const indexFrom = firstCourse?.indexFrom ? Number(firstCourse.indexFrom) : 1;
-    const indexTo = firstCourse?.indexTo ? Number(firstCourse.indexTo) : 334;
+    const indexFrom = firstCourse?.indexFrom ? Number(firstCourse.indexFrom) : 6180723;
+    const indexTo = firstCourse?.indexTo ? Number(firstCourse.indexTo) : 6180824;
 
     let extSessionId: string | null = null;
     try {

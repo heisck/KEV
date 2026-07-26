@@ -13,6 +13,8 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { useSessionDetail } from '@/api/hooks';
+import { isPastSession } from '@/lib/sessionLifecycle';
 import { toast } from '@/lib/toast';
 import { useSyncStore } from '@/store/syncStore';
 import { radii, spacing, usePalette } from '@/theme';
@@ -38,6 +40,8 @@ export function SessionRosterDrawer({
   const [loading, setLoading] = useState(false);
 
   const { cachedRoster, loadCachedStudents, clearRoster, startSync, isSyncing } = useSyncStore();
+  const { data: detail } = useSessionDetail(Number(sessionId) || 1);
+  const isClosed = isPastSession(detail?.session?.status);
 
   const students = cachedRoster[sessionId] ?? [];
 
@@ -54,19 +58,28 @@ export function SessionRosterDrawer({
   }, [clearRoster, sessionId]);
 
   const handleResync = useCallback(async () => {
+    if (isClosed) {
+      toast.info(
+        'This session is closed. Synced student roster cannot be requested for past sessions.',
+      );
+      return;
+    }
     try {
-      await startSync({
-        indexFrom: Number(indexFrom),
-        indexTo: Number(indexTo),
-        requestedBy: 'Lecturer',
-        deviceInfo: 'Mobile App',
-      });
+      await startSync(
+        {
+          indexFrom: Number(indexFrom),
+          indexTo: Number(indexTo),
+          requestedBy: 'Lecturer',
+          deviceInfo: 'Mobile App',
+        },
+        sessionId,
+      );
       toast.success('Synced student roster updated successfully!');
       void loadCachedStudents(sessionId);
     } catch {
       toast.error('Could not sync student roster from external server');
     }
-  }, [startSync, indexFrom, indexTo, sessionId, loadCachedStudents]);
+  }, [isClosed, startSync, indexFrom, indexTo, sessionId, loadCachedStudents]);
 
   const filtered = students.filter((s) => {
     if (!query.trim()) return true;

@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { StyleSheet, Text, TextInput } from 'react-native';
 
-import { useJoinSessionById } from '@/api/hooks';
+import { useJoinSessionById, useSessionDetail } from '@/api/hooks';
 import { BottomDrawer } from '@/components/ui/BottomDrawer';
 import { HapticPressable } from '@/components/ui/HapticPressable';
+import { isPastSession } from '@/lib/sessionLifecycle';
 import { useSyncStore } from '@/store/syncStore';
 import { radii, spacing, usePalette } from '@/theme';
 
@@ -23,20 +24,33 @@ export function SessionJoinDrawer({
 }: SessionJoinDrawerProps) {
   const p = usePalette();
   const join = useJoinSessionById(sessionId);
+  const { data: detail } = useSessionDetail(sessionId);
   const startSync = useSyncStore((s) => s.startSync);
   const [password, setPassword] = useState('');
   const [invalid, setInvalid] = useState(false);
+
+  const isClosed = isPastSession(detail?.session?.status);
+  const indexFrom = detail?.session?.indexRangeStart
+    ? Number(detail.session.indexRangeStart)
+    : 6180723;
+  const indexTo = detail?.session?.indexRangeEnd ? Number(detail.session.indexRangeEnd) : 6180824;
+
   const submit = async () => {
     if (!password.trim()) return;
     try {
       await join.mutateAsync(password.trim());
-      // Trigger background sync for joined session
-      void startSync({
-        indexFrom: 1,
-        indexTo: 334,
-        requestedBy: `Joined Session ${sessionId}`,
-        deviceInfo: 'Joined Device',
-      }).catch(() => null);
+      // Trigger background sync for joined session ONLY if active/upcoming
+      if (!isClosed) {
+        void startSync(
+          {
+            indexFrom,
+            indexTo,
+            requestedBy: `Joined Session ${sessionId}`,
+            deviceInfo: 'Joined Device',
+          },
+          String(sessionId),
+        ).catch(() => null);
+      }
 
       setPassword('');
       setInvalid(false);

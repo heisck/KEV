@@ -18,7 +18,7 @@ type SyncState = {
   syncMessage: string;
   externalSessionId: string | null;
   cachedRoster: Record<string, ExternalStudentData[]>;
-  startSync: (payload: SyncRequestPayload) => Promise<string | null>;
+  startSync: (payload: SyncRequestPayload, appSessionId?: string) => Promise<string | null>;
   recordVerification: (sessionId: string, result: VerificationResultItem) => Promise<void>;
   syncSessionResults: (sessionId: string) => Promise<boolean>;
   loadCachedStudents: (sessionId: string) => Promise<ExternalStudentData[]>;
@@ -40,7 +40,7 @@ export const useSyncStore = create<SyncState>((set, get) => ({
       syncMessage: message ?? s.syncMessage,
     })),
 
-  startSync: async (payload) => {
+  startSync: async (payload, appSessionId) => {
     set({ isSyncing: true, syncProgress: 0.05, syncMessage: 'Starting student data sync...' });
     try {
       const response = await fetchStudentsFromExternalSync(payload, (percent, status) => {
@@ -48,11 +48,18 @@ export const useSyncStore = create<SyncState>((set, get) => ({
       });
 
       if (response.sessionId && response.data) {
+        await cacheSessionStudents(response.sessionId, response.data, {
+          indexFrom: payload.indexFrom,
+          indexTo: payload.indexTo,
+          count: response.count,
+          appSessionId,
+        });
         set((s) => ({
           externalSessionId: response.sessionId,
           cachedRoster: {
             ...s.cachedRoster,
             [response.sessionId]: response.data,
+            ...(appSessionId ? { [appSessionId]: response.data } : {}),
           },
         }));
         return response.sessionId;
