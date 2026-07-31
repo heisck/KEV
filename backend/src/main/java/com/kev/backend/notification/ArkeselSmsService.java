@@ -26,7 +26,7 @@ public class ArkeselSmsService {
     }
 
     public void sendSms(String phone, String message) {
-        log.info("Sending SMS (Arkesel) to {}: {}", phone, message);
+        log.info("Sending SMS through Arkesel.");
         if (apiKey == null || apiKey.isBlank() || phone == null || phone.isBlank()) {
             log.debug("Arkesel API key or phone not set; skipping live HTTP SMS dispatch.");
             return;
@@ -53,10 +53,6 @@ public class ArkeselSmsService {
         } catch (Exception ex) {
             log.warn("Exception during Arkesel SMS dispatch: {}", ex.getMessage());
         }
-    }
-
-    public void sendEmail(String email, String subject, String body) {
-        log.info("Sending Email to {} [Subject: {}]:\n{}", email, subject, body);
     }
 
     private String escapeJson(String s) {

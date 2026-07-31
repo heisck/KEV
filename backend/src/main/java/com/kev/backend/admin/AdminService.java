@@ -1,6 +1,7 @@
 package com.kev.backend.admin;
 
 import com.kev.backend.admin.dto.AdminDashboardDto;
+import com.kev.backend.admin.dto.CreateAdminRequest;
 import com.kev.backend.admin.dto.CreateLecturerRequest;
 import com.kev.backend.admin.dto.UpdateLecturerRequest;
 import com.kev.backend.auth.Plan;
@@ -10,6 +11,7 @@ import com.kev.backend.auth.UserRepository;
 import com.kev.backend.auth.dto.UserDto;
 import com.kev.backend.common.ApiException;
 import com.kev.backend.notification.ArkeselSmsService;
+import com.kev.backend.notification.EmailService;
 import com.kev.backend.notification.Notification;
 import com.kev.backend.notification.NotificationRepository;
 import com.kev.backend.session.ExamSession;
@@ -19,6 +21,7 @@ import com.kev.backend.session.SessionService;
 import com.kev.backend.session.dto.InvigilatorDto;
 import com.kev.backend.session.dto.SessionDto;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 import org.springframework.http.HttpStatus;
@@ -36,6 +39,7 @@ public class AdminService {
     private final SessionService sessions;
     private final PasswordEncoder passwordEncoder;
     private final ArkeselSmsService arkesel;
+    private final EmailService email;
     private final NotificationRepository notifications;
 
     public AdminService(
@@ -44,12 +48,14 @@ public class AdminService {
             SessionService sessions,
             PasswordEncoder passwordEncoder,
             ArkeselSmsService arkesel,
+            EmailService email,
             NotificationRepository notifications) {
         this.users = users;
         this.invigilators = invigilators;
         this.sessions = sessions;
         this.passwordEncoder = passwordEncoder;
         this.arkesel = arkesel;
+        this.email = email;
         this.notifications = notifications;
     }
 
@@ -63,10 +69,58 @@ public class AdminService {
 
     @Transactional(readOnly = true)
     public List<UserDto> listLecturers() {
-        return users.findAll().stream()
-                .filter(u -> u.getRole() == Role.LECTURER)
+        return listManagedUsers(Role.LECTURER);
+    }
+
+    @Transactional(readOnly = true)
+    public List<UserDto> listAdmins() {
+        return listManagedUsers(Role.ADMIN);
+    }
+
+    private List<UserDto> listManagedUsers(Role role) {
+        return users.findAllByRoleAndActiveTrueAndCreatedByAdminIsNotNull(role).stream()
                 .map(UserDto::from)
                 .toList();
+    }
+
+    @Transactional
+    public UserDto createAdmin(UUID creatorAdminId, CreateAdminRequest req) {
+        String adminEmail = req.email().trim().toLowerCase(Locale.ROOT);
+        if (users.findByEmail(adminEmail).isPresent()) {
+            throw new ApiException(HttpStatus.CONFLICT, "User with email already exists");
+        }
+
+        String randomPassword = UUID.randomUUID().toString().substring(0, 8).toUpperCase(Locale.ROOT);
+        User created = new User();
+        created.setEmail(adminEmail);
+        created.setPersonalEmail(req.personalEmail().trim().toLowerCase(Locale.ROOT));
+        created.setDisplayName((req.firstName().trim() + " " + req.lastName().trim()).strip());
+        created.setRole(Role.ADMIN);
+        created.setPlan(Plan.PREMIUM);
+        created.setPasswordHash(passwordEncoder.encode(randomPassword));
+        created.setPhone(
+                req.phone() == null || req.phone().isBlank()
+                        ? null
+                        : req.phone().trim());
+        created.setStatus("ACTIVE");
+        created.setActive(true);
+        created.setCreatedByAdmin(creatorAdminId);
+        User saved = users.save(created);
+
+        String credentials = credentialMessage(
+                "Welcome to KEV (Admin).", saved.getEmail(), randomPassword, "Download the app to sign in.");
+        if (saved.getPhone() != null) arkesel.sendSms(saved.getPhone(), credentials);
+        email.send(saved.getPersonalEmail(), "Your KEV Admin Credentials", credentials);
+        notifyAdminCreated(saved);
+        return UserDto.from(saved);
+    }
+
+    private void notifyAdminCreated(User saved) {
+        Notification notification = new Notification();
+        notification.setUserId(saved.getId());
+        notification.setTitle("Admin Account Created");
+        notification.setMessage("Welcome to KEV! Your credentials have been sent to your email.");
+        notifications.save(notification);
     }
 
     @Transactional(readOnly = true)
@@ -111,13 +165,10 @@ public class AdminService {
         lecturer.setPasswordHash(passwordEncoder.encode(randomPassword));
         User saved = users.save(lecturer);
 
-        String smsMsg = "Welcome to Exam Verification.\nEmail: " + saved.getEmail() + "\nPassword: " + randomPassword
-                + "\nDownload the app.";
+        String smsMsg = credentialMessage(
+                "Welcome to Exam Verification.", saved.getEmail(), randomPassword, "Download the app.");
         arkesel.sendSms(saved.getPhone(), smsMsg);
-        arkesel.sendEmail(
-                saved.getEmail() != null ? saved.getEmail() : saved.getPersonalEmail(),
-                "Welcome to KEV Exam Verification",
-                smsMsg);
+        email.send(saved.getPersonalEmail(), "Welcome to KEV Exam Verification", smsMsg);
 
         Notification n = new Notification();
         n.setUserId(saved.getId());
@@ -126,6 +177,10 @@ public class AdminService {
         notifications.save(n);
 
         return UserDto.from(saved);
+    }
+
+    private String credentialMessage(String greeting, String loginEmail, String password, String closing) {
+        return greeting + "\nLogin email\n\n" + loginEmail + "\n\nTemporary password\n" + password + "\n" + closing;
     }
 
     @Transactional
@@ -144,8 +199,21 @@ public class AdminService {
 
     @Transactional
     public void disableLecturer(UUID adminId, UUID userId) {
-        User target =
-                users.findById(userId).orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Lecturer not found"));
+        disableManagedUser(userId, Role.LECTURER, "Lecturer");
+    }
+
+    @Transactional
+    public void disableAdmin(UUID adminId, UUID userId) {
+        if (adminId.equals(userId)) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "You cannot remove your own administrator account");
+        }
+        disableManagedUser(userId, Role.ADMIN, "Administrator");
+    }
+
+    private void disableManagedUser(UUID userId, Role role, String label) {
+        User target = users.findById(userId)
+                .filter(user -> user.getRole() == role && user.getCreatedByAdmin() != null)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, label + " not found"));
         target.setStatus("DISABLED");
         target.setActive(false);
         users.save(target);

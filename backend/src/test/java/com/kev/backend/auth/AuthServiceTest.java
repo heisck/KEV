@@ -17,6 +17,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 
 @ExtendWith(MockitoExtension.class)
@@ -87,6 +88,36 @@ class AuthServiceTest {
                 .isInstanceOf(ApiException.class)
                 .satisfies(
                         error -> assertThat(((ApiException) error).getStatus()).isEqualTo(HttpStatus.CONFLICT));
+    }
+
+    @Test
+    void deactivatedUserCannotLogInWithPassword() {
+        User user = passwordUser();
+        user.setActive(false);
+        when(users.findByEmail(user.getEmail())).thenReturn(Optional.of(user));
+
+        assertThatThrownBy(() -> service.loginWithPassword(user.getEmail(), "current-pass"))
+                .isInstanceOf(ApiException.class)
+                .satisfies(
+                        error -> assertThat(((ApiException) error).getStatus()).isEqualTo(HttpStatus.UNAUTHORIZED));
+    }
+
+    @Test
+    void deactivatedUserCannotRefreshTokens() {
+        User user = passwordUser();
+        user.setActive(false);
+        Jwt refresh = Jwt.withTokenValue("refresh")
+                .header("alg", "HS256")
+                .subject(user.getId().toString())
+                .claim(JwtService.CLAIM_TYPE, JwtService.TokenType.REFRESH.name())
+                .build();
+        when(jwtDecoder.decode("refresh")).thenReturn(refresh);
+        when(users.findById(user.getId())).thenReturn(Optional.of(user));
+
+        assertThatThrownBy(() -> service.refresh("refresh"))
+                .isInstanceOf(ApiException.class)
+                .satisfies(
+                        error -> assertThat(((ApiException) error).getStatus()).isEqualTo(HttpStatus.UNAUTHORIZED));
     }
 
     private User passwordUser() {

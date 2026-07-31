@@ -1,9 +1,12 @@
 package com.kev.backend.session.web;
 
 import com.kev.backend.attendance.AttendanceService;
+import com.kev.backend.directory.uits.RosterIngestService;
+import com.kev.backend.session.SessionRosterService;
 import com.kev.backend.session.SessionService;
 import com.kev.backend.session.dto.CreateSessionRequest;
 import com.kev.backend.session.dto.JoinSessionRequest;
+import com.kev.backend.session.dto.RosterStudentDto;
 import com.kev.backend.session.dto.SessionDetailDto;
 import com.kev.backend.session.dto.SessionDto;
 import com.kev.backend.session.dto.SessionSummaryDto;
@@ -28,10 +31,12 @@ public class SessionController {
 
     private final SessionService sessions;
     private final AttendanceService attendance;
+    private final SessionRosterService roster;
 
-    public SessionController(SessionService sessions, AttendanceService attendance) {
+    public SessionController(SessionService sessions, AttendanceService attendance, SessionRosterService roster) {
         this.sessions = sessions;
         this.attendance = attendance;
+        this.roster = roster;
     }
 
     @PostMapping
@@ -55,6 +60,21 @@ public class SessionController {
     @GetMapping("/{id}")
     public SessionDetailDto detail(@AuthenticationPrincipal Jwt principal, @PathVariable Long id) {
         return sessions.detail(userId(principal), id);
+    }
+
+    @GetMapping("/{id}/roster-status")
+    public RosterIngestService.Status rosterStatus(@AuthenticationPrincipal Jwt principal, @PathVariable Long id) {
+        return sessions.rosterStatus(userId(principal), id);
+    }
+
+    @GetMapping("/{id}/roster")
+    public List<RosterStudentDto> roster(@AuthenticationPrincipal Jwt principal, @PathVariable Long id) {
+        return roster.roster(userId(principal), id);
+    }
+
+    @PostMapping("/{id}/roster-retry")
+    public void retryRoster(@AuthenticationPrincipal Jwt principal, @PathVariable Long id) {
+        sessions.retryRoster(userId(principal), id);
     }
 
     @PostMapping("/join")

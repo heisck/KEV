@@ -113,3 +113,24 @@ kev:
     provider: ${KEV_DIRECTORY_PROVIDER:mock}
   ml:
     base-url: ${ML_BASE_URL:http://localhost:8000}
+    # A batch embed fetches every photo over the high-latency UITS link and then runs
+    # inference, so it is far slower than a single scan call. Too low a value reports a
+    # healthy service as unavailable; embed-batch-size bounds how long one call can take.
+    read-timeout-seconds: ${ML_READ_TIMEOUT_SECONDS:120}
+  uits:
+    # External student system. Roster is pulled on session creation.
+    base-url: ${UITS_BASE_URL:https://kev-uits-rep.vercel.app}
+  face:
+    # 1:N identification is stricter than 1:1 verification: with a full roster of
+    # candidates the top scorer wins by default, so a bare threshold is not enough.
+    # A match must clear match-threshold AND beat the runner-up by margin-threshold.
+    match-threshold: ${FACE_MATCH_THRESHOLD:0.42}
+    margin-threshold: ${FACE_MARGIN_THRESHOLD:0.05}
+    # Reject blurry/oblique captures before matching rather than scoring garbage.
+    min-det-score: ${FACE_MIN_DET_SCORE:0.5}
+    # Reference embedding backfill. The UITS link is high-latency (~2s/request),
+    # so concurrency — not payload size — is what makes the backfill finish.
+    ingest-concurrency: ${FACE_INGEST_CONCURRENCY:16}
+    # Students per ML call and per DB commit. Keeps a roster-sized backfill inside the
+    # ML read timeout and lets the roster screen show students as they land.
+    embed-batch-size: ${FACE_EMBED_BATCH_SIZE:25}

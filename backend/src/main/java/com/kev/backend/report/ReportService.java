@@ -48,7 +48,7 @@ public class ReportService {
 
     @Transactional
     public StudentReportDto create(UUID userId, CreateStudentReportRequest request) {
-        ExamSession session = sessions.requireVisible(request.sessionId());
+        ExamSession session = request.sessionId() == null ? null : sessions.requireVisible(request.sessionId());
         DirectoryStudent student = request.studentId() != null
                 ? students.findById(request.studentId())
                         .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Student not found"))
@@ -139,10 +139,10 @@ public class ReportService {
         ExamSession session = report.getSession();
         return new StudentReportDto(
                 report.getId(),
-                session.getId(),
+                session != null ? session.getId() : null,
                 sessionTitle(session),
-                session.getSessionCode(),
-                session.getExamDate(),
+                session != null ? session.getSessionCode() : null,
+                session != null ? session.getExamDate() : null,
                 author.getId(),
                 displayName(author),
                 author.getEmail(),
@@ -159,6 +159,7 @@ public class ReportService {
     }
 
     private String sessionTitle(ExamSession session) {
+        if (session == null) return "General report";
         return session.getTitle() != null && !session.getTitle().isBlank()
                 ? session.getTitle()
                 : session.getSessionCode();

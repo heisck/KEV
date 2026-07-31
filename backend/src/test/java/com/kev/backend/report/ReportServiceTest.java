@@ -146,6 +146,25 @@ class ReportServiceTest {
     }
 
     @Test
+    void createAllowsGeneralReportWithoutSession() {
+        when(users.findById(authorId)).thenReturn(Optional.of(author));
+        when(reports.save(any())).thenAnswer(invocation -> {
+            StudentReport report = invocation.getArgument(0);
+            report.setId(14L);
+            return report;
+        });
+        when(users.findAllByRoleInAndActiveTrue(List.of(Role.LECTURER, Role.ADMIN)))
+                .thenReturn(List.of(author));
+
+        StudentReportDto result =
+                service.create(authorId, new CreateStudentReportRequest(null, null, "General campus issue"));
+
+        assertThat(result.sessionId()).isNull();
+        assertThat(result.sessionTitle()).isEqualTo("General report");
+        assertThat(result.message()).isEqualTo("General campus issue");
+    }
+
+    @Test
     void markAllReadOnlyCreatesMissingReceipts() {
         StudentReport first = report();
         StudentReport second = report();

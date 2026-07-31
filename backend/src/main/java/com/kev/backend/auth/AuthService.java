@@ -61,6 +61,7 @@ public class AuthService {
                     u.setRole(Role.USER);
                     return u;
                 });
+        requireActive(user);
         User saved = users.save(user);
         return new AuthResponse(jwt.issueAccessToken(saved), jwt.issueRefreshToken(saved), UserDto.from(saved));
     }
@@ -86,6 +87,7 @@ public class AuthService {
                     u.setRole(Role.USER);
                     return u;
                 });
+        requireActive(user);
         if (user.getDisplayName() == null && fullName != null) {
             user.setDisplayName(fullName);
         }
@@ -97,6 +99,7 @@ public class AuthService {
     @Transactional(readOnly = true)
     public AuthResponse loginWithPassword(String email, String password) {
         User user = users.findByEmail(email.trim().toLowerCase())
+                .filter(User::isActive)
                 .filter(u -> u.getPasswordHash() != null && passwordEncoder.matches(password, u.getPasswordHash()))
                 .orElseThrow(() -> new ApiException(HttpStatus.UNAUTHORIZED, "Invalid email or password"));
         return new AuthResponse(jwt.issueAccessToken(user), jwt.issueRefreshToken(user), UserDto.from(user));
@@ -115,6 +118,7 @@ public class AuthService {
             throw new ApiException(HttpStatus.UNAUTHORIZED, "Not a refresh token");
         }
         User user = users.findById(UUID.fromString(decoded.getSubject()))
+                .filter(User::isActive)
                 .orElseThrow(() -> new ApiException(HttpStatus.UNAUTHORIZED, "User not found"));
         return new TokenResponse(jwt.issueAccessToken(user));
     }
@@ -155,5 +159,9 @@ public class AuthService {
 
     private String normalized(String value) {
         return value != null && !value.isBlank() ? value.trim() : null;
+    }
+
+    private void requireActive(User user) {
+        if (!user.isActive()) throw new ApiException(HttpStatus.UNAUTHORIZED, "Account is inactive");
     }
 }

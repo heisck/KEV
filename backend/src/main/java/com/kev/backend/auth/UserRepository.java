@@ -14,4 +14,6 @@ public interface UserRepository extends JpaRepository<User, UUID> {
     Optional<User> findByAppleSub(String appleSub);
 
     List<User> findAllByRoleInAndActiveTrue(List<Role> roles);
+
+    List<User> findAllByRoleAndActiveTrueAndCreatedByAdminIsNotNull(Role role);
 }

@@ -44,8 +44,33 @@ public class DirectoryStudent {
     @Column(nullable = false)
     private short level;
 
-    @Column(name = "photo_url", nullable = false)
+    /** Recognition-ready photo URL from UITS. Null until the student has been synced. */
+    @Column(name = "photo_url")
     private String photoUrl;
+
+    /** Identity in the external UITS system — the upsert key for re-syncs. */
+    @Column(name = "uits_id")
+    private String uitsId;
+
+    @Column(name = "nfc_code")
+    private String nfcCode;
+
+    /**
+     * Precomputed ArcFace embedding of {@link #photoUrl}, little-endian float32.
+     * Stored so scan-time matching never touches an image. Null until embedded.
+     */
+    @Column(name = "face_embedding")
+    private byte[] faceEmbedding;
+
+    @Column(name = "face_det_score")
+    private Float faceDetScore;
+
+    /** Model that produced {@link #faceEmbedding}; embeddings are not comparable across models. */
+    @Column(name = "face_model_version")
+    private String faceModelVersion;
+
+    @Column(name = "face_embedded_at")
+    private Instant faceEmbeddedAt;
 
     @Column(nullable = false)
     private boolean enrolled = true;

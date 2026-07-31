@@ -6,6 +6,7 @@ import com.kev.backend.attendance.AttendanceStatus;
 import com.kev.backend.auth.User;
 import com.kev.backend.auth.UserRepository;
 import com.kev.backend.common.ApiException;
+import com.kev.backend.directory.uits.RosterIngestService;
 import com.kev.backend.notification.SessionNotificationService;
 import com.kev.backend.session.dto.CreateSessionRequest;
 import com.kev.backend.session.dto.InvigilatorDto;
@@ -35,6 +36,7 @@ public class SessionService {
     private final UserRepository users;
     private final AttendanceMapper attendanceMapper;
     private final SessionNotificationService sessionNotifications;
+    private final RosterIngestService rosterIngest;
 
     public SessionService(
             ExamSessionRepository sessions,
@@ -42,13 +44,15 @@ public class SessionService {
             AttendanceRecordRepository attendance,
             UserRepository users,
             AttendanceMapper attendanceMapper,
-            SessionNotificationService sessionNotifications) {
+            SessionNotificationService sessionNotifications,
+            RosterIngestService rosterIngest) {
         this.sessions = sessions;
         this.invigilators = invigilators;
         this.attendance = attendance;
         this.users = users;
         this.attendanceMapper = attendanceMapper;
         this.sessionNotifications = sessionNotifications;
+        this.rosterIngest = rosterIngest;
     }
 
     @Transactional
@@ -62,6 +66,15 @@ public class SessionService {
         addMember(saved.getId(), userId, null, "CREATOR");
         sessionNotifications.notifyLecturers(
                 saved.getId(), "Session created", sessionTitle(saved) + " is now available");
+        // Warm the roster in the background: pull these students from UITS and precompute
+        // their face embeddings, so the first scan is a vector comparison rather than a
+        // round of image downloads. Deliberately not awaited — create must stay instant.
+        if (saved.getIndexRangeStart() != null && saved.getIndexRangeEnd() != null) {
+            String requestedBy = "session:" + saved.getId();
+            rosterIngest.prepare(saved.getId(), saved.getIndexRangeStart(), saved.getIndexRangeEnd(), requestedBy);
+            rosterIngest.ingestRangeAsync(
+                    saved.getId(), saved.getIndexRangeStart(), saved.getIndexRangeEnd(), requestedBy);
+        }
         return toDto(saved);
     }
 
@@ -74,6 +87,18 @@ public class SessionService {
         }
         applyEditableFields(session, req);
         return toDto(sessions.save(session));
+    }
+
+    @Transactional(readOnly = true)
+    public RosterIngestService.Status rosterStatus(UUID userId, Long sessionId) {
+        requireMember(userId, sessionId);
+        return rosterIngest.status(sessionId);
+    }
+
+    @Transactional(readOnly = true)
+    public void retryRoster(UUID userId, Long sessionId) {
+        requireMember(userId, sessionId);
+        rosterIngest.retry(sessionId);
     }
 
     @Transactional

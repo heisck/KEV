@@ -10,6 +10,7 @@ import com.kev.backend.attendance.AttendanceMapper;
 import com.kev.backend.attendance.AttendanceRecordRepository;
 import com.kev.backend.auth.UserRepository;
 import com.kev.backend.common.ApiException;
+import com.kev.backend.directory.uits.RosterIngestService;
 import com.kev.backend.notification.SessionNotificationService;
 import com.kev.backend.session.dto.CreateSessionRequest;
 import com.kev.backend.session.dto.SessionDto;
@@ -45,6 +46,9 @@ class SessionServiceTest {
 
     @Mock
     SessionNotificationService sessionNotifications;
+
+    @Mock
+    RosterIngestService rosterIngest;
 
     @InjectMocks
     SessionService service;
@@ -89,6 +93,24 @@ class SessionServiceTest {
                         "Algorithms", "JQB", "GF", "12", List.of("DCIT 301"), null, null, null, null, null, null));
 
         verify(sessionNotifications).notifyLecturers(12L, "Session created", "Algorithms is now available");
+    }
+
+    @Test
+    void createStartsObservableRosterIngestForAnIndexRange() {
+        when(sessions.existsBySessionCode(any())).thenReturn(false);
+        when(sessions.save(any())).thenAnswer(invocation -> {
+            ExamSession session = invocation.getArgument(0);
+            session.setId(15L);
+            return session;
+        });
+
+        service.create(
+                creator,
+                new CreateSessionRequest(
+                        "Algorithms", "JQB", "GF", "12", List.of("DCIT 301"), "100", "599", null, null, null, null));
+
+        verify(rosterIngest).prepare(15L, "100", "599", "session:15");
+        verify(rosterIngest).ingestRangeAsync(15L, "100", "599", "session:15");
     }
 
     @Test

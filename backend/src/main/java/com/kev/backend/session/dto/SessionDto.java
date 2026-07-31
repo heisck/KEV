@@ -5,9 +5,11 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.util.Arrays;
 import java.util.List;
+import java.util.UUID;
 
 public record SessionDto(
         Long id,
+        UUID createdBy,
         String sessionCode,
         String sessionPassword,
         String title,
@@ -33,6 +35,7 @@ public record SessionDto(
         String methods = s.getVerificationMethods() == null ? "FACE,NFC,MANUAL" : s.getVerificationMethods();
         return new SessionDto(
                 s.getId(),
+                s.getCreatedBy(),
                 s.getSessionCode(),
                 joined ? (s.getSessionPassword() != null ? s.getSessionPassword() : s.getSessionCode()) : null,
                 s.getTitle() != null
