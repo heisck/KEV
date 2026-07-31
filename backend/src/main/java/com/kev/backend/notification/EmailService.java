@@ -14,6 +14,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import tools.jackson.core.JacksonException;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 
@@ -163,7 +164,7 @@ public class EmailService {
     private JsonNode readTree(String json) {
         try {
             return mapper.readTree(json);
-        } catch (Exception ex) {
+        } catch (JacksonException ex) {
             throw new IllegalStateException("unreadable token response", ex);
         }
     }
