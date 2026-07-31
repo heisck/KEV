@@ -48,6 +48,16 @@ class FaceEngine:
                 cls._instance = cls(settings.face_model_name, settings.face_match_threshold)
             return cls._instance
 
+    @property
+    def model_version(self) -> str:
+        """Identifies which model produced an embedding; vectors from different
+        models are not comparable, so stored references record this."""
+        return self._model_name
+
+    def warm_up(self) -> None:
+        """Force model load so the first real request does not pay for it."""
+        self._app()
+
     def _app(self) -> Any:
         if self._analyzer is None:
             from insightface.app import FaceAnalysis
