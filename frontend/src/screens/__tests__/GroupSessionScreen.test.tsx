@@ -68,6 +68,7 @@ const mockDetail: SessionDetailDto = {
       },
     },
   ],
+  expectedStudents: 0,
 };
 
 jest.mock('expo-router', () => ({
@@ -80,6 +81,7 @@ jest.mock('@/api/hooks', () => ({
   useSessionDetail: () => ({ data: mockDetail }),
   useRosterStatus: () => ({ data: undefined }),
   useSessionRoster: () => ({ data: [], isLoading: false }),
+  useRetryRoster: () => ({ mutate: jest.fn(), isPending: false }),
 }));
 
 beforeEach(() => {

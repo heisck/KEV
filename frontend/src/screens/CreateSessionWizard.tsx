@@ -8,6 +8,7 @@ import {
   type CourseRange,
   type WizardValues,
 } from '@/components/session/sessionForm';
+import { scheduleError } from '@/components/session/sessionSchedule';
 import { HapticPressable } from '@/components/ui/HapticPressable';
 import {
   ExamStep,
@@ -60,6 +61,17 @@ export function CreateSessionWizard({
       courses: prev.courses.map((c, idx) => (idx === i ? { ...c, ...patch } : c)),
     }));
 
+  // The schedule the wizard opened with. Editing an exam that already started must stay
+  // possible, so its own stored date/time is never what blocks the form — only a change to
+  // something in the past is. Captured once: `initialValues` is a fresh object each render.
+  const loadedSchedule = useRef({
+    examDate: initialValues.examDate,
+    startTime: initialValues.startTime,
+    endTime: initialValues.endTime,
+  });
+
+  const scheduleProblem = scheduleError(v, loadedSchedule.current);
+
   const canNext =
     (step === 0 && v.building.trim().length > 0) ||
     (step === 1 &&
@@ -71,9 +83,12 @@ export function CreateSessionWizard({
           course.indexTo.trim() &&
           Number(course.indexFrom) <= Number(course.indexTo),
       )) ||
-    step === 2 ||
+    (step === 2 && !scheduleProblem) ||
     (step === 3 && v.methods.length > 0) ||
     step === 4;
+
+  // A bad schedule must also block the final submit, not just the step it lives on.
+  const canSubmit = !submitting && !scheduleProblem;
 
   const next = () => (step < STEPS.length - 1 ? setStep(step + 1) : onSubmit(v));
   const back = () => (step > 0 ? setStep(step - 1) : onBack?.());
@@ -129,7 +144,9 @@ export function CreateSessionWizard({
         {step === 1 ? (
           <ExamStep values={v} setValues={setV} setCourse={setCourse} styles={s} palette={p} />
         ) : null}
-        {step === 2 ? <ScheduleStep values={v} setValue={set} styles={s} /> : null}
+        {step === 2 ? (
+          <ScheduleStep values={v} setValue={set} styles={s} error={scheduleProblem} />
+        ) : null}
         {step === 3 ? <MethodsStep values={v} setValues={setV} styles={s} palette={p} /> : null}
         {step === 4 ? <ReviewStep values={v} styles={s} /> : null}
       </ScrollView>
@@ -165,9 +182,9 @@ export function CreateSessionWizard({
         ) : (
           <HapticPressable
             accessibilityRole="button"
-            disabled={submitting}
+            disabled={!canSubmit}
             onPress={next}
-            style={[s.cta, submitting && s.ctaDisabled]}
+            style={[s.cta, !canSubmit && s.ctaDisabled]}
             testID="wizard-create"
           >
             <Text style={s.ctaText}>{submitting ? 'Saving...' : submitLabel}</Text>

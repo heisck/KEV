@@ -50,6 +50,8 @@ frontend/ios/
 
 # ===== Java / Maven (backend) =====
 backend/target/
+# Output tree for CLI test runs (kept apart from the dev server's classes)
+backend/target-cli/
 *.class
 *.jar
 !**/maven-wrapper.jar

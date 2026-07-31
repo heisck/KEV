@@ -27,6 +27,7 @@ export const makeSessionWizardStyles = (p: Palette) =>
     body: { gap: spacing.lg, paddingBottom: spacing.xxxl, paddingTop: spacing.md },
     section: { gap: spacing.md },
     hint: { color: p.muted, fontSize: 13, fontWeight: '500' },
+    error: { color: p.error, fontSize: 13, fontWeight: '600' },
     row: { flexDirection: 'row', gap: spacing.md },
     flex: { flex: 1 },
     field: { gap: spacing.xs },

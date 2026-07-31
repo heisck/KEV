@@ -45,7 +45,7 @@ final class SessionStatusCalculator {
     }
 
     /** Parses "HH:mm" / "H:mm" style strings; null on blank or malformed input. */
-    private static LocalTime parseTime(String value) {
+    static LocalTime parseTime(String value) {
         if (value == null || value.isBlank()) {
             return null;
         }

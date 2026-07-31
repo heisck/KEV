@@ -5,6 +5,7 @@ import com.kev.backend.directory.DirectoryStudentRepository;
 import com.kev.backend.directory.FeesStatus;
 import com.kev.backend.ml.MlClient;
 import com.kev.backend.verification.FaceEmbeddings;
+import com.kev.backend.verification.RosterEmbeddingCache;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -47,20 +48,22 @@ public class RosterIngestService {
     private final UitsClient uits;
     private final MlClient ml;
     private final DirectoryStudentRepository students;
+    private final RosterEmbeddingCache rosterCache;
     private final int concurrency;
     private final int batchSize;
     private final ConcurrentMap<Long, Status> statuses = new ConcurrentHashMap<>();
-    private final ConcurrentMap<Long, Job> jobs = new ConcurrentHashMap<>();
 
     public RosterIngestService(
             UitsClient uits,
             MlClient ml,
             DirectoryStudentRepository students,
+            RosterEmbeddingCache rosterCache,
             @Value("${kev.face.ingest-concurrency}") int concurrency,
             @Value("${kev.face.embed-batch-size}") int batchSize) {
         this.uits = uits;
         this.ml = ml;
         this.students = students;
+        this.rosterCache = rosterCache;
         this.concurrency = concurrency;
         this.batchSize = Math.max(1, batchSize);
     }
@@ -75,21 +78,20 @@ public class RosterIngestService {
         runIngest(sessionId, new Job(from, to, requestedBy));
     }
 
-    /** Register the job and publish a status before the async worker picks it up. */
-    public void prepare(Long sessionId, String from, String to, String requestedBy) {
-        jobs.put(sessionId, new Job(from, to, requestedBy));
+    /** Publish a status before the async worker picks the job up. */
+    public void prepare(Long sessionId) {
         statuses.put(sessionId, new Status("STARTING", 0, 0, 0, 0, "Starting student information sync"));
     }
 
+    /**
+     * Re-run the ingest for a session. The range is supplied by the caller rather than
+     * remembered here: this map does not survive a restart, and a roster left half-embedded
+     * by one is exactly when a retry has to work.
+     */
     @Async
-    public void retry(Long sessionId) {
-        Job job = jobs.get(sessionId);
-        if (job == null) {
-            update(sessionId, "FAILED", 0, 0, 0, 0, "Roster sync details are no longer available");
-            return;
-        }
+    public void retry(Long sessionId, String from, String to, String requestedBy) {
         update(sessionId, "RETRYING", 0, 0, 0, 0, "Retrying student information sync");
-        runIngest(sessionId, job);
+        runIngest(sessionId, new Job(from, to, requestedBy));
     }
 
     /**
@@ -127,7 +129,7 @@ public class RosterIngestService {
                 update(sessionId, "RUNNING", 5, 0, 0, 0, "Contacting the university student system");
                 int synced = syncRange(job.from(), job.to(), job.requestedBy());
                 update(sessionId, "RUNNING", SYNC_WEIGHT, synced, synced, 0, "Preparing face verification");
-                int embedded = embedPending(sessionId, synced);
+                int embedded = embedPending(sessionId, job.from(), job.to(), synced);
                 update(sessionId, "COMPLETED", 100, synced, synced, embedded, "Student information ready");
                 log.info(
                         "roster ingest complete: range=[{}..{}] synced={} embedded={}",
@@ -170,12 +172,15 @@ public class RosterIngestService {
      * unavailable" even though the service is healthy. It also lets both the progress bar
      * and the roster screen update while the batch is still running.
      */
-    public int embedPending(Long sessionId, int total) {
-        List<DirectoryStudent> pending = students.findPendingEmbedding();
+    public int embedPending(Long sessionId, String from, String to, int total) {
+        List<DirectoryStudent> pending = students.findPendingEmbeddingInIndexRange(from, to);
         int embedded = 0;
         for (int start = 0; start < pending.size(); start += batchSize) {
             List<DirectoryStudent> chunk = pending.subList(start, Math.min(start + batchSize, pending.size()));
             embedded += embedChunk(chunk);
+            // Publish each chunk to the scan path immediately: students should become
+            // scannable as they land, not only once the whole roster finishes.
+            rosterCache.invalidate(from, to);
             int done = start + chunk.size();
             update(
                     sessionId,

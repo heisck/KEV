@@ -23,6 +23,14 @@
 		<jacoco.version>0.8.12</jacoco.version>
 		<owasp.version>10.0.4</owasp.version>
 		<exec.version>3.5.0</exec.version>
+		<!--
+			Output tree. Overridable so a test build can compile somewhere other than the
+			classes a live `spring-boot:run` has open: rewriting (or `clean`-deleting) those
+			under the running JVM makes devtools restart mid-write and kills the process with
+			an access violation on Windows. scripts/run-backend.mjs sets this for test goals;
+			CI and plain `./mvnw verify` keep the default target/.
+		-->
+		<kev.build.dir>${project.basedir}/target</kev.build.dir>
 	</properties>
 
 	<dependencyManagement>
@@ -203,11 +211,15 @@
 	</dependencies>
 
 	<build>
+		<directory>${kev.build.dir}</directory>
 		<plugins>
 			<plugin>
 				<groupId>org.springframework.boot</groupId>
 				<artifactId>spring-boot-maven-plugin</artifactId>
 				<configuration>
+					<!-- A hard JVM kill (exit -1073741819) leaves no clue unless the crash log
+					     is written somewhere we can find it. -->
+					<jvmArguments>-XX:ErrorFile=${project.basedir}/logs/hs_err_pid%p.log</jvmArguments>
 					<excludes>
 						<exclude>
 							<groupId>org.projectlombok</groupId>

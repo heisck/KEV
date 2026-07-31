@@ -13,7 +13,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 /**
  * 1:N face identification against a session roster.
@@ -28,6 +27,7 @@ public class FaceIdentifyService {
     private static final Logger log = LoggerFactory.getLogger(FaceIdentifyService.class);
 
     private final DirectoryStudentRepository students;
+    private final RosterEmbeddingCache roster;
     private final MlClient ml;
     private final double matchThreshold;
     private final double marginThreshold;
@@ -35,18 +35,26 @@ public class FaceIdentifyService {
 
     public FaceIdentifyService(
             DirectoryStudentRepository students,
+            RosterEmbeddingCache roster,
             MlClient ml,
             @Value("${kev.face.match-threshold}") double matchThreshold,
             @Value("${kev.face.margin-threshold}") double marginThreshold,
             @Value("${kev.face.min-det-score}") double minDetScore) {
         this.students = students;
+        this.roster = roster;
         this.ml = ml;
         this.matchThreshold = matchThreshold;
         this.marginThreshold = marginThreshold;
         this.minDetScore = minDetScore;
     }
 
-    @Transactional(readOnly = true)
+    /**
+     * Deliberately not {@code @Transactional}: embedding the probe is a multi-second call to
+     * the ML service, and spanning it with a transaction pins one of the five pooled Neon
+     * connections for its whole duration. Two invigilators scanning at once would then queue
+     * on the pool rather than on the model. Each repository call below opens its own short
+     * transaction instead.
+     */
     public FaceIdentifyResponse identify(ExamSession session, byte[] probeImage, String filename) {
         MlClient.EmbedFaceResponse probe = ml.embedFace(probeImage, filename);
         if (probe == null || probe.embedding() == null) {
@@ -59,20 +67,20 @@ public class FaceIdentifyService {
                     HttpStatus.UNPROCESSABLE_CONTENT, "Face not clear enough. Move closer and hold steady.");
         }
 
-        List<DirectoryStudent> roster =
-                students.findEmbeddedInIndexRange(session.getIndexRangeStart(), session.getIndexRangeEnd());
-        if (roster.isEmpty()) {
+        List<RosterEmbeddingCache.Candidate> candidates =
+                roster.candidates(session.getIndexRangeStart(), session.getIndexRangeEnd());
+        if (candidates.isEmpty()) {
             throw new ApiException(
                     HttpStatus.CONFLICT, "This session's roster is still syncing. Try again in a moment.");
         }
 
         float[] probeVector = FaceEmbeddings.toVector(probe.embedding());
-        DirectoryStudent best = null;
+        RosterEmbeddingCache.Candidate best = null;
         double bestScore = Double.NEGATIVE_INFINITY;
         double runnerUp = Double.NEGATIVE_INFINITY;
 
-        for (DirectoryStudent candidate : roster) {
-            double score = FaceEmbeddings.cosine(probeVector, FaceEmbeddings.toVector(candidate.getFaceEmbedding()));
+        for (RosterEmbeddingCache.Candidate candidate : candidates) {
+            double score = FaceEmbeddings.cosine(probeVector, candidate.embedding());
             if (score > bestScore) {
                 runnerUp = bestScore;
                 bestScore = score;
@@ -97,17 +105,21 @@ public class FaceIdentifyService {
                     session.getId(),
                     String.format("%.3f", bestScore),
                     String.format("%.3f", margin),
-                    roster.size());
-            return FaceIdentifyResponse.noMatch(bestScore, margin, roster.size(), detail);
+                    candidates.size());
+            return FaceIdentifyResponse.noMatch(bestScore, margin, candidates.size(), detail);
         }
 
         log.info(
                 "face identify matched: session={} index={} score={} margin={} roster={}",
                 session.getId(),
-                best.getIndexNumber(),
+                best.indexNumber(),
                 String.format("%.3f", bestScore),
                 String.format("%.3f", margin),
-                roster.size());
-        return FaceIdentifyResponse.matched(StudentRecord.from(best), bestScore, margin, roster.size());
+                candidates.size());
+        // The cache holds only vectors, so load the winner's full record once here.
+        DirectoryStudent matched = students.findByIndexNumberWithCourses(best.indexNumber())
+                .orElseThrow(
+                        () -> new ApiException(HttpStatus.NOT_FOUND, "Matched student is no longer in the directory"));
+        return FaceIdentifyResponse.matched(StudentRecord.from(matched), bestScore, margin, candidates.size());
     }
 }

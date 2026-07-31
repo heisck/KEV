@@ -86,7 +86,9 @@ it('shows a plus until the lecturer joins with the session password', async () =
   fireEvent.press(screen.getByTestId('join-session-submit'));
 
   await waitFor(() => expect(mockJoin).toHaveBeenCalledWith('ABC789'));
-  expect(screen.getByLabelText('Scan')).toBeTruthy();
+  // The icon swaps on the re-render that follows the join resolving, which is a tick after
+  // the mock is called — assert inside waitFor so a busy machine cannot look too early.
+  await waitFor(() => expect(screen.getByLabelText('Scan')).toBeTruthy());
 });
 
 it('removes the room-map action', () => {

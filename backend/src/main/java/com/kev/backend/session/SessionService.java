@@ -6,6 +6,7 @@ import com.kev.backend.attendance.AttendanceStatus;
 import com.kev.backend.auth.User;
 import com.kev.backend.auth.UserRepository;
 import com.kev.backend.common.ApiException;
+import com.kev.backend.directory.DirectoryStudentRepository;
 import com.kev.backend.directory.uits.RosterIngestService;
 import com.kev.backend.notification.SessionNotificationService;
 import com.kev.backend.session.dto.CreateSessionRequest;
@@ -13,10 +14,14 @@ import com.kev.backend.session.dto.InvigilatorDto;
 import com.kev.backend.session.dto.SessionDetailDto;
 import com.kev.backend.session.dto.SessionDto;
 import java.security.SecureRandom;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.temporal.ChronoUnit;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 import org.springframework.http.HttpStatus;
@@ -36,6 +41,7 @@ public class SessionService {
     private final AttendanceMapper attendanceMapper;
     private final SessionNotificationService sessionNotifications;
     private final RosterIngestService rosterIngest;
+    private final DirectoryStudentRepository students;
 
     public SessionService(
             ExamSessionRepository sessions,
@@ -44,7 +50,8 @@ public class SessionService {
             UserRepository users,
             AttendanceMapper attendanceMapper,
             SessionNotificationService sessionNotifications,
-            RosterIngestService rosterIngest) {
+            RosterIngestService rosterIngest,
+            DirectoryStudentRepository students) {
         this.sessions = sessions;
         this.invigilators = invigilators;
         this.attendance = attendance;
@@ -52,10 +59,12 @@ public class SessionService {
         this.attendanceMapper = attendanceMapper;
         this.sessionNotifications = sessionNotifications;
         this.rosterIngest = rosterIngest;
+        this.students = students;
     }
 
     @Transactional
     public SessionDto create(UUID userId, CreateSessionRequest req) {
+        requireFutureSchedule(req, null);
         ExamSession session = new ExamSession();
         session.setSessionCode(uniqueCode());
         session.setSessionPassword(uniquePassword());
@@ -65,15 +74,7 @@ public class SessionService {
         addMember(saved.getId(), userId, null, "CREATOR");
         sessionNotifications.notifyLecturers(
                 saved.getId(), "Session created", sessionTitle(saved) + " is now available");
-        // Warm the roster in the background: pull these students from UITS and precompute
-        // their face embeddings, so the first scan is a vector comparison rather than a
-        // round of image downloads. Deliberately not awaited — create must stay instant.
-        if (saved.getIndexRangeStart() != null && saved.getIndexRangeEnd() != null) {
-            String requestedBy = "session:" + saved.getId();
-            rosterIngest.prepare(saved.getId(), saved.getIndexRangeStart(), saved.getIndexRangeEnd(), requestedBy);
-            rosterIngest.ingestRangeAsync(
-                    saved.getId(), saved.getIndexRangeStart(), saved.getIndexRangeEnd(), requestedBy);
-        }
+        startRosterIngest(saved);
         return toDto(saved);
     }
 
@@ -84,8 +85,18 @@ public class SessionService {
         if (status == SessionStatus.COMPLETED || status == SessionStatus.CANCELLED) {
             throw new ApiException(HttpStatus.CONFLICT, "Closed sessions cannot be edited");
         }
+        requireFutureSchedule(req, session);
+        String previousFrom = session.getIndexRangeStart();
+        String previousTo = session.getIndexRangeEnd();
         applyEditableFields(session, req);
-        return toDto(sessions.save(session));
+        ExamSession saved = sessions.save(session);
+        // A different index range is a different set of students. Without this the roster
+        // still describes the old range, so the detail screen keeps reporting the old total.
+        if (!Objects.equals(previousFrom, saved.getIndexRangeStart())
+                || !Objects.equals(previousTo, saved.getIndexRangeEnd())) {
+            startRosterIngest(saved);
+        }
+        return toDto(saved);
     }
 
     @Transactional(readOnly = true)
@@ -94,10 +105,18 @@ public class SessionService {
         return rosterIngest.status(sessionId);
     }
 
+    /**
+     * Re-run the roster ingest. The range comes off the stored session, so this still works
+     * after a restart has cleared the in-memory ingest state — the case where a roster is
+     * stuck half-embedded and a retry is the only way out.
+     */
     @Transactional(readOnly = true)
     public void retryRoster(UUID userId, Long sessionId) {
-        requireMember(userId, sessionId);
-        rosterIngest.retry(sessionId);
+        ExamSession session = requireMember(userId, sessionId);
+        if (session.getIndexRangeStart() == null || session.getIndexRangeEnd() == null) {
+            throw new ApiException(HttpStatus.CONFLICT, "This session has no student index range to load");
+        }
+        rosterIngest.retry(sessionId, session.getIndexRangeStart(), session.getIndexRangeEnd(), "session:" + sessionId);
     }
 
     @Transactional
@@ -180,7 +199,10 @@ public class SessionService {
                 .map(this::toInvigilatorDto)
                 .toList();
         var records = attendance.findBySessionIdOrderByCheckedInAtDesc(sessionId);
-        return new SessionDetailDto(toDto(session), members, attendanceMapper.toDtos(records));
+        long expected = session.getIndexRangeStart() != null && session.getIndexRangeEnd() != null
+                ? students.countInIndexRange(session.getIndexRangeStart(), session.getIndexRangeEnd())
+                : 0L;
+        return new SessionDetailDto(toDto(session), members, attendanceMapper.toDtos(records), expected);
     }
 
     /** Loads the session and rejects callers who are neither creator nor invigilator. */
@@ -217,6 +239,50 @@ public class SessionService {
     public ExamSession require(Long sessionId) {
         return sessions.findById(sessionId)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Session not found"));
+    }
+
+    /**
+     * Warm the roster in the background: pull these students from UITS and precompute their
+     * face embeddings, so the first scan is a vector comparison rather than a round of image
+     * downloads. Deliberately not awaited — create and update must stay instant.
+     */
+    private void startRosterIngest(ExamSession saved) {
+        if (saved.getIndexRangeStart() == null || saved.getIndexRangeEnd() == null) {
+            return;
+        }
+        String requestedBy = "session:" + saved.getId();
+        rosterIngest.prepare(saved.getId());
+        rosterIngest.ingestRangeAsync(saved.getId(), saved.getIndexRangeStart(), saved.getIndexRangeEnd(), requestedBy);
+    }
+
+    /**
+     * Reject a schedule that has already passed.
+     *
+     * <p>{@code existing} is the session being edited, or null on create. A schedule the
+     * caller did not touch is exempt: an exam that started at 09:00 must stay editable at
+     * 11:00, and re-sending its own stored values is not a request to schedule in the past.
+     */
+    private void requireFutureSchedule(CreateSessionRequest req, ExamSession existing) {
+        LocalTime start = SessionStatusCalculator.parseTime(req.startTime());
+        LocalTime end = SessionStatusCalculator.parseTime(req.endTime());
+        if (start != null && end != null && !end.isAfter(start)) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "The end time must be after the start time");
+        }
+        if (req.examDate() == null) {
+            return;
+        }
+        boolean unchanged = existing != null
+                && Objects.equals(req.examDate(), existing.getExamDate())
+                && Objects.equals(req.startTime(), existing.getStartTime());
+        if (unchanged) {
+            return;
+        }
+        LocalDateTime startAt = req.examDate().atTime(start != null ? start : LocalTime.MIN);
+        // Compare at the minute resolution the client sends. A request submitted at 13:58:40
+        // for a 13:58 start is on time; the seconds spent submitting it must not reject it.
+        if (startAt.isBefore(LocalDateTime.now().truncatedTo(ChronoUnit.MINUTES))) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "The exam date and start time must not be in the past");
+        }
     }
 
     void addMember(Long sessionId, UUID userId, UUID assignedBy, String role) {

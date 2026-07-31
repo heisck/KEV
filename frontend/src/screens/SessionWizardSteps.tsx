@@ -138,10 +138,13 @@ export function ScheduleStep({
   values,
   setValue,
   styles,
+  error,
 }: {
   values: WizardValues;
   setValue: SetValue;
   styles: WizardStyles;
+  /** Why this schedule cannot be saved; also what greys out Next. */
+  error?: string | null;
 }) {
   return (
     <View style={styles.section}>
@@ -151,6 +154,7 @@ export function ScheduleStep({
         value={values.examDate}
         onChange={(text) => setValue('examDate', text)}
         placeholder="Select a date"
+        minimumDate={new Date()}
         quickAction={{ label: 'Today', onPress: () => setValue('examDate', scheduleToday()) }}
       />
       <View style={styles.row}>
@@ -178,6 +182,11 @@ export function ScheduleStep({
           />
         </View>
       </View>
+      {error ? (
+        <Text style={styles.error} testID="schedule-error">
+          {error}
+        </Text>
+      ) : null}
     </View>
   );
 }

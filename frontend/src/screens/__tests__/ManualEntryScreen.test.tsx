@@ -3,11 +3,7 @@ import { fireEvent, render, waitFor } from '@testing-library/react-native';
 import { ManualEntryScreen } from '@/screens/kev/ManualEntryScreen';
 
 const mockCompleteScan = jest.fn();
-const mockLookupStudent = jest.fn();
 
-jest.mock('@/api/directory', () => ({
-  lookupStudent: (...args: unknown[]) => mockLookupStudent(...args),
-}));
 jest.mock('@/hooks/useMockScan', () => ({ useMockScan: () => mockCompleteScan }));
 jest.mock('@/hooks/useScanNavigation', () => ({
   useScanNavigation: () => ({ goBack: jest.fn(), locked: false }),
@@ -21,22 +17,11 @@ jest.mock('react-native-safe-area-context', () => ({
 }));
 
 beforeEach(() => {
-  mockCompleteScan.mockReset().mockResolvedValue(undefined);
-  mockLookupStudent.mockReset().mockResolvedValue({
-    id: 7,
-    indexNumber: '4211020',
-    fullName: 'Ama Boateng',
-    programme: 'BSc CS',
-    level: 300,
-    photoUrl: null,
-    enrolled: true,
-    feesStatus: 'PAID',
-    eligible: true,
-    courses: ['DCIT 301'],
-  });
+  mockCompleteScan.mockReset().mockResolvedValue('added');
 });
 
-it('submits manual entry from a visible Send button instead of the keyboard Go action', async () => {
+/** Check-in resolves the index itself, so the old pre-flight lookup is pure latency. */
+it('checks in directly from the index number without a separate lookup', async () => {
   const screen = render(<ManualEntryScreen />);
   const input = screen.getByTestId('manual-index');
 
@@ -44,8 +29,25 @@ it('submits manual entry from a visible Send button instead of the keyboard Go a
   fireEvent.changeText(input, '4211020');
   fireEvent.press(screen.getByText('Send'));
 
-  await waitFor(() => expect(mockLookupStudent).toHaveBeenCalledWith('4211020'));
-  expect(mockCompleteScan).toHaveBeenCalledWith(
-    expect.objectContaining({ index: '4211020', name: 'Ama Boateng' }),
-  );
+  await waitFor(() => expect(mockCompleteScan).toHaveBeenCalledWith('4211020'));
+});
+
+it('shows the inline not-found error when check-in reports an unknown index', async () => {
+  mockCompleteScan.mockResolvedValue('notfound');
+  const screen = render(<ManualEntryScreen />);
+
+  fireEvent.changeText(screen.getByTestId('manual-index'), '9999999');
+  fireEvent.press(screen.getByText('Send'));
+
+  await waitFor(() => expect(screen.getByText(/Student not found/)).toBeTruthy());
+});
+
+it('keeps the error hidden for a successful check-in', async () => {
+  const screen = render(<ManualEntryScreen />);
+
+  fireEvent.changeText(screen.getByTestId('manual-index'), '4211020');
+  fireEvent.press(screen.getByText('Send'));
+
+  await waitFor(() => expect(mockCompleteScan).toHaveBeenCalled());
+  expect(screen.queryByText(/Student not found/)).toBeNull();
 });

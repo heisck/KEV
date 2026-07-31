@@ -42,9 +42,29 @@ public interface DirectoryStudentRepository extends JpaRepository<DirectoryStude
             """)
     List<DirectoryStudent> findInIndexRange(@Param("from") String from, @Param("to") String to);
 
-    /** Synced students still missing an embedding — the backfill work queue. */
-    @Query("SELECT s FROM DirectoryStudent s WHERE s.faceEmbedding IS NULL AND s.photoUrl IS NOT NULL")
-    List<DirectoryStudent> findPendingEmbedding();
+    /** How many students the session expects — the roster total shown on its detail screen. */
+    @Query(
+            """
+            SELECT COUNT(s) FROM DirectoryStudent s
+             WHERE (:from IS NULL OR s.indexNumber >= :from)
+               AND (:to IS NULL OR s.indexNumber <= :to)
+            """)
+    long countInIndexRange(@Param("from") String from, @Param("to") String to);
+
+    /**
+     * One session's backfill queue: students in its index range that are synced but have no
+     * face vector yet. Scoped to the range because an unscoped queue makes a session wait on
+     * — and report progress against — every unembedded student in the directory.
+     */
+    @Query(
+            """
+            SELECT s FROM DirectoryStudent s
+             WHERE s.faceEmbedding IS NULL AND s.photoUrl IS NOT NULL
+               AND (:from IS NULL OR s.indexNumber >= :from)
+               AND (:to IS NULL OR s.indexNumber <= :to)
+             ORDER BY s.indexNumber
+            """)
+    List<DirectoryStudent> findPendingEmbeddingInIndexRange(@Param("from") String from, @Param("to") String to);
 
     @Query(
             "SELECT s FROM DirectoryStudent s WHERE LOWER(s.indexNumber) LIKE LOWER(CONCAT('%', :query, '%')) OR LOWER(s.fullName) LIKE LOWER(CONCAT('%', :query, '%'))")

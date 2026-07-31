@@ -39,6 +39,7 @@ export function DateTimeField({
   onChange,
   placeholder,
   quickAction,
+  minimumDate,
 }: {
   label: string;
   mode: Mode;
@@ -46,6 +47,8 @@ export function DateTimeField({
   onChange: (next: string) => void;
   placeholder: string;
   quickAction?: { label: string; onPress: () => void };
+  /** Earliest selectable value — greys out past days in the native calendar. */
+  minimumDate?: Date;
 }) {
   const p = usePalette();
   const s = makeStyles(p);
@@ -99,6 +102,7 @@ export function DateTimeField({
           mode={mode}
           is24Hour
           display="default"
+          minimumDate={minimumDate}
           onChange={handleAndroidChange}
         />
       ) : null}
@@ -115,6 +119,7 @@ export function DateTimeField({
             mode={mode}
             is24Hour
             display="spinner"
+            minimumDate={minimumDate}
             themeVariant={p.isDark ? 'dark' : 'light'}
             textColor={p.ink}
             style={s.iosPicker}

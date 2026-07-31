@@ -56,8 +56,14 @@ if (
 
 // Only auto-manage local infra when actually running the app (not for verify/test,
 // which use Testcontainers). Brings up Postgres + Redis and seeds via Flyway on boot.
-if (args.includes('spring-boot:run')) {
+const running = args.includes('spring-boot:run');
+if (running) {
   ensureDevInfra(jdbc);
+} else {
+  // Build into a private tree so a test run never rewrites or `clean`-deletes the class
+  // files a live dev server has loaded — devtools then restarts mid-write and the JVM
+  // dies with an access violation (exit -1073741819) that looks like a random crash.
+  args.push('-Dkev.build.dir=target-cli');
 }
 
 // mvnw.cmd needs a cmd.exe host, but `shell: true` + an args array trips Node's

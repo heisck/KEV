@@ -1,4 +1,4 @@
-import { render } from '@testing-library/react-native';
+import { fireEvent, render } from '@testing-library/react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { SessionRosterDrawer } from '@/components/session/SessionRosterDrawer';
@@ -6,10 +6,12 @@ import type { RosterIngestStatus, RosterStudent } from '@/api/sessions';
 
 const mockRosterStatus = jest.fn();
 const mockSessionRoster = jest.fn();
+const mockRetry = jest.fn();
 
 jest.mock('@/api/hooks', () => ({
   useRosterStatus: (...args: unknown[]) => mockRosterStatus(...args),
   useSessionRoster: (...args: unknown[]) => mockSessionRoster(...args),
+  useRetryRoster: () => ({ mutate: mockRetry, isPending: false }),
 }));
 
 const student = (indexNumber: string, faceReady: boolean): RosterStudent => ({
@@ -53,4 +55,19 @@ it('stops polling once the sync is no longer live', () => {
   renderDrawer('COMPLETED', [student('6180001', true)]);
 
   expect(mockSessionRoster).toHaveBeenCalledWith(7, false);
+});
+
+/** A finished sync that left students unembedded is stranded — offer a way to re-run it. */
+it('offers a reload when the sync stopped with students still missing face data', () => {
+  const screen = renderDrawer('COMPLETED', [student('6180001', true), student('6180002', false)]);
+
+  fireEvent.press(screen.getByTestId('roster-reload'));
+
+  expect(mockRetry).toHaveBeenCalledWith(7);
+});
+
+it('hides the reload while the sync is still running', () => {
+  const screen = renderDrawer('RUNNING', [student('6180002', false)]);
+
+  expect(screen.queryByTestId('roster-reload')).toBeNull();
 });

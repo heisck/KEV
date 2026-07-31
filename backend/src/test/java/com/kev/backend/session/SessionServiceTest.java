@@ -3,6 +3,9 @@ package com.kev.backend.session;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -15,6 +18,9 @@ import com.kev.backend.notification.SessionNotificationService;
 import com.kev.backend.session.dto.CreateSessionRequest;
 import com.kev.backend.session.dto.SessionDto;
 import java.time.LocalDate;
+import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -23,7 +29,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 
 @ExtendWith(MockitoExtension.class)
@@ -49,6 +54,9 @@ class SessionServiceTest {
 
     @Mock
     RosterIngestService rosterIngest;
+
+    @Mock
+    com.kev.backend.directory.DirectoryStudentRepository students;
 
     @InjectMocks
     SessionService service;
@@ -109,7 +117,7 @@ class SessionServiceTest {
                 new CreateSessionRequest(
                         "Algorithms", "JQB", "GF", "12", List.of("DCIT 301"), "100", "599", null, null, null, null));
 
-        verify(rosterIngest).prepare(15L, "100", "599", "session:15");
+        verify(rosterIngest).prepare(15L);
         verify(rosterIngest).ingestRangeAsync(15L, "100", "599", "session:15");
     }
 
@@ -170,7 +178,7 @@ class SessionServiceTest {
         ongoing.setId(5L);
         ongoing.setCreatedBy(UUID.randomUUID());
         ongoing.setStatus(SessionStatus.ACTIVE);
-        when(sessions.findAll(any(Sort.class))).thenReturn(List.of(joined, ongoing, discoverable));
+        when(sessions.findAllByOrderByStartedAtDesc()).thenReturn(List.of(joined, ongoing, discoverable));
         when(invigilators.findSessionIdsByUserId(creator)).thenReturn(List.of(3L));
         when(attendance.countCheckedInBySessionIds(List.of(3L, 5L, 4L))).thenReturn(List.of());
         when(invigilators.countBySessionIds(List.of(3L, 5L, 4L))).thenReturn(List.of());
@@ -289,6 +297,130 @@ class SessionServiceTest {
         when(sessions.findById(3L)).thenReturn(Optional.of(session));
 
         assertThat(service.requireVisible(3L)).isSameAs(session);
+    }
+
+    /** A new index range is a new set of students, so the roster has to be pulled again. */
+    @Test
+    void updateResyncsTheRosterWhenTheIndexRangeChanges() {
+        ExamSession session = editableSession();
+        session.setIndexRangeStart("20000001");
+        session.setIndexRangeEnd("20000100");
+        when(sessions.findById(3L)).thenReturn(Optional.of(session));
+        when(sessions.save(session)).thenReturn(session);
+
+        service.update(creator, 3L, updateRequest());
+
+        verify(rosterIngest).prepare(3L);
+        verify(rosterIngest).ingestRangeAsync(3L, "10000001", "10000100", "session:3");
+    }
+
+    @Test
+    void updateLeavesTheRosterAloneWhenTheIndexRangeIsUnchanged() {
+        ExamSession session = editableSession();
+        session.setIndexRangeStart("10000001");
+        session.setIndexRangeEnd("10000100");
+        when(sessions.findById(3L)).thenReturn(Optional.of(session));
+        when(sessions.save(session)).thenReturn(session);
+
+        service.update(creator, 3L, updateRequest());
+
+        verify(rosterIngest, never()).ingestRangeAsync(anyLong(), anyString(), anyString(), anyString());
+    }
+
+    @Test
+    void createRejectsAnExamDateThatHasAlreadyPassed() {
+        assertThatThrownBy(() ->
+                        service.create(creator, scheduledRequest(LocalDate.now().minusDays(1), "09:00", "12:00")))
+                .isInstanceOf(ApiException.class)
+                .satisfies(e -> assertThat(((ApiException) e).getStatus()).isEqualTo(HttpStatus.BAD_REQUEST));
+        verify(sessions, never()).save(any());
+    }
+
+    /**
+     * "Now" is a minute, not an instant: a request for a 13:58 start that arrives at 13:58:40
+     * is on time. Seconds spent filling in the form must not reject it.
+     */
+    @Test
+    void createAcceptsAStartTimeInsideTheCurrentMinute() {
+        when(sessions.existsBySessionCode(any())).thenReturn(false);
+        when(sessions.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+        LocalTime thisMinute = LocalTime.now().truncatedTo(ChronoUnit.MINUTES);
+
+        service.create(
+                creator,
+                scheduledRequest(
+                        LocalDate.now(),
+                        thisMinute.format(DateTimeFormatter.ofPattern("HH:mm")),
+                        thisMinute.plusHours(2).format(DateTimeFormatter.ofPattern("HH:mm"))));
+
+        verify(sessions).save(any());
+    }
+
+    @Test
+    void createRejectsAnEndTimeThatIsNotAfterTheStart() {
+        assertThatThrownBy(() ->
+                        service.create(creator, scheduledRequest(LocalDate.now().plusDays(1), "12:00", "12:00")))
+                .isInstanceOf(ApiException.class)
+                .satisfies(e -> assertThat(((ApiException) e).getStatus()).isEqualTo(HttpStatus.BAD_REQUEST));
+    }
+
+    /**
+     * An exam that already started must stay editable; re-sending its own stored schedule is
+     * not a request to move it into the past.
+     */
+    @Test
+    void updateAcceptsAStoredScheduleThatHasAlreadyStarted() {
+        ExamSession session = editableSession();
+        session.setExamDate(LocalDate.now());
+        session.setStartTime("00:01");
+        session.setEndTime("23:59");
+        when(sessions.findById(3L)).thenReturn(Optional.of(session));
+        when(sessions.save(session)).thenReturn(session);
+
+        service.update(creator, 3L, scheduledRequest(LocalDate.now(), "00:01", "23:59"));
+
+        verify(sessions).save(session);
+    }
+
+    @Test
+    void updateRejectsMovingAnExamOntoAPastDate() {
+        ExamSession session = editableSession();
+        session.setExamDate(LocalDate.now());
+        session.setStartTime("00:01");
+        when(sessions.findById(3L)).thenReturn(Optional.of(session));
+
+        assertThatThrownBy(() -> service.update(
+                        creator, 3L, scheduledRequest(LocalDate.now().minusDays(2), "09:00", "12:00")))
+                .isInstanceOf(ApiException.class)
+                .satisfies(e -> assertThat(((ApiException) e).getStatus()).isEqualTo(HttpStatus.BAD_REQUEST));
+        verify(sessions, never()).save(any());
+    }
+
+    private CreateSessionRequest scheduledRequest(LocalDate date, String start, String end) {
+        return new CreateSessionRequest(
+                "Algorithms", "JQB", "GF", "12", List.of("DCIT 301"), "100", "599", date, start, end, List.of("FACE"));
+    }
+
+    /** Retry must work off the stored range: ingest state does not survive a restart. */
+    @Test
+    void retryRosterReplaysTheStoredIndexRange() {
+        ExamSession session = editableSession();
+        session.setIndexRangeStart("100");
+        session.setIndexRangeEnd("599");
+        when(sessions.findById(3L)).thenReturn(Optional.of(session));
+
+        service.retryRoster(creator, 3L);
+
+        verify(rosterIngest).retry(3L, "100", "599", "session:3");
+    }
+
+    @Test
+    void retryRosterRejectsASessionWithNoIndexRange() {
+        when(sessions.findById(3L)).thenReturn(Optional.of(editableSession()));
+
+        assertThatThrownBy(() -> service.retryRoster(creator, 3L))
+                .isInstanceOf(ApiException.class)
+                .satisfies(e -> assertThat(((ApiException) e).getStatus()).isEqualTo(HttpStatus.CONFLICT));
     }
 
     private ExamSession editableSession() {

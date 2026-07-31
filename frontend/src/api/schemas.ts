@@ -111,6 +111,8 @@ export const SessionDetailDtoSchema = z.object({
   session: SessionDtoSchema,
   invigilators: z.array(InvigilatorDtoSchema),
   attendance: z.array(AttendanceDtoSchema),
+  /** Students synced for the session's index range — the real roster size. */
+  expectedStudents: z.number().int().min(0),
 });
 export type SessionDetailDto = z.infer<typeof SessionDetailDtoSchema>;
 

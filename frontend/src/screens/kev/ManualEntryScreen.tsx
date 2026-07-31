@@ -1,13 +1,11 @@
 import { useState } from 'react';
-import { StyleSheet, Text, TextInput, View } from 'react-native';
+import { Keyboard, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { lookupStudent } from '@/api/directory';
 import { ScreenTopBar } from '@/components/kev/chrome';
 import { ScanMethodSwitcher } from '@/components/scan/ScanMethodSwitcher';
 import { SessionLockButton } from '@/components/scan/SessionLockButton';
 import { HapticPressable } from '@/components/ui/HapticPressable';
-import { studentRecordToScanned } from '@/data/exams';
 import { useMockScan } from '@/hooks/useMockScan';
 import { useScanMethodGuard } from '@/hooks/useScanMethodGuard';
 import { useScanNavigation } from '@/hooks/useScanNavigation';
@@ -27,14 +25,14 @@ export function ManualEntryScreen() {
   const [notFound, setNotFound] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
+  // Check-in resolves the index number itself and returns the student, so going straight
+  // to it halves the wait: the old flow looked the same student up first, purely to learn
+  // whether it existed — which the check-in's own 404 already tells us.
   const submit = async () => {
     if (!canUse || !index.trim() || submitting) return;
     setSubmitting(true);
     try {
-      const student = await lookupStudent(index.trim());
-      await completeScan(studentRecordToScanned(student));
-    } catch {
-      setNotFound(true);
+      setNotFound((await completeScan(index.trim())) === 'notfound');
     } finally {
       setSubmitting(false);
     }
@@ -53,7 +51,9 @@ export function ManualEntryScreen() {
         trailing={<SessionLockButton sessionId={sessionId} />}
       />
 
-      <View style={styles.body}>
+      {/* number-pad has no return key, so tapping the empty area is the only way off
+          the keyboard. accessible={false} keeps it out of the screen-reader order. */}
+      <Pressable accessible={false} onPress={Keyboard.dismiss} style={styles.body}>
         <Text style={[styles.label, { color: p.ink }]}>Index number</Text>
         <TextInput
           value={index}
@@ -77,7 +77,7 @@ export function ManualEntryScreen() {
             Student not found. Check the index number and try again.
           </Text>
         ) : null}
-      </View>
+      </Pressable>
       <HapticPressable
         accessibilityRole="button"
         accessibilityState={{ disabled: !canUse || submitting || !index.trim() }}

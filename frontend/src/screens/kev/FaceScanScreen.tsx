@@ -6,6 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ScreenTopBar } from '@/components/kev/chrome';
 import { FaceIdIcon } from '@/components/kev/icons';
+import { FaceCaptureOverlay } from '@/components/scan/FaceCaptureOverlay';
 import { ScanMethodSwitcher } from '@/components/scan/ScanMethodSwitcher';
 import { SessionLockButton } from '@/components/scan/SessionLockButton';
 import { HapticPressable } from '@/components/ui/HapticPressable';
@@ -36,18 +37,18 @@ function CameraFlipIcon({ color }: { color: string }) {
 /** Label and tone for each step of the capture flow. */
 const PHASE_COPY: Record<CapturePhase, { title: string; sub: string }> = {
   idle: { title: 'Align the student’s face', sub: 'Center the face in the frame, then capture.' },
-  captured: { title: 'Captured', sub: 'Hold still…' },
-  verifying: { title: 'Verifying…', sub: 'Matching against the session roster.' },
-  matched: { title: 'Verified', sub: 'Match found.' },
-  rejected: { title: 'Not verified', sub: 'Check the message below and try again.' },
+  captured: { title: 'Captured', sub: 'You can lower the phone — we work from the photo.' },
+  verifying: { title: 'Matching…', sub: 'Checking the shot against the session roster.' },
+  matched: { title: 'Verified', sub: 'Marked present. Ready for the next student.' },
+  rejected: { title: 'Not verified', sub: 'Check the message below, then capture again.' },
 };
 
 const CTA_LABEL: Record<CapturePhase, string> = {
   idle: 'Capture',
   captured: 'Captured',
-  verifying: 'Verifying…',
+  verifying: 'Matching…',
   matched: 'Verified',
-  rejected: 'Try again',
+  rejected: 'Capture again',
 };
 
 /** Face verification — the avatar's face is the live camera preview with front/back switch. */
@@ -71,7 +72,7 @@ export function FaceScanScreen() {
     },
     [completeScan],
   );
-  const { cameraRef, phase, error, busy, capture, reset } = useFaceCapture(sessionId, onMatched);
+  const { cameraRef, phase, error, busy, photoUri, capture } = useFaceCapture(sessionId, onMatched);
   const copy = PHASE_COPY[phase];
 
   return (
@@ -91,7 +92,8 @@ export function FaceScanScreen() {
               <FaceIdIcon color={p.muted} size={44} />
             </View>
           )}
-          {permission?.granted ? (
+          <FaceCaptureOverlay phase={phase} photoUri={photoUri} />
+          {permission?.granted && phase === 'idle' ? (
             <HapticPressable
               accessibilityLabel="Switch camera"
               accessibilityRole="button"
@@ -118,7 +120,7 @@ export function FaceScanScreen() {
           accessibilityRole="button"
           accessibilityState={{ busy, disabled: !canUse || busy }}
           disabled={!canUse || busy}
-          onPress={() => (phase === 'rejected' ? reset() : void capture())}
+          onPress={() => void capture()}
           style={[styles.cta, { backgroundColor: p.primary }, (!canUse || busy) && styles.disabled]}
           testID="face-capture"
         >

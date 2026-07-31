@@ -82,11 +82,14 @@ export function ExamDetailScreen() {
     : 'Session details are still loading';
   const hall = session?.title ?? session?.building ?? 'Main Exam Hall';
   const verified = detail?.attendance?.length ?? Number(session?.checkedInCount ?? 0);
-  const studentsCount = isUpcoming ? 'Unknown' : verified + 10;
-  const score = isUpcoming
-    ? 'N/A'
-    : studentsCount === 'Unknown' || studentsCount === 0
-      ? '0%'
+  // The roster size comes from the students actually synced for this session's index
+  // range, so it tracks the range being edited and grows while the sync is still running.
+  // Until the first students land there is no honest total to show.
+  const expected = detail?.expectedStudents ?? 0;
+  const studentsCount = expected > 0 ? expected : 'Unknown';
+  const score =
+    studentsCount === 'Unknown'
+      ? 'N/A'
       : `${Math.min(100, Math.round((verified / Number(studentsCount)) * 100))}%`;
   const starts = session?.startTime ?? '09:00';
   const ends = session?.endTime ?? '12:00';

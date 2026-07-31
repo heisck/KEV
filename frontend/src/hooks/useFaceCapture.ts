@@ -1,6 +1,6 @@
 import type { CameraView } from 'expo-camera';
 import { ImageManipulator, SaveFormat } from 'expo-image-manipulator';
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { identifyFace } from '@/api/verify';
 import { getProblemDetail } from '@/api/schemas';
@@ -19,11 +19,22 @@ export type FaceCaptureState = {
   phase: CapturePhase;
   result: FaceIdentifyResponse | null;
   error: string | null;
-  /** True from shutter press until the flow resets — drives the disabled shutter. */
-  busy: boolean;
+  /**
+   * Local uri of the frame under review. Everything after the shutter runs off this
+   * file, so showing it is what tells the invigilator the phone can leave the face.
+   */
+  photoUri: string | null;
 };
 
-const IDLE: FaceCaptureState = { phase: 'idle', result: null, error: null, busy: false };
+const IDLE: FaceCaptureState = { phase: 'idle', result: null, error: null, photoUri: null };
+
+/** Phases that own the shutter. Deriving this keeps it from drifting out of step. */
+function isBusy(phase: CapturePhase): boolean {
+  return phase === 'captured' || phase === 'verifying' || phase === 'matched';
+}
+
+/** How long a match stays on screen before the shutter re-arms for the next student. */
+const MATCH_HOLD_MS = 1200;
 
 /**
  * Longest edge of the uploaded probe. A raw camera frame is several megabytes, which
@@ -47,66 +58,73 @@ async function shrinkProbe(uri: string): Promise<string> {
 
 export function useFaceCapture(sessionId: string, onMatched: (r: FaceIdentifyResponse) => void) {
   const cameraRef = useRef<CameraView>(null);
+  const holdRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Authoritative shutter lock. Rendered state can't serve here: a double-tap fires
+  // both handlers off the same closure, before React has re-rendered the phase.
+  const busyRef = useRef(false);
   const [state, setState] = useState<FaceCaptureState>(IDLE);
 
-  const reset = useCallback(() => setState(IDLE), []);
+  const clearHold = useCallback(() => {
+    if (holdRef.current) clearTimeout(holdRef.current);
+    holdRef.current = null;
+  }, []);
+
+  useEffect(() => clearHold, [clearHold]);
+
+  /** Land on a terminal phase and release the shutter. */
+  const release = useCallback((next: (prev: FaceCaptureState) => FaceCaptureState) => {
+    busyRef.current = false;
+    setState(next);
+  }, []);
+
+  // The rejected shot stays on screen under the error: the invigilator needs to see
+  // what the camera actually got to know whether to reframe or just retry.
+  const reject = useCallback(
+    (error: string, result: FaceIdentifyResponse | null = null) => {
+      release((prev) => ({ ...prev, phase: 'rejected', result, error }));
+      haptic('error');
+    },
+    [release],
+  );
 
   const capture = useCallback(async () => {
-    // Guard here rather than only on the button: a rapid double-tap can fire twice
-    // before React re-renders the disabled state.
-    if (state.busy) return;
-    setState({ phase: 'captured', result: null, error: null, busy: true });
+    if (busyRef.current) return;
+    busyRef.current = true;
+    clearHold();
+    setState({ phase: 'captured', result: null, error: null, photoUri: null });
     haptic('select');
 
     try {
       const photo = await cameraRef.current?.takePictureAsync({ quality: 0.6 });
-      if (!photo?.uri) {
-        setState({
-          phase: 'rejected',
-          result: null,
-          error: 'Could not capture. Try again.',
-          busy: false,
-        });
-        haptic('error');
-        return;
-      }
+      if (!photo?.uri) return reject('Could not capture. Try again.');
+
+      // Frame is on disk — freeze it in the preview and release the camera.
+      setState((prev) => ({ ...prev, photoUri: photo.uri }));
+      const probeUri = await shrinkProbe(photo.uri);
 
       setState((prev) => ({ ...prev, phase: 'verifying' }));
-      const probeUri = await shrinkProbe(photo.uri);
       const result = await identifyFace(sessionId, {
         uri: probeUri,
         name: 'probe.jpg',
         type: 'image/jpeg',
       });
 
-      if (!result.match) {
-        setState({
-          phase: 'rejected',
-          result,
-          error: result.detail ?? 'No match found.',
-          busy: false,
-        });
-        haptic('error');
-        return;
-      }
+      if (!result.match) return reject(result.detail ?? 'No match found.', result);
 
-      setState({ phase: 'matched', result, error: null, busy: false });
+      setState((prev) => ({ ...prev, phase: 'matched', result, error: null }));
       haptic('success');
       onMatched(result);
+      // Hold the verdict long enough to read, then re-arm for the next student. The
+      // shutter stays locked through the hold so the animation can't be cut short.
+      holdRef.current = setTimeout(() => release(() => IDLE), MATCH_HOLD_MS);
     } catch (err) {
       // A 422 means the capture itself was unusable (no face / too blurry). Its detail
       // is written for the invigilator, so surface it instead of a generic failure.
       const detail = getProblemDetail(err)?.detail;
       logger.warn('face identify failed', { sessionId, detail });
-      setState({
-        phase: 'rejected',
-        result: null,
-        error: detail ?? 'Verification failed. Try again.',
-        busy: false,
-      });
-      haptic('error');
+      reject(detail ?? 'Verification failed. Try again.');
     }
-  }, [onMatched, sessionId, state.busy]);
+  }, [clearHold, onMatched, reject, release, sessionId]);
 
-  return { cameraRef, ...state, capture, reset };
+  return { cameraRef, ...state, busy: isBusy(state.phase), capture };
 }

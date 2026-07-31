@@ -1,10 +1,10 @@
 import { useMemo, useState } from 'react';
 import { FlatList, Image, StyleSheet, Text, TextInput, View } from 'react-native';
 
-import { useRosterStatus, useSessionRoster } from '@/api/hooks';
+import { useRetryRoster, useRosterStatus, useSessionRoster } from '@/api/hooks';
 import { isRosterIngestLive, type RosterStudent } from '@/api/sessions';
 import { initialsFor } from '@/components/kev/people';
-import { BottomDrawer } from '@/components/ui';
+import { AppButton, BottomDrawer } from '@/components/ui';
 import { resolveStudentPhotoUrl } from '@/data/exams';
 import { radii, spacing, usePalette } from '@/theme';
 
@@ -36,10 +36,15 @@ export function SessionRosterDrawer({ visible, onClose, sessionId }: Props) {
   const status = useRosterStatus(sessionId, visible);
   const live = isRosterIngestLive(status.data?.state);
   const roster = useSessionRoster(visible ? sessionId : 0, live);
+  const retry = useRetryRoster();
 
   const students = useMemo(() => roster.data ?? [], [roster.data]);
   const filtered = useMemo(() => students.filter((s) => matches(s, query)), [students, query]);
   const ready = students.filter((s) => s.faceReady).length;
+  // A sync that is no longer running but left students without face data is stuck, not done:
+  // the ingest state lives in memory, so a backend restart strands a half-embedded roster
+  // with nothing polling for it. Re-running it is the only way out.
+  const stalled = !roster.isLoading && !live && ready < students.length;
 
   return (
     <BottomDrawer
@@ -67,6 +72,16 @@ export function SessionRosterDrawer({ visible, onClose, sessionId }: Props) {
         style={[styles.search, { backgroundColor: p.input, color: p.ink }]}
         testID="session-roster-search"
       />
+
+      {stalled ? (
+        <AppButton
+          label={retry.isPending ? 'Reloading…' : `Reload face data for ${students.length - ready}`}
+          disabled={retry.isPending}
+          onPress={() => retry.mutate(sessionId)}
+          variant="ghost"
+          testID="roster-reload"
+        />
+      ) : null}
 
       <FlatList
         data={filtered}

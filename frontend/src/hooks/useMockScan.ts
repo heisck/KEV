@@ -9,10 +9,11 @@ import { toast } from '@/lib/toast';
 import { useSessionStore } from '@/store/sessionStore';
 import { useSettingsStore } from '@/store/settingsStore';
 
-type Outcome = 'added' | 'already' | 'error';
+type Outcome = 'added' | 'already' | 'notfound' | 'error';
 
+/** The result page reports on a student; only outcomes that resolved one can use it. */
 export function shouldShowScanResult(showSuccessPage: boolean, outcome: Outcome): boolean {
-  return showSuccessPage && outcome !== 'error';
+  return showSuccessPage && (outcome === 'added' || outcome === 'already');
 }
 
 /** Resolve the index number to check in from the scan hook's flexible input. */
@@ -47,6 +48,10 @@ export function useMockScan(sessionId: string, method: CheckInMethod = 'FACE') {
         getProblemDetail(err)?.detail === 'Student already checked in'
       ) {
         outcome = 'already';
+      } else if (isAxiosError(err) && err.response?.status === 404) {
+        // Check-in resolves the student itself, so its 404 is the "no such index" signal —
+        // callers no longer need a separate lookup round trip to find that out.
+        outcome = 'notfound';
       } else {
         outcome = 'error';
       }
@@ -58,7 +63,7 @@ export function useMockScan(sessionId: string, method: CheckInMethod = 'FACE') {
         pathname: '/verify/result',
         params: { exam: sessionId, student: student?.id ?? '0', status: outcome, method },
       });
-      return;
+      return outcome;
     }
 
     // Quick-feedback mode: toast + vibration, no navigation.
@@ -68,9 +73,13 @@ export function useMockScan(sessionId: string, method: CheckInMethod = 'FACE') {
     } else if (outcome === 'already') {
       haptic('warning');
       toast.info(`${student?.name ?? 'Student'} is already in this class`);
+    } else if (outcome === 'notfound') {
+      haptic('error');
+      toast.error('No student with that index number');
     } else {
       haptic('error');
       toast.error('Could not verify. Try again');
     }
+    return outcome;
   };
 }
