@@ -62,7 +62,15 @@ export function CreateSessionWizard({
 
   const canNext =
     (step === 0 && v.building.trim().length > 0) ||
-    (step === 1 && v.courses.some((c) => c.course.trim())) ||
+    (step === 1 &&
+      v.courses.length > 0 &&
+      v.courses.every(
+        (course) =>
+          course.course.trim() &&
+          course.indexFrom.trim() &&
+          course.indexTo.trim() &&
+          Number(course.indexFrom) <= Number(course.indexTo),
+      )) ||
     step === 2 ||
     (step === 3 && v.methods.length > 0) ||
     step === 4;

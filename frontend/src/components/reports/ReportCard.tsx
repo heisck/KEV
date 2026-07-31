@@ -18,7 +18,9 @@ export function ReportCard({
   const title = item.student?.fullName ?? item.sessionTitle;
   const meta = item.student
     ? `${item.student.indexNumber} • ${item.sessionTitle}`
-    : `${item.sessionCode} • General report`;
+    : item.sessionCode
+      ? `${item.sessionCode} • General report`
+      : 'General report';
   return (
     <HapticPressable
       accessibilityRole="button"

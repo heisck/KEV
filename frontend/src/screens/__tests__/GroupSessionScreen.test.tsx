@@ -78,6 +78,8 @@ jest.mock('expo-router', () => ({
 jest.mock('@/api/hooks', () => ({
   useJoinSession: () => ({ mutateAsync: jest.fn() }),
   useSessionDetail: () => ({ data: mockDetail }),
+  useRosterStatus: () => ({ data: undefined }),
+  useSessionRoster: () => ({ data: [], isLoading: false }),
 }));
 
 beforeEach(() => {

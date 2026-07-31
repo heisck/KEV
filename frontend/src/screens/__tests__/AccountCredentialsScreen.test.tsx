@@ -1,4 +1,5 @@
 import { render } from '@testing-library/react-native';
+import { StyleSheet } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { AccountCredentialsScreen } from '@/screens/AccountCredentialsScreen';
@@ -6,7 +7,7 @@ import { useAuthStore } from '@/store/authStore';
 
 jest.mock('expo-router', () => ({ useRouter: () => ({ back: jest.fn() }) }));
 
-it('uses the reset-password reference design without removing email updates', () => {
+it('uses the password-change design without exposing email editing', () => {
   useAuthStore.setState({
     user: {
       id: 'lecturer-1',
@@ -26,11 +27,13 @@ it('uses the reset-password reference design without removing email updates', ()
     </SafeAreaProvider>,
   );
 
-  expect(screen.getByTestId('credentials-key-icon')).toBeTruthy();
-  expect(screen.getByText('Reset Password')).toBeTruthy();
-  expect(screen.getByText('Sign-in email')).toBeTruthy();
+  expect(screen.getByText('Change Password')).toBeTruthy();
+  expect(screen.queryByText('Sign-in email')).toBeNull();
   expect(screen.getByText('Current Password')).toBeTruthy();
   expect(screen.getByText('New Password')).toBeTruthy();
-  expect(screen.getByText('Confirm Password')).toBeTruthy();
-  expect(screen.getByText('SAVE')).toBeTruthy();
+  expect(screen.getByText('Confirm New Password')).toBeTruthy();
+  expect(screen.getByText('Save')).toBeTruthy();
+  expect(
+    StyleSheet.flatten(screen.getByPlaceholderText('Current Password').props.style).textAlign,
+  ).not.toBe('center');
 });

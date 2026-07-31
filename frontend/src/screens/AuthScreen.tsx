@@ -1,15 +1,8 @@
-import { useCallback, useState, type ReactNode } from 'react';
+import { useCallback, useState } from 'react';
 import { Text, TextInput, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import {
-  AppleIcon,
-  EmailIcon,
-  EyeIcon,
-  EyeOffIcon,
-  GoogleIcon,
-  LockIcon,
-} from '@/components/auth/AuthIcons';
+import { EmailIcon, EyeIcon, EyeOffIcon, LockIcon } from '@/components/auth/AuthIcons';
 import { GlassPressable } from '@/components/ui/GlassPressable';
 import { GlassSurface } from '@/components/ui/GlassSurface';
 import { HapticPressable } from '@/components/ui/HapticPressable';
@@ -19,20 +12,13 @@ import { authScreenStyles as styles } from '@/screens/authScreenStyles';
 import { usePalette } from '@/theme';
 
 type AuthScreenProps = {
-  onApplePress?: () => void;
-  onGooglePress?: () => void;
   /** Email + password sign-in from this screen — accounts are pre-provisioned. */
   onEmailSignIn?: (email: string, password: string) => void;
   isSubmitting?: boolean;
 };
 
 /** Email/password sign-in surface. Keyboard avoidance is handled by AuthScaffold. */
-export function AuthScreen({
-  onApplePress,
-  onGooglePress,
-  onEmailSignIn,
-  isSubmitting = false,
-}: AuthScreenProps) {
+export function AuthScreen({ onEmailSignIn, isSubmitting = false }: AuthScreenProps) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
@@ -129,7 +115,7 @@ export function AuthScreen({
           </GlassSurface>
 
           <View style={styles.actionRow}>
-            <SocialButton icon={<GoogleIcon size={22} />} label="Google" onPress={onGooglePress} />
+            <DecorCircle tint={palette.primary} />
             <GlassPressable
               disabled={isSubmitting}
               onPress={handleSignIn}
@@ -141,12 +127,7 @@ export function AuthScreen({
                 {isSubmitting ? 'Signing in…' : 'Sign In'}
               </Text>
             </GlassPressable>
-            <SocialButton
-              icon={<AppleIcon size={20} />}
-              label="Apple"
-              onPress={onApplePress}
-              variant="dark"
-            />
+            <DecorCircle tint={palette.pink} />
           </View>
         </View>
       </View>
@@ -154,30 +135,31 @@ export function AuthScreen({
   );
 }
 
-function SocialButton({
-  icon,
-  label,
-  onPress,
-  variant = 'light',
-}: {
-  icon: ReactNode;
-  label: string;
-  onPress?: () => void;
-  variant?: 'dark' | 'light';
-}) {
-  const isDark = variant === 'dark';
+/**
+ * Purely decorative glass disc flanking the sign-in button. Accounts are provisioned
+ * by an admin, so there is no social sign-in — these keep the row's symmetry where
+ * the Google/Apple buttons used to sit. Hidden from screen readers by design.
+ */
+function DecorCircle({ tint }: { tint: string }) {
   const palette = usePalette();
 
   return (
-    <GlassPressable
-      accessibilityLabel={label}
-      onPress={onPress}
-      style={styles.socialWrap}
-      surfaceStyle={styles.socialButton}
-      tintColor={isDark ? '#000000' : palette.surface}
-      glassEffectStyle={isDark ? 'regular' : 'clear'}
+    <View
+      accessibilityElementsHidden
+      importantForAccessibility="no-hide-descendants"
+      pointerEvents="none"
+      style={styles.decorWrap}
     >
-      {icon}
-    </GlassPressable>
+      <GlassSurface
+        fallbackColor={palette.surface}
+        glassEffectStyle="clear"
+        intensity={60}
+        style={styles.decorCircle}
+        tintColor={palette.surface}
+      >
+        <View style={[styles.decorRing, { borderColor: tint }]} />
+        <View style={[styles.decorDot, { backgroundColor: tint }]} />
+      </GlassSurface>
+    </View>
   );
 }

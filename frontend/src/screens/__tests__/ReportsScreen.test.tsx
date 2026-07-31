@@ -1,10 +1,11 @@
 import { fireEvent, render } from '@testing-library/react-native';
-import { StyleSheet } from 'react-native';
+import { Keyboard, StyleSheet } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { ReportsScreen } from '@/screens/kev/ReportsScreen';
 
 const mockMarkReportRead = jest.fn();
+const mockBlurComposer = jest.fn();
 let mockReportParam: string | undefined;
 
 jest.mock('expo-router', () => ({
@@ -41,10 +42,12 @@ jest.mock('@/components/reports/ReportCard', () => ({
   },
 }));
 jest.mock('@/components/reports/ReportCreatePanel', () => ({
-  ReportCreatePanel: () => {
+  ReportCreatePanel: jest.requireActual<typeof import('react')>('react').forwardRef((_, ref) => {
+    const React = jest.requireActual<typeof import('react')>('react');
     const { View } = jest.requireActual<typeof import('react-native')>('react-native');
+    React.useImperativeHandle(ref, () => ({ blur: mockBlurComposer }));
     return <View testID="report-composer" />;
-  },
+  }),
 }));
 jest.mock('@/components/reports/ReportDetailDrawer', () => ({
   ReportDetailDrawer: ({ report }: { report: { id: number } | null }) => {
@@ -55,6 +58,7 @@ jest.mock('@/components/reports/ReportDetailDrawer', () => ({
 
 beforeEach(() => {
   mockMarkReportRead.mockClear();
+  mockBlurComposer.mockClear();
   mockReportParam = undefined;
 });
 
@@ -108,4 +112,16 @@ it('opens and marks a report from a notification deep link', () => {
 
   expect(screen.getByTestId('report-detail')).toHaveTextContent('Report 1');
   expect(mockMarkReportRead).toHaveBeenCalledWith(1);
+});
+
+it('dismisses the report keyboard when empty screen space is pressed', () => {
+  const dismiss = jest.spyOn(Keyboard, 'dismiss').mockImplementation(() => undefined);
+  const screen = renderScreen();
+
+  fireEvent.press(screen.getByTestId('report-filter-create'));
+  fireEvent.press(screen.getByTestId('reports-screen'));
+
+  expect(dismiss).toHaveBeenCalled();
+  expect(mockBlurComposer).toHaveBeenCalled();
+  dismiss.mockRestore();
 });

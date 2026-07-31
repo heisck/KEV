@@ -7,17 +7,21 @@ import * as notifications from '@/api/notifications';
 import * as reports from '@/api/reports';
 import * as sessions from '@/api/sessions';
 import * as verify from '@/api/verify';
-import type { CheckInMethod } from '@/api/schemas';
+import type { CheckInMethod, SessionDto } from '@/api/schemas';
 import { useAuthStore } from '@/store/authStore';
 
 const keys = {
   sessions: ['sessions'] as const,
   session: (id: number) => ['sessions', id] as const,
   summary: (id: number) => ['sessions', id, 'summary'] as const,
+  rosterStatus: (id: number) => ['sessions', id, 'roster-status'] as const,
+  roster: (id: number) => ['sessions', id, 'roster'] as const,
   directory: (indexNumber: string) => ['directory', indexNumber] as const,
   lecturers: ['chat', 'lecturers'] as const,
   conversations: ['chat', 'conversations'] as const,
   invigilators: ['admin', 'invigilators'] as const,
+  adminLecturers: ['admin', 'lecturers'] as const,
+  adminAdmins: ['admin', 'admins'] as const,
   adminSessions: ['admin', 'sessions'] as const,
   report: (id: number) => ['admin', 'sessions', id, 'report'] as const,
   notifications: ['notifications'] as const,
@@ -53,11 +57,50 @@ export function useSessionSummary(id: number) {
   });
 }
 
-export function useCreateSession() {
+export function useRosterStatus(id: number, enabled: boolean) {
+  return useQuery({
+    queryKey: keys.rosterStatus(id),
+    queryFn: () => sessions.getRosterStatus(id),
+    enabled,
+    refetchInterval: (query) => (sessions.isRosterIngestLive(query.state.data?.state) ? 500 : false),
+  });
+}
+
+/**
+ * The students a session expects. Polls while `live` is set so rows appear as the
+ * background sync commits them, and settles into a plain cached read once it finishes.
+ */
+export function useSessionRoster(id: number, live: boolean) {
+  const valid = Number.isInteger(id) && id > 0;
+  return useQuery({
+    queryKey: keys.roster(id),
+    queryFn: () => sessions.getRoster(id),
+    enabled: valid,
+    refetchInterval: live && valid ? 2000 : false,
+  });
+}
+
+export function useRetryRoster() {
   const qc = useQueryClient();
   return useMutation({
+    mutationFn: sessions.retryRoster,
+    onSuccess: (_data, id) => void qc.invalidateQueries({ queryKey: keys.rosterStatus(id) }),
+  });
+}
+
+export function useCreateSession() {
+  const qc = useQueryClient();
+  const userId = useAuthStore((state) => state.user?.id);
+  return useMutation({
     mutationFn: sessions.createSession,
-    onSuccess: () => qc.invalidateQueries({ queryKey: keys.sessions }),
+    onSuccess: (session) => {
+      // Seed the list so the detail screen the wizard redirects to renders the
+      // creator's view (scan action + join credentials) without waiting on a refetch.
+      qc.setQueryData<SessionDto[]>([...keys.sessions, userId], (old) =>
+        old ? [session, ...old.filter((s) => s.id !== session.id)] : [session],
+      );
+      void qc.invalidateQueries({ queryKey: keys.sessions });
+    },
   });
 }
 
@@ -200,6 +243,46 @@ export function useMarkReportsRead() {
 
 export function useAdminSessions() {
   return useQuery({ queryKey: keys.adminSessions, queryFn: admin.listAdminSessions });
+}
+
+export function useAdminLecturers() {
+  return useQuery({ queryKey: keys.adminLecturers, queryFn: admin.listLecturers });
+}
+
+export function useAdminAdmins() {
+  return useQuery({ queryKey: keys.adminAdmins, queryFn: admin.listAdmins });
+}
+
+export function useCreateLecturer() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: admin.createLecturer,
+    onSuccess: () => void qc.invalidateQueries({ queryKey: keys.adminLecturers }),
+  });
+}
+
+export function useCreateAdmin() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: admin.createAdmin,
+    onSuccess: () => void qc.invalidateQueries({ queryKey: keys.adminAdmins }),
+  });
+}
+
+export function useRemoveLecturer() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: admin.removeLecturer,
+    onSuccess: () => void qc.invalidateQueries({ queryKey: keys.adminLecturers }),
+  });
+}
+
+export function useRemoveAdmin() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: admin.removeAdmin,
+    onSuccess: () => void qc.invalidateQueries({ queryKey: keys.adminAdmins }),
+  });
 }
 
 export function useSessionReport(id: number) {

@@ -1,13 +1,26 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-native';
+import {
+  ActivityIndicator,
+  Keyboard,
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useMarkReportRead, useMarkReportsRead, useReports } from '@/api/hooks';
 import { BackIcon } from '@/components/kev/icons';
 import { DoubleCheckIcon } from '@/components/notifications/DoubleCheckIcon';
 import { ReportCard } from '@/components/reports/ReportCard';
-import { ReportCreatePanel } from '@/components/reports/ReportCreatePanel';
+import {
+  ReportCreatePanel,
+  type ReportCreatePanelRef,
+} from '@/components/reports/ReportCreatePanel';
 import { ReportDetailDrawer } from '@/components/reports/ReportDetailDrawer';
 import type { StudentReport } from '@/api/schemas';
 import { HapticPressable } from '@/components/ui/HapticPressable';
@@ -21,6 +34,7 @@ export function ReportsScreen() {
   const router = useRouter();
   const { report: reportParam } = useLocalSearchParams<{ report?: string }>();
   const openedTarget = useRef<string | null>(null);
+  const createPanelRef = useRef<ReportCreatePanelRef>(null);
   const { top } = useSafeAreaInsets();
   const p = usePalette();
   const { data = [], isLoading } = useReports();
@@ -31,6 +45,11 @@ export function ReportsScreen() {
   const [status, setStatus] = useState<StatusFilter | null>(null);
   const [sending, setSending] = useState(false);
   const [selected, setSelected] = useState<StudentReport | null>(null);
+
+  const dismissKeyboard = () => {
+    Keyboard.dismiss();
+    createPanelRef.current?.blur();
+  };
 
   useEffect(() => {
     if (!reportParam || openedTarget.current === reportParam) return;
@@ -85,7 +104,11 @@ export function ReportsScreen() {
   );
 
   return (
-    <View style={[styles.screen, { backgroundColor: p.bg, paddingTop: top + spacing.sm }]}>
+    <Pressable
+      onPress={dismissKeyboard}
+      style={[styles.screen, { backgroundColor: p.bg, paddingTop: top + spacing.sm }]}
+      testID="reports-screen"
+    >
       <View style={styles.header}>
         <HapticPressable
           accessibilityLabel="Back to profile"
@@ -122,36 +145,49 @@ export function ReportsScreen() {
         {chip('Unread', status === 'unread', () => toggleStatus('unread'), 'report-filter-unread')}
         {chip('Read', status === 'read', () => toggleStatus('read'), 'report-filter-read')}
       </View>
-      {createMode ? (
-        <ReportCreatePanel onSendingChange={setSending} />
-      ) : (
-        <ScrollView contentContainerStyle={styles.body} showsVerticalScrollIndicator={false}>
-          {isLoading ? (
-            <LoadingSkeleton variant="rows" />
-          ) : visible.length ? (
-            visible.map((report) => (
-              <ReportCard
-                key={report.id}
-                item={report}
-                palette={p}
-                onPress={() => {
-                  if (!report.read) markRead.mutate(report.id);
-                  setSelected(report);
-                }}
-              />
-            ))
-          ) : (
-            <Text style={[styles.empty, { color: p.muted }]}>No reports match these filters.</Text>
-          )}
-        </ScrollView>
-      )}
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={styles.keyboardContainer}
+      >
+        {createMode ? (
+          <ReportCreatePanel ref={createPanelRef} onSendingChange={setSending} />
+        ) : (
+          <ScrollView
+            contentContainerStyle={styles.body}
+            keyboardShouldPersistTaps="handled"
+            onScrollBeginDrag={Keyboard.dismiss}
+            showsVerticalScrollIndicator={false}
+          >
+            {isLoading ? (
+              <LoadingSkeleton variant="rows" />
+            ) : visible.length ? (
+              visible.map((report) => (
+                <ReportCard
+                  key={report.id}
+                  item={report}
+                  palette={p}
+                  onPress={() => {
+                    if (!report.read) markRead.mutate(report.id);
+                    setSelected(report);
+                  }}
+                />
+              ))
+            ) : (
+              <Text style={[styles.empty, { color: p.muted }]}>
+                No reports match these filters.
+              </Text>
+            )}
+          </ScrollView>
+        )}
+      </KeyboardAvoidingView>
       <ReportDetailDrawer report={selected} onClose={() => setSelected(null)} />
-    </View>
+    </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
   screen: { flex: 1 },
+  keyboardContainer: { flex: 1 },
   header: {
     alignItems: 'center',
     flexDirection: 'row',

@@ -79,7 +79,7 @@ export const authScreenStyles = StyleSheet.create({
     justifyContent: 'center',
     width: '100%',
   },
-  socialWrap: {
+  decorWrap: {
     borderRadius: 26,
     elevation: 2,
     shadowColor: '#111111',
@@ -87,7 +87,7 @@ export const authScreenStyles = StyleSheet.create({
     shadowOpacity: 0.08,
     shadowRadius: 8,
   },
-  socialButton: {
+  decorCircle: {
     alignItems: 'center',
     borderRadius: 26,
     height: 52,
@@ -95,4 +95,13 @@ export const authScreenStyles = StyleSheet.create({
     overflow: 'hidden',
     width: 52,
   },
+  decorRing: {
+    borderRadius: 15,
+    borderWidth: 1.5,
+    height: 30,
+    opacity: 0.45,
+    position: 'absolute',
+    width: 30,
+  },
+  decorDot: { borderRadius: 5, height: 10, opacity: 0.9, width: 10 },
 });

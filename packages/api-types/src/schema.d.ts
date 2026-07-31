@@ -52,6 +52,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/admins/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: operations["disableAdmin"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/verify/face": {
         parameters: {
             query?: never;
@@ -62,6 +78,22 @@ export interface paths {
         get?: never;
         put?: never;
         post: operations["verifyFace"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/verify/face/identify": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["identifyFace"];
         delete?: never;
         options?: never;
         head?: never;
@@ -356,6 +388,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/admins": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["admins"];
+        put?: never;
+        post: operations["createAdmin"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/sessions/{id}/summary": {
         parameters: {
             query?: never;
@@ -606,8 +654,8 @@ export interface components {
             floor?: string;
             room?: string;
             courseCodes?: string[];
-            indexRangeStart?: string;
-            indexRangeEnd?: string;
+            indexRangeStart: string;
+            indexRangeEnd: string;
             /** Format: date */
             examDate?: string;
             startTime?: string;
@@ -617,6 +665,8 @@ export interface components {
         SessionDto: {
             /** Format: int64 */
             id?: number;
+            /** Format: uuid */
+            createdBy?: string;
             sessionCode?: string;
             sessionPassword?: string;
             title?: string;
@@ -695,6 +745,17 @@ export interface components {
             eligible?: boolean;
             courses?: string[];
         };
+        FaceIdentifyResponse: {
+            match?: boolean;
+            student?: components["schemas"]["StudentRecord"];
+            /** Format: double */
+            similarity?: number;
+            /** Format: double */
+            margin?: number;
+            /** Format: int32 */
+            rosterSize?: number;
+            detail?: string;
+        };
         CheckInRequest: {
             indexNumber: string;
             /** @enum {string} */
@@ -718,7 +779,7 @@ export interface components {
         };
         CreateStudentReportRequest: {
             /** Format: int64 */
-            sessionId: number;
+            sessionId?: number;
             /** Format: int64 */
             studentId?: number;
             message: string;
@@ -803,6 +864,15 @@ export interface components {
             /** Format: email */
             personalEmail: string;
             phone: string;
+        };
+        CreateAdminRequest: {
+            firstName: string;
+            lastName: string;
+            /** Format: email */
+            email: string;
+            /** Format: email */
+            personalEmail: string;
+            phone?: string;
         };
         SessionDetailDto: {
             session?: components["schemas"]["SessionDto"];
@@ -979,6 +1049,26 @@ export interface operations {
             };
         };
     };
+    disableAdmin: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     verifyFace: {
         parameters: {
             query: {
@@ -1004,6 +1094,35 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["FaceVerifyResponse"];
+                };
+            };
+        };
+    };
+    identifyFace: {
+        parameters: {
+            query: {
+                sessionId: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "multipart/form-data": {
+                    /** Format: binary */
+                    probe: string;
+                };
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["FaceIdentifyResponse"];
                 };
             };
         };
@@ -1495,6 +1614,50 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": components["schemas"]["CreateLecturerRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["UserDto"];
+                };
+            };
+        };
+    };
+    admins: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["UserDto"][];
+                };
+            };
+        };
+    };
+    createAdmin: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateAdminRequest"];
             };
         };
         responses: {

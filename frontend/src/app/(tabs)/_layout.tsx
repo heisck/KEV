@@ -8,12 +8,15 @@ import {
   RemindersTabIcon,
 } from '@/components/kev/icons';
 import { KevTabBar } from '@/components/kev/KevTabBar';
+import { getPrimaryTabAction } from '@/lib/primaryTabAction';
 import { useAuthStore } from '@/store/authStore';
 import { usePalette } from '@/theme';
 
 export default function TabsLayout() {
   const status = useAuthStore((s) => s.status);
+  const role = useAuthStore((s) => s.user?.role);
   const p = usePalette();
+  const primaryAction = getPrimaryTabAction(role);
 
   if (status !== 'authenticated') return <Redirect href="/(auth)" />;
 
@@ -42,14 +45,14 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="create"
         options={{
-          title: 'Create',
+          title: primaryAction.title,
           tabBarIcon: ({ color, size }) => <PlusIcon color={color} size={size} />,
         }}
         listeners={{
           tabPress: (e) => {
-            // The Create tab is an action: open the wizard instead of switching tabs.
+            // The center tab is a role-aware action rather than a navigable screen.
             e.preventDefault();
-            router.push('/room-setup');
+            router.push(primaryAction.href);
           },
         }}
       />

@@ -23,7 +23,8 @@ export function ReportDetailDrawer({
       {report ? (
         <View style={styles.content}>
           <Text style={[styles.meta, { color: p.muted }]}>
-            {report.sessionCode} · {new Date(report.createdAt).toLocaleString()}
+            {report.sessionCode ? `${report.sessionCode} · ` : ''}
+            {new Date(report.createdAt).toLocaleString()}
           </Text>
           <FormattedReportText style={[styles.message, { color: p.ink }]} value={report.message} />
           <Text style={[styles.author, { color: p.inkSoft }]}>

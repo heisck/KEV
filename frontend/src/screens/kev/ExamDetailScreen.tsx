@@ -25,6 +25,7 @@ import { isPastSession, scanBlockMessage } from '@/lib/sessionLifecycle';
 import { allowedScanMethods } from '@/lib/scanMethods';
 import { toast } from '@/lib/toast';
 import { spacing, usePalette } from '@/theme';
+import { useAuthStore } from '@/store/authStore';
 import { useSettingsStore } from '@/store/settingsStore';
 import { examDetailStyles as styles } from '@/screens/kev/examDetailStyles';
 
@@ -38,6 +39,7 @@ export function ExamDetailScreen() {
   const numericExamId = Number(examId) || 1;
   const [joinOpen, setJoinOpen] = useState(false);
   const [joinedLocally, setJoinedLocally] = useState(false);
+  const userId = useAuthStore((state) => state.user?.id);
   const preferredMethod = useSettingsStore((state) => state.defaultScanMethod);
   const useAllScanMethods = useSettingsStore((state) => state.useAllScanMethods);
 
@@ -59,7 +61,9 @@ export function ExamDetailScreen() {
 
   const { data: allSessions, isLoading: sessionsLoading } = useSessions();
   const listedSession = allSessions?.find((s) => String(s.id) === examId);
-  const joined = joinedLocally || listedSession?.joined === true;
+  // The creator is always a member — never make them join their own session.
+  const isCreator = Boolean(userId) && listedSession?.createdBy === userId;
+  const joined = joinedLocally || isCreator || listedSession?.joined === true;
   const { data: detail, isLoading: detailLoading } = useSessionDetail(numericExamId, joined);
   const session = detail?.session ?? listedSession;
 

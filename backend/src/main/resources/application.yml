@@ -23,7 +23,7 @@ spring:
       ddl-auto: validate # Flyway owns the schema; Hibernate only validates it.
     open-in-view: false
     properties:
-      hibernate.jdbc.time_zone: UTC
+      "[hibernate.jdbc.time_zone]": UTC
   flyway:
     enabled: true
     baseline-on-migrate: true
@@ -41,13 +41,15 @@ spring:
     redis:
       time-to-live: 10m
       cache-null-values: false
+  web:
+    # Moved from server.error.* — deprecated in Spring Boot 4.
+    error:
+      include-message: always
+      include-binding-errors: always
 
 server:
   port: ${SERVER_PORT:8080}
   shutdown: graceful
-  error:
-    include-message: always
-    include-binding-errors: always
 
 management:
   endpoints:
@@ -73,8 +75,8 @@ logging:
       max-history: 7
       total-size-cap: 200MB
   level:
-    com.kev.backend: DEBUG
-    org.springframework.web: INFO
+    "[com.kev.backend]": DEBUG
+    "[org.springframework.web]": INFO
   # Surface the correlation id (set by CorrelationIdFilter) on every log line.
   pattern:
     level: "%5p [%X{correlationId:-}]"

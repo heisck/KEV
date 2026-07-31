@@ -14,7 +14,8 @@
   },
   "packageManager": "npm@10.9.2",
   "scripts": {
-    "dev": "concurrently -k -n web,api,ml -c cyan,green,magenta \"npm:dev:frontend\" \"npm:dev:backend\" \"npm:dev:ml\"",
+    "dev": "node scripts/dev-all.mjs",
+    "dev:same-terminal": "node scripts/dev-all.mjs --same-terminal",
     "dev:frontend": "npm run start --workspace frontend",
     "dev:backend": "node scripts/run-backend.mjs spring-boot:run",
     "dev:ml": "node scripts/run-ml.mjs dev",

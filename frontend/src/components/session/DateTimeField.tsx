@@ -38,12 +38,14 @@ export function DateTimeField({
   value,
   onChange,
   placeholder,
+  quickAction,
 }: {
   label: string;
   mode: Mode;
   value: string;
   onChange: (next: string) => void;
   placeholder: string;
+  quickAction?: { label: string; onPress: () => void };
 }) {
   const p = usePalette();
   const s = makeStyles(p);
@@ -66,7 +68,19 @@ export function DateTimeField({
 
   return (
     <View style={s.field}>
-      <Text style={s.fieldLabel}>{label}</Text>
+      <View style={s.labelRow}>
+        <Text style={s.fieldLabel}>{label}</Text>
+        {quickAction ? (
+          <HapticPressable
+            accessibilityRole="button"
+            haptic="select"
+            onPress={quickAction.onPress}
+            style={s.quickAction}
+          >
+            <Text style={s.quickActionText}>{quickAction.label}</Text>
+          </HapticPressable>
+        ) : null}
+      </View>
       <HapticPressable
         accessibilityRole="button"
         accessibilityLabel={`Pick ${label}`}
@@ -128,6 +142,14 @@ const makeStyles = (p: Palette) =>
   StyleSheet.create({
     field: { gap: spacing.xs },
     fieldLabel: { color: p.inkSoft, fontSize: 13, fontWeight: '700' },
+    labelRow: { alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between' },
+    quickAction: {
+      backgroundColor: p.primary12,
+      borderRadius: radii.pill,
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.xs,
+    },
+    quickActionText: { color: p.primary, fontSize: 12, fontWeight: '700' },
     control: {
       backgroundColor: p.surfaceDim,
       borderColor: p.hairline,

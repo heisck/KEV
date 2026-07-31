@@ -13,7 +13,7 @@
  *   node scripts/run-backend.mjs spring-boot:run
  *   node scripts/run-backend.mjs verify
  */
-import { spawn } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { loadEnv } from './load-root-env.mjs';
@@ -39,16 +39,37 @@ if (jdbc.includes('neon.tech') && !jdbc.includes('-pooler')) {
 const args = process.argv.slice(2);
 if (args.length === 0) args.push('spring-boot:run');
 
+// The wrapper itself exits 1 with a bare "JAVA_HOME not found" if no JDK is
+// present; surface the fix up front instead.
+if (
+  !process.env.JAVA_HOME &&
+  spawnSync(isWin ? 'where' : 'which', ['java'], { stdio: 'ignore' }).status !== 0
+) {
+  console.error('[run-backend] No JDK found (JAVA_HOME unset and `java` not on PATH).');
+  console.error(
+    isWin
+      ? '[run-backend] Install it with: winget install --id EclipseAdoptium.Temurin.21.JDK'
+      : '[run-backend] Install JDK 21 (e.g. `sdk install java 21-tem`).',
+  );
+  process.exit(1);
+}
+
 // Only auto-manage local infra when actually running the app (not for verify/test,
 // which use Testcontainers). Brings up Postgres + Redis and seeds via Flyway on boot.
 if (args.includes('spring-boot:run')) {
   ensureDevInfra(jdbc);
 }
 
-const child = spawn(wrapper, args, {
+// mvnw.cmd needs a cmd.exe host, but `shell: true` + an args array trips Node's
+// DEP0190 warning; hosting cmd.exe explicitly keeps the output clean.
+const [exe, exeArgs, winOpts] = isWin
+  ? ['cmd.exe', ['/d', '/s', '/c', `"${wrapper}" ${args.join(' ')}`], { windowsVerbatimArguments: true }]
+  : [wrapper, args, {}];
+
+const child = spawn(exe, exeArgs, {
   cwd: backendDir,
   stdio: 'inherit',
-  shell: isWin,
+  ...winOpts,
   // File last: local .env overrides stale shell/IDE exports.
   env: { ...process.env, ...dotEnv },
 });

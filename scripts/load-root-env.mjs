@@ -36,6 +36,28 @@ export function parseDotEnv(file) {
 }
 
 /**
+ * Accept a Neon connection string pasted verbatim from the console
+ * (`postgresql://user:pass@ep-x-pooler.../neondb?sslmode=require&channel_binding=require`)
+ * and split it into the `jdbc:` URL + username/password Spring expects. Credentials
+ * embedded in the URI win over the separate vars, so one paste is enough. Already-JDBC
+ * URLs pass through untouched. `channel_binding` is libpq-only and pgjdbc rejects it.
+ * @param {Record<string, string>} env mutated in place
+ * @returns {Record<string, string>}
+ */
+export function normalizeDatasource(env) {
+  const raw = env.SPRING_DATASOURCE_URL ?? '';
+  if (!/^postgres(ql)?:\/\//.test(raw)) return env;
+  const uri = new URL(raw);
+  if (uri.username) env.SPRING_DATASOURCE_USERNAME = decodeURIComponent(uri.username);
+  if (uri.password) env.SPRING_DATASOURCE_PASSWORD = decodeURIComponent(uri.password);
+  uri.searchParams.delete('channel_binding');
+  if (!uri.searchParams.has('sslmode')) uri.searchParams.set('sslmode', 'require');
+  const query = uri.searchParams.toString();
+  env.SPRING_DATASOURCE_URL = `jdbc:postgresql://${uri.host}${uri.pathname}${query ? `?${query}` : ''}`;
+  return env;
+}
+
+/**
  * Merge root `.env` with an optional service-local `.env` (local wins).
  * @param {string} [localEnvFile] absolute path to a service-local `.env`
  * @returns {Record<string, string>}
@@ -43,5 +65,5 @@ export function parseDotEnv(file) {
 export function loadEnv(localEnvFile) {
   const root = parseDotEnv(join(repoRoot, '.env'));
   const local = localEnvFile ? parseDotEnv(localEnvFile) : {};
-  return { ...root, ...local };
+  return normalizeDatasource({ ...root, ...local });
 }

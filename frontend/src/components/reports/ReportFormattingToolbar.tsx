@@ -124,7 +124,7 @@ function AlignmentGlyph({ align, color }: { align: 'left' | 'right'; color: stri
 }
 
 const styles = StyleSheet.create({
-  scroll: { borderRadius: radii.md, flexGrow: 0, height: 44 },
+  scroll: { borderRadius: radii.md, flexGrow: 0, flexShrink: 0, height: 44, zIndex: 1 },
   content: { alignItems: 'stretch' },
   button: { alignItems: 'center', height: 44, justifyContent: 'center', width: 44 },
   glyph: { fontSize: 17, fontWeight: '700' },

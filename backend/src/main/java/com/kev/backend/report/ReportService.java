@@ -78,7 +78,7 @@ public class ReportService {
 
     @Transactional
     public void markRead(UUID userId, Long reportId) {
-        StudentReport report = requireReport(reportId);
+        requireReport(reportId);
         if (!reads.existsByReportIdAndUserId(reportId, userId)) {
             reads.save(receipt(reportId, userId));
         }

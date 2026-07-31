@@ -7,7 +7,7 @@
  *   node scripts/run-ml.mjs lint    # ruff check
  *   node scripts/run-ml.mjs <args>  # uv run <args>
  */
-import { spawn } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { loadEnv } from './load-root-env.mjs';
@@ -30,14 +30,29 @@ const presets = {
   typecheck: ['run', 'mypy', 'app'],
 };
 const args = presets[mode] ?? ['run', ...process.argv.slice(2)];
-if (args[0] === 'run') {
-  args.splice(1, 0, '--no-sync', '--python', '/usr/bin/python3');
+// Opt-in interpreter pin (CI images with a preinstalled system Python). Unset by
+// default so uv resolves/creates ml/.venv itself — a hardcoded POSIX path here
+// makes every `uv run` fail on Windows.
+const pinnedPython = dotEnv.ML_PYTHON ?? process.env.ML_PYTHON;
+if (args[0] === 'run' && pinnedPython) {
+  args.splice(1, 0, '--no-sync', '--python', pinnedPython);
 }
 
-const child = spawn('uv', args, { cwd: mlDir, stdio: 'inherit', shell: isWin, env: childEnv });
+// Fail with an actionable message instead of the shell's cryptic
+// "'uv' is not recognized" / ENOENT.
+if (spawnSync(isWin ? 'where' : 'which', ['uv'], { stdio: 'ignore' }).status !== 0) {
+  console.error('[run-ml] uv is not installed or not on PATH — the ML service cannot start.');
+  console.error(
+    isWin
+      ? '[run-ml] Install it with: winget install --id astral-sh.uv'
+      : '[run-ml] Install it with: curl -LsSf https://astral.sh/uv/install.sh | sh',
+  );
+  process.exit(1);
+}
+
+const child = spawn('uv', args, { cwd: mlDir, stdio: 'inherit', env: childEnv });
 child.on('error', (err) => {
   console.error(`[run-ml] Failed to start uv: ${err.message}`);
-  console.error('[run-ml] Is uv installed and on PATH? (winget install astral-sh.uv)');
   process.exit(1);
 });
 child.on('exit', (code) => process.exit(code ?? 0));

@@ -6,6 +6,7 @@ import { getPalette } from '@/theme/palette';
 const mockCreateReport = jest.fn(async () => undefined);
 const mockSendAction = jest.fn();
 const mockCommand = jest.fn();
+let mockEditorProps: Record<string, unknown> = {};
 
 jest.mock('react-native-pell-rich-editor', () => {
   const React = jest.requireActual<typeof import('react')>('react');
@@ -22,6 +23,7 @@ jest.mock('react-native-pell-rich-editor', () => {
       },
       ref,
     ) => {
+      mockEditorProps = props;
       const { editorInitializedCallback } = props;
       React.useImperativeHandle(ref, () => ({
         blurContentEditor: jest.fn(),
@@ -71,6 +73,7 @@ describe('ReportCreatePanel', () => {
     mockCommand.mockClear();
     mockCreateReport.mockClear();
     mockSendAction.mockClear();
+    mockEditorProps = {};
   });
 
   it('allows reports for sessions the lecturer has not joined', () => {
@@ -78,6 +81,19 @@ describe('ReportCreatePanel', () => {
 
     expect(screen.getByText('Open session')).toBeTruthy();
     expect(screen.queryByText('Join a session before creating a report.')).toBeNull();
+  });
+
+  it('sends a general report without requiring a session', async () => {
+    const screen = render(<ReportCreatePanel onSendingChange={jest.fn()} />);
+
+    expect(screen.getByText('General')).toBeTruthy();
+    fireEvent.press(screen.getByTestId('report-compose-action'));
+    fireEvent.changeText(screen.getByPlaceholderText('Write your report…'), 'Campus network issue');
+    fireEvent.press(screen.getByTestId('report-compose-action'));
+
+    await waitFor(() =>
+      expect(mockCreateReport).toHaveBeenCalledWith({ message: 'Campus network issue' }),
+    );
   });
 
   it('fills the selected formatting section', () => {
@@ -106,12 +122,28 @@ describe('ReportCreatePanel', () => {
     expect(screen.getByTestId('report-format-toolbar').props.keyboardShouldPersistTaps).toBe(
       'always',
     );
+    expect(screen.getByTestId('report-format-toolbar').props.style).toEqual(
+      expect.arrayContaining([expect.objectContaining({ flexShrink: 0, height: 44 })]),
+    );
     expect(screen.getByTestId('report-list-icon-numbered-list')).toBeTruthy();
+    expect(mockEditorProps).toEqual(
+      expect.objectContaining({
+        nestedScrollEnabled: true,
+        scrollEnabled: true,
+        useContainer: true,
+      }),
+    );
+    expect(mockEditorProps.editorStyle).toEqual(
+      expect.objectContaining({
+        contentCSSText: expect.stringContaining('padding:12px 14px'),
+      }),
+    );
   });
 
   it('persists visual formatting without showing the markers in the editor', async () => {
     const screen = render(<ReportCreatePanel onSendingChange={jest.fn()} />);
 
+    fireEvent.press(screen.getByText('Open session'));
     fireEvent.press(screen.getByTestId('report-compose-action'));
     fireEvent.changeText(
       screen.getByPlaceholderText('Write your report…'),

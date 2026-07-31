@@ -3,6 +3,7 @@ import { Text, TextInput, View } from 'react-native';
 
 import { CloseIcon } from '@/components/kev/icons';
 import { DateTimeField } from '@/components/session/DateTimeField';
+import { oneHourAfter, scheduleNow, scheduleToday } from '@/components/session/sessionSchedule';
 import { FloorStepper, RoomSlider } from '@/components/session/LocationControls';
 import {
   ALL_METHODS,
@@ -70,7 +71,7 @@ export function ExamStep({
     }));
   return (
     <View style={styles.section}>
-      <Text style={styles.hint}>Add course codes and their index-number ranges.</Text>
+      <Text style={styles.hint}>Course codes and valid index-number ranges are required.</Text>
       {values.courses.map((course, index) => (
         <View key={index} style={styles.courseCard}>
           {values.courses.length > 1 ? (
@@ -150,6 +151,7 @@ export function ScheduleStep({
         value={values.examDate}
         onChange={(text) => setValue('examDate', text)}
         placeholder="Select a date"
+        quickAction={{ label: 'Today', onPress: () => setValue('examDate', scheduleToday()) }}
       />
       <View style={styles.row}>
         <View style={styles.flex}>
@@ -159,6 +161,7 @@ export function ScheduleStep({
             value={values.startTime}
             onChange={(text) => setValue('startTime', text)}
             placeholder="09:00"
+            quickAction={{ label: 'Now', onPress: () => setValue('startTime', scheduleNow()) }}
           />
         </View>
         <View style={styles.flex}>
@@ -168,6 +171,10 @@ export function ScheduleStep({
             value={values.endTime}
             onChange={(text) => setValue('endTime', text)}
             placeholder="12:00"
+            quickAction={{
+              label: '+1 hr',
+              onPress: () => setValue('endTime', oneHourAfter(values.startTime)),
+            }}
           />
         </View>
       </View>

@@ -34,26 +34,31 @@ function renderKeyboardView(os: 'android' | 'ios') {
 describe('AuthScreen', () => {
   beforeEach(() => useSettingsStore.setState({ theme: 'light' }));
 
-  it('renders the email, password and social auth actions', () => {
+  it('renders the email and password sign-in form', () => {
     const { getByLabelText, getByPlaceholderText, getByText } = renderAuthScreen();
 
     expect(getByLabelText('Verify Account')).toBeTruthy();
     expect(getByPlaceholderText('Write your gmail')).toBeTruthy();
     expect(getByPlaceholderText('Your password')).toBeTruthy();
     expect(getByText('Sign In')).toBeTruthy();
-    expect(getByLabelText('Google')).toBeTruthy();
-    expect(getByLabelText('Apple')).toBeTruthy();
+  });
+
+  it('offers no social sign-in — accounts are provisioned by an admin', () => {
+    const { queryByLabelText } = renderAuthScreen();
+
+    expect(queryByLabelText('Google')).toBeNull();
+    expect(queryByLabelText('Apple')).toBeNull();
   });
 
   it('submits the trimmed email and password', () => {
     const onEmailSignIn = jest.fn();
     const { getByPlaceholderText, getByText } = renderAuthScreen(onEmailSignIn);
 
-    fireEvent.changeText(getByPlaceholderText('Write your gmail'), ' lecturer@kev.app ');
-    fireEvent.changeText(getByPlaceholderText('Your password'), 'Lecturer@1234');
+    fireEvent.changeText(getByPlaceholderText('Write your gmail'), ' invigilator@example.edu ');
+    fireEvent.changeText(getByPlaceholderText('Your password'), 'pa55word-example');
     fireEvent.press(getByText('Sign In'));
 
-    expect(onEmailSignIn).toHaveBeenCalledWith('lecturer@kev.app', 'Lecturer@1234');
+    expect(onEmailSignIn).toHaveBeenCalledWith('invigilator@example.edu', 'pa55word-example');
   });
 
   it('toggles password visibility with the eye button', () => {

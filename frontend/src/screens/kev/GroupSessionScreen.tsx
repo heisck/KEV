@@ -18,6 +18,7 @@ import { ScanResultPreference } from '@/components/scan/ScanResultPreference';
 import { StudentRosterControls } from '@/components/scan/StudentRosterControls';
 import { SessionActionsMenu } from '@/components/session/SessionActionsMenu';
 import { SessionArtwork } from '@/components/session/SessionArtwork';
+import { SessionRosterDrawer } from '@/components/session/SessionRosterDrawer';
 import { BottomDrawer } from '@/components/ui/BottomDrawer';
 import { HapticPressable } from '@/components/ui/HapticPressable';
 import { LoadingSkeleton } from '@/components/ui/LoadingSkeleton';
@@ -82,6 +83,7 @@ export function GroupSessionScreen() {
   );
   const { students, controls } = useStudentRosterFilters(roster);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [rosterOpen, setRosterOpen] = useState(false);
   const [code, setCode] = useState('');
   const [error, setError] = useState(false);
   const [reportStudent, setReportStudent] = useState<ReportStudent | null>(null);
@@ -163,6 +165,7 @@ export function GroupSessionScreen() {
               lecturers={detail?.invigilators ?? []}
               joined={joined}
               onJoin={() => setDrawerOpen(true)}
+              onOpenRoster={() => setRosterOpen(true)}
             />
           )
         }
@@ -317,6 +320,11 @@ export function GroupSessionScreen() {
           </HapticPressable>
         </BottomDrawer>
       ) : null}
+      <SessionRosterDrawer
+        visible={rosterOpen}
+        onClose={() => setRosterOpen(false)}
+        sessionId={Number(sessionId) || 0}
+      />
       {reportStudent ? (
         <StudentReportDrawer
           visible

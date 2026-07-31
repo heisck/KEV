@@ -1,8 +1,9 @@
-import { render } from '@testing-library/react-native';
+import { fireEvent, render } from '@testing-library/react-native';
 import { StyleSheet, Text } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { BottomDrawer } from '@/components/ui/BottomDrawer';
+import { DateTimeField } from '@/components/session/DateTimeField';
 import { useSettingsStore } from '@/store/settingsStore';
 import { getPalette } from '@/theme/palette';
 
@@ -24,5 +25,29 @@ describe('date and time drawer', () => {
     );
     const surface = getByTestId('picker-drawer-surface');
     expect(StyleSheet.flatten(surface.props.style).backgroundColor).toBe(getPalette(true).surface);
+  });
+
+  it('runs the visible schedule shortcut', () => {
+    const onQuickPress = jest.fn();
+    const screen = render(
+      <SafeAreaProvider
+        initialMetrics={{
+          frame: { height: 844, width: 390, x: 0, y: 0 },
+          insets: { bottom: 0, left: 0, right: 0, top: 0 },
+        }}
+      >
+        <DateTimeField
+          label="Exam date"
+          mode="date"
+          value=""
+          onChange={jest.fn()}
+          placeholder="Select a date"
+          quickAction={{ label: 'Today', onPress: onQuickPress }}
+        />
+      </SafeAreaProvider>,
+    );
+
+    fireEvent.press(screen.getByText('Today'));
+    expect(onQuickPress).toHaveBeenCalledTimes(1);
   });
 });

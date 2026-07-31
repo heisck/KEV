@@ -1,10 +1,16 @@
 import * as Haptics from 'expo-haptics';
 import { router, useLocalSearchParams } from 'expo-router';
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { useCreateSession, useSessionDetail, useUpdateSession } from '@/api/hooks';
+import {
+  useCreateSession,
+  useRetryRoster,
+  useRosterStatus,
+  useSessionDetail,
+  useUpdateSession,
+} from '@/api/hooks';
 import { getProblemDetail } from '@/api/schemas';
 import {
   EMPTY_WIZARD_VALUES,
@@ -13,6 +19,7 @@ import {
   type WizardValues,
 } from '@/components/session/sessionForm';
 import { getSessionDraftKey, useSessionDraft } from '@/hooks/useSessionDraft';
+import { RosterLoadingScreen } from '@/components/session/RosterLoadingScreen';
 import { CreateSessionWizard } from '@/screens/CreateSessionWizard';
 import { useAuthStore } from '@/store/authStore';
 import { radii, spacing, usePalette } from '@/theme';
@@ -31,6 +38,22 @@ export default function RoomSetupModal() {
   const draftKey = getSessionDraftKey(userId, editing ? sessionId : undefined);
   const { clear, draft, ready, save } = useSessionDraft(draftKey);
   const [error, setError] = useState<string | null>(null);
+  const [createdSessionId, setCreatedSessionId] = useState<number | null>(null);
+  const rosterStatus = useRosterStatus(createdSessionId ?? 0, createdSessionId !== null);
+  const retryRoster = useRetryRoster();
+
+  // Ingest keeps running on the backend after this screen is gone, so leaving early is
+  // just navigation — the roster screen picks the remaining students up as they land.
+  const openSession = useCallback(
+    (id: number) => router.replace({ pathname: '/exam/[id]', params: { id: String(id) } }),
+    [],
+  );
+
+  useEffect(() => {
+    if (createdSessionId && rosterStatus.data?.state === 'COMPLETED') {
+      openSession(createdSessionId);
+    }
+  }, [createdSessionId, openSession, rosterStatus.data?.state]);
 
   const initialValues = useMemo(() => {
     if (draft) return draft.values;
@@ -49,14 +72,21 @@ export default function RoomSetupModal() {
       setError('Add a building or college before saving the session.');
       return;
     }
+    if (!input.indexRangeStart || !input.indexRangeEnd) {
+      setError('Add a valid student index-number range before creating the session.');
+      return;
+    }
     setError(null);
     const mutation = editing ? updateSession : createSession;
     mutation.mutate(input, {
       onSuccess: (session) => {
         void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-        void clear().then(() => {
+        void clear();
+        if (editing) {
           router.replace({ pathname: '/exam/[id]', params: { id: String(session.id) } });
-        });
+          return;
+        }
+        setCreatedSessionId(session.id);
       },
       onError: (err: unknown) => {
         const detail = getProblemDetail(err);
@@ -67,6 +97,26 @@ export default function RoomSetupModal() {
 
   const loading = !ready || (editing && sessionQuery.isLoading);
   const loadError = editing && sessionQuery.isError ? 'Could not load this session.' : null;
+
+  if (createdSessionId) {
+    const status = rosterStatus.data;
+    const failed = rosterStatus.isError || status?.state === 'FAILED';
+    return (
+      <RosterLoadingScreen
+        progress={status?.progress ?? 0}
+        state={failed ? 'FAILED' : (status?.state ?? 'STARTING')}
+        synced={status?.synced ?? 0}
+        embedded={status?.embedded ?? 0}
+        message={
+          rosterStatus.isError
+            ? 'Could not read student-loading progress.'
+            : (status?.message ?? 'Starting student information sync')
+        }
+        onRetry={() => retryRoster.mutate(createdSessionId)}
+        onSkip={() => openSession(createdSessionId)}
+      />
+    );
+  }
 
   return (
     <View style={styles.root}>

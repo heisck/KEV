@@ -4,10 +4,16 @@ import { api } from '@/api/client';
 import { StudentReportSchema, type StudentReport } from '@/api/schemas';
 
 export type CreateStudentReportInput = {
-  sessionId: number;
+  sessionId?: number;
   studentId?: number;
   message: string;
 };
+
+const CreateStudentReportInputSchema = z.object({
+  sessionId: z.number().int().positive().optional(),
+  studentId: z.number().int().positive().optional(),
+  message: z.string().trim().min(1).max(2000),
+});
 
 export async function listReports(): Promise<StudentReport[]> {
   const response = await api.get('/api/reports');
@@ -15,7 +21,7 @@ export async function listReports(): Promise<StudentReport[]> {
 }
 
 export async function createReport(input: CreateStudentReportInput): Promise<StudentReport> {
-  const response = await api.post('/api/reports', input);
+  const response = await api.post('/api/reports', CreateStudentReportInputSchema.parse(input));
   return StudentReportSchema.parse(response.data);
 }
 

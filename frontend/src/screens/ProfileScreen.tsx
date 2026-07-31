@@ -8,10 +8,10 @@ import { AppLogoMark } from '@/components/AppLogoMark';
 import {
   BackIcon,
   DocIcon,
+  LockIcon,
   LogoutIcon,
-  MailIcon,
   PencilIcon,
-  PinIcon,
+  StudentsIcon,
 } from '@/components/kev/icons';
 import { ProfilePreferences } from '@/components/settings/ProfilePreferences';
 import { ProfileRow as Row, SectionLabel } from '@/components/settings/ProfileSettingsRows';
@@ -78,17 +78,29 @@ export function ProfileScreen() {
           <Text style={[styles.email, { color: p.muted }]}>{email}</Text>
         </View>
 
-        <SectionLabel text="Location" palette={p} />
+        <SectionLabel text="Profile" palette={p} />
         <Row
-          icon={<PinIcon color={p.primary} size={16} />}
-          label="KNUST Campus"
+          icon={<PencilIcon color={p.primary} size={18} />}
+          label="Edit Profile"
           palette={p}
           onPress={() => router.push('/edit-profile')}
         />
 
         <ProfilePreferences palette={p} />
 
-        <SectionLabel text="Account" palette={p} />
+        {user?.role === 'ADMIN' ? (
+          <>
+            <SectionLabel text="Administration" palette={p} />
+            <Row
+              icon={<StudentsIcon color={p.primary} size={18} />}
+              label="Manage Lecturers & Admins"
+              palette={p}
+              onPress={() => router.push('/admin/users' as never)}
+            />
+          </>
+        ) : null}
+
+        <SectionLabel text="Account Security" palette={p} />
         <Row
           icon={<DocIcon color={p.primary} size={18} />}
           label="Reports"
@@ -96,8 +108,8 @@ export function ProfileScreen() {
           onPress={() => router.push('/reports')}
         />
         <Row
-          icon={<MailIcon color={p.primary} size={18} />}
-          label="Email in"
+          icon={<LockIcon color={p.primary} size={18} />}
+          label="Change Password"
           palette={p}
           onPress={() => router.push('/account-credentials')}
         />

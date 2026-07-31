@@ -25,9 +25,9 @@ export type StudentRecord = z.infer<typeof StudentRecordSchema>;
 
 export const StudentReportSchema = z.object({
   id: z.number(),
-  sessionId: z.number(),
+  sessionId: z.number().nullable(),
   sessionTitle: z.string(),
-  sessionCode: z.string(),
+  sessionCode: z.string().nullable(),
   examDate: z.string().nullable(),
   authorId: z.string().uuid(),
   authorName: z.string(),
@@ -63,6 +63,7 @@ export type AuthResponse = z.infer<typeof AuthResponseSchema>;
 
 export const SessionDtoSchema = z.object({
   id: z.number(),
+  createdBy: z.string().nullable().optional(),
   sessionCode: z.string(),
   sessionPassword: z.string().nullable().optional(),
   title: z.string().nullable().optional(),
@@ -128,6 +129,21 @@ export const FaceVerifyResponseSchema = z.object({
   student: StudentRecordSchema,
 });
 export type FaceVerifyResponse = z.infer<typeof FaceVerifyResponseSchema>;
+
+/**
+ * 1:N identification result. `student` is present only when `match` is true;
+ * `margin` is the score gap to the runner-up, so a high `similarity` with a low
+ * `margin` means two students looked alike rather than nobody matching.
+ */
+export const FaceIdentifyResponseSchema = z.object({
+  match: z.boolean(),
+  student: StudentRecordSchema.nullable(),
+  similarity: z.number(),
+  margin: z.number(),
+  rosterSize: z.number(),
+  detail: z.string().nullable(),
+});
+export type FaceIdentifyResponse = z.infer<typeof FaceIdentifyResponseSchema>;
 
 /** RFC 7807 ProblemDetail body — extension members land either top-level or in `properties`. */
 const ProblemDetailSchema = z

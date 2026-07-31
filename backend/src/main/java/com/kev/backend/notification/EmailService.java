@@ -104,7 +104,7 @@ public class EmailService {
                         throw new IllegalStateException("token endpoint returned " + response.statusCode());
                     }
                     JsonNode json = readTree(response.body());
-                    String token = json.path("access_token").asText(null);
+                    String token = json.path("access_token").asString(null);
                     if (token == null) {
                         throw new IllegalStateException("token endpoint returned no access_token");
                     }
