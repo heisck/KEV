@@ -10,6 +10,7 @@ import { useSessionStore } from '@/store/sessionStore';
 import { useSettingsStore } from '@/store/settingsStore';
 
 type Outcome = 'added' | 'already' | 'notfound' | 'error';
+type ScanInput = ScannedStudent | string | { nfcUid: string };
 
 /** The result page reports on a student; only outcomes that resolved one can use it. */
 export function shouldShowScanResult(showSuccessPage: boolean, outcome: Outcome): boolean {
@@ -17,10 +18,15 @@ export function shouldShowScanResult(showSuccessPage: boolean, outcome: Outcome)
 }
 
 /** Resolve the index number to check in from the scan hook's flexible input. */
-function indexOf(scanned?: ScannedStudent | string): string {
+function indexOf(scanned?: ScanInput): string {
+  if (scanned && typeof scanned === 'object' && 'nfcUid' in scanned) return '';
   if (typeof scanned === 'string') return scanned.trim();
   if (scanned) return scanned.index;
-  return '10953001'; // demo fallback until live NFC/face capture provides the id
+  return '';
+}
+
+function nfcUidOf(scanned?: ScanInput): string | undefined {
+  return scanned && typeof scanned === 'object' && 'nfcUid' in scanned ? scanned.nfcUid : undefined;
 }
 
 /**
@@ -32,13 +38,19 @@ export function useMockScan(sessionId: string, method: CheckInMethod = 'FACE') {
   const router = useRouter();
   const addStudent = useSessionStore((s) => s.addStudent);
 
-  return async (scanned?: ScannedStudent | string) => {
+  return async (scanned?: ScanInput) => {
     const sid = Number(sessionId) || 1;
-    let student: ScannedStudent | null = typeof scanned === 'object' ? scanned : null;
+    let student: ScannedStudent | null =
+      scanned && typeof scanned === 'object' && !('nfcUid' in scanned) ? scanned : null;
     let outcome: Outcome = 'added';
 
     try {
-      const record = await checkIn(sid, { indexNumber: indexOf(scanned), method });
+      const nfcUid = nfcUidOf(scanned);
+      const record = await checkIn(sid, {
+        indexNumber: indexOf(scanned),
+        ...(nfcUid ? { nfcUid } : {}),
+        method,
+      });
       student = studentRecordToScanned(record.student, record.method, record.id);
       addStudent(sessionId, student);
     } catch (err) {

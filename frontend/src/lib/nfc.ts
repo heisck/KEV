@@ -1,5 +1,5 @@
 import { Platform } from 'react-native';
-import NfcManager, { Ndef, NfcTech, type TagEvent } from 'react-native-nfc-manager';
+import NfcManager, { NfcTech, type TagEvent } from 'react-native-nfc-manager';
 import { logger } from '@/lib/logger';
 
 let started = false;
@@ -26,7 +26,7 @@ export async function initNfc(): Promise<boolean> {
  */
 export async function readTag(): Promise<TagEvent | null> {
   try {
-    await NfcManager.requestTechnology(NfcTech.Ndef);
+    await NfcManager.requestTechnology([NfcTech.NfcA, NfcTech.NfcB, NfcTech.IsoDep]);
     const tag = await NfcManager.getTag();
     return tag ?? null;
   } catch (error) {
@@ -37,29 +37,18 @@ export async function readTag(): Promise<TagEvent | null> {
   }
 }
 
-// 8 digits not embedded in a longer digit run; letters may sit adjacent
-// (raw NDEF text payloads keep the "en" language prefix glued to the number).
-const INDEX_NUMBER_RE = /(?:\D|^)(\d{8})(?:\D|$)/;
+/** Normalize UID formatting differences between Android, iOS, and UITS. */
+export function normalizeNfcUid(value: string): string {
+  return value
+    .trim()
+    .replace(/[^a-z\d]/gi, '')
+    .toLowerCase();
+}
 
-/** Extract an 8-digit index number from the first NDEF record of a tag, or null. */
-export function parseIndexNumberFromTag(tag: TagEvent | null): string | null {
-  const payload = tag?.ndefMessage?.[0]?.payload;
-  if (!payload?.length) return null;
-  const bytes = payload as number[];
-  const candidates = [
-    () => Ndef.text.decodePayload(Uint8Array.from(bytes)),
-    () => Ndef.uri.decodePayload(Uint8Array.from(bytes)),
-    () => String.fromCharCode(...bytes), // bare payload fallback
-  ];
-  for (const decode of candidates) {
-    try {
-      const match = INDEX_NUMBER_RE.exec(decode() ?? '');
-      if (match) return match[1];
-    } catch {
-      // try the next decoder
-    }
-  }
-  return null;
+/** Read the hardware UID; NDEF payloads are not identity data for a student card. */
+export function parseNfcUidFromTag(tag: TagEvent | null): string | null {
+  const uid = tag?.id ? normalizeNfcUid(tag.id) : '';
+  return uid || null;
 }
 
 /** Release any pending NFC technology request. Safe to call unconditionally. */

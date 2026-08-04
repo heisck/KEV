@@ -10,6 +10,7 @@ import { ManualEntryCard } from '@/components/scan/ManualEntryCard';
 import { NfcScanPanel } from '@/components/scan/NfcScanPanel';
 import { AppButton, Card, ChipRow, EmptyState } from '@/components/ui';
 import { getScanCapabilities } from '@/lib/scanCapabilities';
+import { useMockScan } from '@/hooks/useMockScan';
 import { spacing, typography, usePalette } from '@/theme';
 
 type ScanMode = 'NFC' | 'Manual';
@@ -42,8 +43,16 @@ export function ScanScreen() {
   );
   const selectedSession =
     activeSessions.find((s) => s.id === sessionId) ?? activeSessions[0] ?? null;
+  const completeNfcScan = useMockScan(String(selectedSession?.id ?? 0), 'NFC');
 
   const modes = useMemo<ScanMode[]>(() => (hasNfc ? ['NFC', 'Manual'] : ['Manual']), [hasNfc]);
+
+  const handleNfcUid = useCallback(
+    (nfcUid: string) => {
+      if (selectedSession) void completeNfcScan({ nfcUid });
+    },
+    [completeNfcScan, selectedSession],
+  );
 
   const handleIndexNumber = useCallback(
     (indexNumber: string) => {
@@ -117,7 +126,7 @@ export function ScanScreen() {
         </Card>
       ) : null}
 
-      {mode === 'NFC' ? <NfcScanPanel onIndexNumber={handleIndexNumber} /> : null}
+      {mode === 'NFC' ? <NfcScanPanel onNfcUid={handleNfcUid} /> : null}
       {mode === 'Manual' ? <ManualEntryCard onSubmit={handleIndexNumber} /> : null}
     </ScrollView>
   );

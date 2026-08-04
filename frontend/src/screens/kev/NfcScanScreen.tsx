@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useCallback, useEffect } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import Animated, {
   Easing,
@@ -14,13 +14,12 @@ import { ScreenTopBar } from '@/components/kev/chrome';
 import { NfcIcon } from '@/components/kev/icons';
 import { ScanMethodSwitcher } from '@/components/scan/ScanMethodSwitcher';
 import { SessionLockButton } from '@/components/scan/SessionLockButton';
+import { useNfcScan } from '@/hooks/useNfcScan';
 import { useMockScan } from '@/hooks/useMockScan';
 import { useScanMethodGuard } from '@/hooks/useScanMethodGuard';
 import { useScanNavigation } from '@/hooks/useScanNavigation';
 import { useScanSessionId } from '@/hooks/useScanSession';
 import { radii, shadows, spacing, usePalette } from '@/theme';
-
-const SCAN_DELAY_MS = 3000;
 
 /** NFC scan — card floats to the phone and back until a tag is detected. */
 export function NfcScanScreen() {
@@ -30,6 +29,8 @@ export function NfcScanScreen() {
   const { goBack } = useScanNavigation(sessionId);
   const completeScan = useMockScan(sessionId, 'NFC');
   const { allowedMethods, canUse } = useScanMethodGuard(sessionId, 'NFC');
+  const onNfcUid = useCallback((nfcUid: string) => void completeScan({ nfcUid }), [completeScan]);
+  const { status, error, start, cancel } = useNfcScan({ onNfcUid });
 
   const drift = useSharedValue(0);
 
@@ -42,10 +43,13 @@ export function NfcScanScreen() {
       ),
       -1,
     );
-    // Simulated tag detection until react-native-nfc-manager is wired here.
-    const timer = setTimeout(completeScan, SCAN_DELAY_MS);
-    return () => clearTimeout(timer);
-  }, [canUse, completeScan, drift]);
+  }, [canUse, drift]);
+
+  useEffect(() => {
+    if (!canUse) return undefined;
+    start();
+    return cancel;
+  }, [canUse, cancel, start]);
 
   const cardStyle = useAnimatedStyle(() => ({
     transform: [{ translateY: drift.value * -84 }, { rotate: `${-8 + drift.value * 8}deg` }],
@@ -83,7 +87,11 @@ export function NfcScanScreen() {
       <View style={styles.copy}>
         <Text style={[styles.title, { color: p.ink }]}>Hold the card near the phone</Text>
         <Text style={[styles.sub, { color: p.muted }]}>
-          Keep the student ID steady until it reads.
+          {error
+            ? 'Could not read the card. Try again.'
+            : status === 'success'
+              ? 'Card UID matched.'
+              : 'Keep the student ID steady until it reads.'}
         </Text>
       </View>
       <ScanMethodSwitcher active="NFC" sessionId={sessionId} allowedMethods={allowedMethods} />

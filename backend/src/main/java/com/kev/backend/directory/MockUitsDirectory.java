@@ -28,6 +28,16 @@ public class MockUitsDirectory implements UniversityDirectory {
 
     @Override
     @Transactional(readOnly = true)
+    public Optional<StudentRecord> findByNfcCode(String nfcCode) {
+        return students.findByNormalizedNfcCode(NfcCodeNormalizer.normalize(nfcCode))
+                .map(student -> {
+                    student.getCourses().size();
+                    return StudentRecord.from(student);
+                });
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public List<StudentRecord> findAll() {
         return students.findAllWithCourses().stream().map(StudentRecord::from).toList();
     }

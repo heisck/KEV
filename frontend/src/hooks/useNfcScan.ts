@@ -32,7 +32,7 @@ function loadNfcManager(): typeof import('react-native-nfc-manager') | null {
  * Drives a single NFC card scan: requesting → scanning → reading → success/error.
  * NFC modules are imported lazily so the hook is safe to render in Expo Go.
  */
-export function useNfcScan(options: { onIndexNumber: (indexNumber: string) => void }): {
+export function useNfcScan(options: { onNfcUid: (nfcUid: string) => void }): {
   status: NfcScanStatus;
   error: NfcErrorKind | null;
   start: () => void;
@@ -41,8 +41,8 @@ export function useNfcScan(options: { onIndexNumber: (indexNumber: string) => vo
 } {
   const [status, setStatus] = useState<NfcScanStatus>('idle');
   const [error, setError] = useState<NfcErrorKind | null>(null);
-  const onIndexNumberRef = useRef(options.onIndexNumber);
-  onIndexNumberRef.current = options.onIndexNumber;
+  const onNfcUidRef = useRef(options.onNfcUid);
+  onNfcUidRef.current = options.onNfcUid;
   const activeRef = useRef(false);
   const cancelledRef = useRef(false);
   const mountedRef = useRef(true);
@@ -80,7 +80,7 @@ export function useNfcScan(options: { onIndexNumber: (indexNumber: string) => vo
       try {
         const raced = await Promise.race([
           NfcManager.requestTechnology(
-            NfcTech.Ndef,
+            [NfcTech.NfcA, NfcTech.NfcB, NfcTech.IsoDep],
             Platform.OS === 'ios' ? { alertMessage: 'Hold the student card near the phone' } : {},
           ),
           timeout,
@@ -89,11 +89,11 @@ export function useNfcScan(options: { onIndexNumber: (indexNumber: string) => vo
 
         update('reading');
         const tag = await NfcManager.getTag();
-        const indexNumber = nfc.parseIndexNumberFromTag(tag ?? null);
-        if (!indexNumber) return fail('parse_failed');
+        const nfcUid = nfc.parseNfcUidFromTag(tag ?? null);
+        if (!nfcUid) return fail('parse_failed');
 
         update('success');
-        onIndexNumberRef.current(indexNumber);
+        onNfcUidRef.current(nfcUid);
       } catch (err) {
         if (cancelledRef.current) return fail('cancelled');
         logger.warn('NFC scan failed', { error: String(err) });

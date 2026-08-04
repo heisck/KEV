@@ -10,6 +10,10 @@ public interface DirectoryStudentRepository extends JpaRepository<DirectoryStude
 
     Optional<DirectoryStudent> findByIndexNumber(String indexNumber);
 
+    @Query(
+            "SELECT s FROM DirectoryStudent s WHERE LOWER(REPLACE(REPLACE(REPLACE(s.nfcCode, ':', ''), '-', ''), ' ', '')) = :nfcCode")
+    Optional<DirectoryStudent> findByNormalizedNfcCode(@Param("nfcCode") String nfcCode);
+
     Optional<DirectoryStudent> findByUitsId(String uitsId);
 
     /**

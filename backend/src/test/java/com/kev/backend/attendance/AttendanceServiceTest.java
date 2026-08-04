@@ -79,9 +79,33 @@ class AttendanceServiceTest {
         live.setStatus(AttendanceStatus.CHECKED_IN);
         when(records.findBySessionIdAndStudentId(1L, 7L)).thenReturn(Optional.of(live));
 
-        assertThatThrownBy(() -> service.checkIn(invigilator, 1L, "10953001", CheckInMethod.NFC))
+        assertThatThrownBy(() -> service.checkIn(invigilator, 1L, "10953001", CheckInMethod.MANUAL))
                 .isInstanceOf(ApiException.class)
                 .satisfies(e -> assertThat(((ApiException) e).getStatus()).isEqualTo(HttpStatus.CONFLICT));
+    }
+
+    @Test
+    void nfcCheckInResolvesTheStudentFromTheCardUid() {
+        when(sessions.requireOngoingMember(invigilator, 1L)).thenReturn(activeSession);
+        when(directory.findByNfcCode("04ab129f")).thenReturn(Optional.of(student));
+        when(records.findBySessionIdAndStudentId(1L, 7L)).thenReturn(Optional.empty());
+        when(records.saveAndFlush(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        AttendanceDto dto = service.checkIn(invigilator, 1L, null, "04:AB-12 9F", CheckInMethod.NFC);
+
+        assertThat(dto.student().indexNumber()).isEqualTo("10953001");
+        assertThat(dto.method()).isEqualTo("NFC");
+    }
+
+    @Test
+    void rejectsNfcWhenTheSessionDoesNotAllowIt() {
+        activeSession.setVerificationMethods("FACE,MANUAL");
+        when(sessions.requireOngoingMember(invigilator, 1L)).thenReturn(activeSession);
+
+        assertThatThrownBy(() -> service.checkIn(invigilator, 1L, null, "04ab129f", CheckInMethod.NFC))
+                .isInstanceOf(ApiException.class)
+                .hasMessage("NFC verification is not enabled for this session")
+                .satisfies(e -> assertThat(((ApiException) e).getStatus()).isEqualTo(HttpStatus.FORBIDDEN));
     }
 
     @Test
@@ -121,7 +145,7 @@ class AttendanceServiceTest {
         when(records.findBySessionIdAndStudentId(1L, 7L)).thenReturn(Optional.empty());
         when(records.saveAndFlush(any())).thenThrow(new DataIntegrityViolationException("duplicate"));
 
-        assertThatThrownBy(() -> service.checkIn(invigilator, 1L, "10953001", CheckInMethod.NFC))
+        assertThatThrownBy(() -> service.checkIn(invigilator, 1L, "10953001", CheckInMethod.MANUAL))
                 .isInstanceOf(ApiException.class)
                 .hasMessage("Student already checked in")
                 .satisfies(e -> assertThat(((ApiException) e).getStatus()).isEqualTo(HttpStatus.CONFLICT));

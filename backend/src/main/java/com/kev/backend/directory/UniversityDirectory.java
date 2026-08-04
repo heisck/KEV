@@ -11,6 +11,8 @@ public interface UniversityDirectory {
 
     Optional<StudentRecord> findByIndexNumber(String indexNumber);
 
+    Optional<StudentRecord> findByNfcCode(String nfcCode);
+
     List<StudentRecord> findAll();
 
     List<StudentRecord> search(String query);

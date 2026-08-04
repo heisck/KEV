@@ -757,7 +757,8 @@ export interface components {
             detail?: string;
         };
         CheckInRequest: {
-            indexNumber: string;
+            indexNumber?: string;
+            nfcUid?: string;
             /** @enum {string} */
             method: "NFC" | "QR" | "MANUAL" | "FACE";
         };

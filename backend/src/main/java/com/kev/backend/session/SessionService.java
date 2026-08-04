@@ -88,12 +88,14 @@ public class SessionService {
         requireFutureSchedule(req, session);
         String previousFrom = session.getIndexRangeStart();
         String previousTo = session.getIndexRangeEnd();
+        String previousMethods = session.getVerificationMethods();
         applyEditableFields(session, req);
         ExamSession saved = sessions.save(session);
         // A different index range is a different set of students. Without this the roster
         // still describes the old range, so the detail screen keeps reporting the old total.
         if (!Objects.equals(previousFrom, saved.getIndexRangeStart())
-                || !Objects.equals(previousTo, saved.getIndexRangeEnd())) {
+                || !Objects.equals(previousTo, saved.getIndexRangeEnd())
+                || !Objects.equals(previousMethods, saved.getVerificationMethods())) {
             startRosterIngest(saved);
         }
         return toDto(saved);
@@ -116,7 +118,12 @@ public class SessionService {
         if (session.getIndexRangeStart() == null || session.getIndexRangeEnd() == null) {
             throw new ApiException(HttpStatus.CONFLICT, "This session has no student index range to load");
         }
-        rosterIngest.retry(sessionId, session.getIndexRangeStart(), session.getIndexRangeEnd(), "session:" + sessionId);
+        rosterIngest.retry(
+                sessionId,
+                session.getIndexRangeStart(),
+                session.getIndexRangeEnd(),
+                "session:" + sessionId,
+                faceVerificationEnabled(session));
     }
 
     @Transactional
@@ -252,7 +259,18 @@ public class SessionService {
         }
         String requestedBy = "session:" + saved.getId();
         rosterIngest.prepare(saved.getId());
-        rosterIngest.ingestRangeAsync(saved.getId(), saved.getIndexRangeStart(), saved.getIndexRangeEnd(), requestedBy);
+        rosterIngest.ingestRangeAsync(
+                saved.getId(),
+                saved.getIndexRangeStart(),
+                saved.getIndexRangeEnd(),
+                requestedBy,
+                faceVerificationEnabled(saved));
+    }
+
+    private boolean faceVerificationEnabled(ExamSession session) {
+        String methods = session.getVerificationMethods();
+        return methods == null
+                || List.of(methods.split(",")).stream().map(String::trim).anyMatch("FACE"::equals);
     }
 
     /**

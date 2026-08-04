@@ -7,7 +7,7 @@ import * as notifications from '@/api/notifications';
 import * as reports from '@/api/reports';
 import * as sessions from '@/api/sessions';
 import * as verify from '@/api/verify';
-import type { CheckInMethod, SessionDto } from '@/api/schemas';
+import type { SessionDto } from '@/api/schemas';
 import { useAuthStore } from '@/store/authStore';
 
 const keys = {
@@ -62,7 +62,8 @@ export function useRosterStatus(id: number, enabled: boolean) {
     queryKey: keys.rosterStatus(id),
     queryFn: () => sessions.getRosterStatus(id),
     enabled,
-    refetchInterval: (query) => (sessions.isRosterIngestLive(query.state.data?.state) ? 500 : false),
+    refetchInterval: (query) =>
+      sessions.isRosterIngestLive(query.state.data?.state) ? 500 : false,
   });
 }
 
@@ -140,8 +141,7 @@ export function useJoinSessionById(id: number) {
 export function useCheckIn(sessionId: number) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (input: { indexNumber: string; method: CheckInMethod }) =>
-      attendance.checkIn(sessionId, input),
+    mutationFn: (input: attendance.CheckInInput) => attendance.checkIn(sessionId, input),
     onSettled: () => {
       void qc.invalidateQueries({ queryKey: keys.session(sessionId) });
       void qc.invalidateQueries({ queryKey: keys.summary(sessionId) });

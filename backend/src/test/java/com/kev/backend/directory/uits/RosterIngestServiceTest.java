@@ -3,6 +3,7 @@ package com.kev.backend.directory.uits;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -65,6 +66,18 @@ class RosterIngestServiceTest {
 
         assertThat(service.status(7L).state()).isEqualTo("FAILED");
         assertThat(service.status(7L).message()).isEqualTo("University system unavailable");
+    }
+
+    @Test
+    void syncsRosterWithoutEmbeddingWhenFaceVerificationIsDisabled() {
+        service.prepare(18L);
+        when(uits.fetchRoster("100", "599", "session:18")).thenReturn(List.of(uitsStudent("100")));
+
+        service.ingestRangeAsync(18L, "100", "599", "session:18", false);
+
+        assertThat(service.status(18L).state()).isEqualTo("COMPLETED");
+        assertThat(service.status(18L).embedded()).isZero();
+        verify(students, never()).findPendingEmbeddingInIndexRange("100", "599");
     }
 
     /** A failure mid-run must not rewind the bar the user is watching. */

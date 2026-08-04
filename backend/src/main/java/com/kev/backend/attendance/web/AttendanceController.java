@@ -31,7 +31,8 @@ public class AttendanceController {
             @AuthenticationPrincipal Jwt principal,
             @PathVariable Long sessionId,
             @Valid @RequestBody CheckInRequest request) {
-        return attendance.checkIn(userId(principal), sessionId, request.indexNumber(), request.method());
+        return attendance.checkIn(
+                userId(principal), sessionId, request.indexNumber(), request.nfcUid(), request.method());
     }
 
     @DeleteMapping("/{attendanceId}")

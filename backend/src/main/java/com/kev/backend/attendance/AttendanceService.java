@@ -2,8 +2,10 @@ package com.kev.backend.attendance;
 
 import com.kev.backend.attendance.dto.AttendanceDto;
 import com.kev.backend.common.ApiException;
+import com.kev.backend.directory.NfcCodeNormalizer;
 import com.kev.backend.directory.UniversityDirectory;
 import com.kev.backend.directory.dto.StudentRecord;
+import com.kev.backend.session.ExamSession;
 import com.kev.backend.session.SessionService;
 import com.kev.backend.session.dto.SessionSummaryDto;
 import java.time.Instant;
@@ -37,10 +39,14 @@ public class AttendanceService {
 
     @Transactional
     public AttendanceDto checkIn(UUID userId, Long sessionId, String indexNumber, CheckInMethod method) {
-        requireActiveMembership(userId, sessionId);
-        StudentRecord student = directory
-                .findByIndexNumber(indexNumber)
-                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Student not found: " + indexNumber));
+        return checkIn(userId, sessionId, indexNumber, null, method);
+    }
+
+    @Transactional
+    public AttendanceDto checkIn(UUID userId, Long sessionId, String indexNumber, String nfcUid, CheckInMethod method) {
+        ExamSession session = requireActiveMembership(userId, sessionId);
+        requireMethodEnabled(session, method);
+        StudentRecord student = resolveStudent(indexNumber, nfcUid, method);
 
         AttendanceRecord record = records.findBySessionIdAndStudentId(sessionId, student.id())
                 .orElseGet(() -> {
@@ -119,8 +125,41 @@ public class AttendanceService {
         return new SessionSummaryDto(checkedIn, removed, byMethod, mapper.toDtos(recent));
     }
 
-    private void requireActiveMembership(UUID userId, Long sessionId) {
-        sessions.requireOngoingMember(userId, sessionId);
+    private ExamSession requireActiveMembership(UUID userId, Long sessionId) {
+        return sessions.requireOngoingMember(userId, sessionId);
+    }
+
+    private StudentRecord resolveStudent(String indexNumber, String nfcUid, CheckInMethod method) {
+        if (method == CheckInMethod.NFC) {
+            if (nfcUid == null || nfcUid.isBlank()) {
+                throw new ApiException(HttpStatus.BAD_REQUEST, "NFC card UID is required");
+            }
+            return directory
+                    .findByNfcCode(NfcCodeNormalizer.normalize(nfcUid))
+                    .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "No student matches this NFC card"));
+        }
+        if (indexNumber == null || indexNumber.isBlank()) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Student index number is required");
+        }
+        return directory
+                .findByIndexNumber(indexNumber)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Student not found: " + indexNumber));
+    }
+
+    private void requireMethodEnabled(ExamSession session, CheckInMethod method) {
+        if (method == null) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Verification method is required");
+        }
+        if (method == CheckInMethod.QR) {
+            return;
+        }
+        String configured = session.getVerificationMethods();
+        boolean enabled = configured == null
+                || List.of(configured.split(",")).stream().map(String::trim).anyMatch(method.name()::equals);
+        if (!enabled) {
+            throw new ApiException(
+                    HttpStatus.FORBIDDEN, method.name() + " verification is not enabled for this session");
+        }
     }
 
     private AttendanceRecord require(Long sessionId, Long attendanceId) {

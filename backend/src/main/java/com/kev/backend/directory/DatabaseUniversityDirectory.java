@@ -28,6 +28,13 @@ public class DatabaseUniversityDirectory implements UniversityDirectory {
 
     @Override
     @Transactional(readOnly = true)
+    public Optional<StudentRecord> findByNfcCode(String nfcCode) {
+        return students.findByNormalizedNfcCode(NfcCodeNormalizer.normalize(nfcCode))
+                .map(StudentRecord::from);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public List<StudentRecord> findAll() {
         return students.findAll().stream().map(StudentRecord::from).toList();
     }

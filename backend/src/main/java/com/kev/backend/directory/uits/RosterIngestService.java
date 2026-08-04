@@ -3,6 +3,7 @@ package com.kev.backend.directory.uits;
 import com.kev.backend.directory.DirectoryStudent;
 import com.kev.backend.directory.DirectoryStudentRepository;
 import com.kev.backend.directory.FeesStatus;
+import com.kev.backend.directory.NfcCodeNormalizer;
 import com.kev.backend.ml.MlClient;
 import com.kev.backend.verification.FaceEmbeddings;
 import com.kev.backend.verification.RosterEmbeddingCache;
@@ -38,7 +39,7 @@ public class RosterIngestService {
     /** Progress snapshot for one session's ingest. Every counter is monotonic. */
     public record Status(String state, int progress, int total, int synced, int embedded, String message) {}
 
-    private record Job(String from, String to, String requestedBy) {}
+    private record Job(String from, String to, String requestedBy, boolean embedFaces) {}
 
     private static final Logger log = LoggerFactory.getLogger(RosterIngestService.class);
     private static final int MAX_ATTEMPTS = 3;
@@ -75,7 +76,12 @@ public class RosterIngestService {
      */
     @Async
     public void ingestRangeAsync(Long sessionId, String from, String to, String requestedBy) {
-        runIngest(sessionId, new Job(from, to, requestedBy));
+        ingestRangeAsync(sessionId, from, to, requestedBy, true);
+    }
+
+    @Async
+    public void ingestRangeAsync(Long sessionId, String from, String to, String requestedBy, boolean embedFaces) {
+        runIngest(sessionId, new Job(from, to, requestedBy, embedFaces));
     }
 
     /** Publish a status before the async worker picks the job up. */
@@ -90,8 +96,13 @@ public class RosterIngestService {
      */
     @Async
     public void retry(Long sessionId, String from, String to, String requestedBy) {
+        retry(sessionId, from, to, requestedBy, true);
+    }
+
+    @Async
+    public void retry(Long sessionId, String from, String to, String requestedBy, boolean embedFaces) {
         update(sessionId, "RETRYING", 0, 0, 0, 0, "Retrying student information sync");
-        runIngest(sessionId, new Job(from, to, requestedBy));
+        runIngest(sessionId, new Job(from, to, requestedBy, embedFaces));
     }
 
     /**
@@ -128,8 +139,7 @@ public class RosterIngestService {
             try {
                 update(sessionId, "RUNNING", 5, 0, 0, 0, "Contacting the university student system");
                 int synced = syncRange(job.from(), job.to(), job.requestedBy());
-                update(sessionId, "RUNNING", SYNC_WEIGHT, synced, synced, 0, "Preparing face verification");
-                int embedded = embedPending(sessionId, job.from(), job.to(), synced);
+                int embedded = job.embedFaces() ? embedPending(sessionId, job.from(), job.to(), synced) : 0;
                 update(sessionId, "COMPLETED", 100, synced, synced, embedded, "Student information ready");
                 log.info(
                         "roster ingest complete: range=[{}..{}] synced={} embedded={}",
@@ -239,7 +249,7 @@ public class RosterIngestService {
         student.setUitsId(incoming.id());
         student.setIndexNumber(incoming.indexNumber());
         student.setFullName(incoming.fullName());
-        student.setNfcCode(incoming.nfcCode());
+        student.setNfcCode(NfcCodeNormalizer.normalize(incoming.nfcCode()));
         student.setPhotoUrl(photoUrl);
         // UITS carries identity, not eligibility; these stay at their defaults until a
         // fees/enrolment feed exists rather than being invented here.

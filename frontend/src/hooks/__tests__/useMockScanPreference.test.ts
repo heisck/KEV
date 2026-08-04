@@ -77,3 +77,24 @@ it('stays on the scanner when the latest preference is disabled', async () => {
 
   expect(mockReplace).not.toHaveBeenCalled();
 });
+
+it('sends the NFC hardware UID instead of treating it as an index number', async () => {
+  mockCheckIn.mockResolvedValue({
+    id: 8,
+    method: 'NFC',
+    status: 'CHECKED_IN',
+    checkedInAt: '2026-07-20T09:30:00Z',
+    removedAt: null,
+    student,
+  });
+  useSettingsStore.setState({ showSuccessPage: false });
+  const { result } = renderHook(() => useMockScan('2', 'NFC'));
+
+  await act(async () => result.current({ nfcUid: '04ab129f' }));
+
+  expect(mockCheckIn).toHaveBeenCalledWith(2, {
+    indexNumber: '',
+    nfcUid: '04ab129f',
+    method: 'NFC',
+  });
+});

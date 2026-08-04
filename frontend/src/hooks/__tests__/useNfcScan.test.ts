@@ -10,8 +10,6 @@ const nfc = NfcManager as unknown as {
   cancelTechnologyRequest: jest.Mock;
 };
 
-const toPayload = (text: string) => Array.from(text, (c) => c.charCodeAt(0));
-
 describe('useNfcScan', () => {
   beforeEach(() => {
     nfc.start.mockResolvedValue(undefined);
@@ -23,7 +21,7 @@ describe('useNfcScan', () => {
 
   it('reports unsupported when the device has no NFC', async () => {
     nfc.isSupported.mockResolvedValue(false);
-    const { result } = renderHook(() => useNfcScan({ onIndexNumber: jest.fn() }));
+    const { result } = renderHook(() => useNfcScan({ onNfcUid: jest.fn() }));
 
     act(() => result.current.start());
 
@@ -31,15 +29,15 @@ describe('useNfcScan', () => {
     expect(result.current.error).toBe('unsupported');
   });
 
-  it('delivers the index number from an 8-digit NDEF text payload', async () => {
-    nfc.getTag.mockResolvedValue({ ndefMessage: [{ payload: toPayload('en12345678') }] });
-    const onIndexNumber = jest.fn();
-    const { result } = renderHook(() => useNfcScan({ onIndexNumber }));
+  it('delivers the normalized hardware UID from the tag', async () => {
+    nfc.getTag.mockResolvedValue({ id: '04:AB-12 9F' });
+    const onNfcUid = jest.fn();
+    const { result } = renderHook(() => useNfcScan({ onNfcUid }));
 
     act(() => result.current.start());
 
     await waitFor(() => expect(result.current.status).toBe('success'));
-    expect(onIndexNumber).toHaveBeenCalledWith('12345678');
+    expect(onNfcUid).toHaveBeenCalledWith('04ab129f');
     expect(result.current.error).toBeNull();
     expect(nfc.cancelTechnologyRequest).toHaveBeenCalled();
   });
@@ -56,8 +54,8 @@ describe('useNfcScan', () => {
       rejectRequest?.(new Error('cancelled'));
       rejectRequest = undefined;
     });
-    const onIndexNumber = jest.fn();
-    const { result } = renderHook(() => useNfcScan({ onIndexNumber }));
+    const onNfcUid = jest.fn();
+    const { result } = renderHook(() => useNfcScan({ onNfcUid }));
 
     act(() => result.current.start());
     await waitFor(() => expect(result.current.status).toBe('scanning'));
@@ -66,7 +64,7 @@ describe('useNfcScan', () => {
 
     await waitFor(() => expect(result.current.status).toBe('error'));
     expect(result.current.error).toBe('cancelled');
-    expect(onIndexNumber).not.toHaveBeenCalled();
+    expect(onNfcUid).not.toHaveBeenCalled();
 
     act(() => result.current.reset());
     expect(result.current.status).toBe('idle');

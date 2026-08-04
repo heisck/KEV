@@ -115,10 +115,20 @@ class SessionServiceTest {
         service.create(
                 creator,
                 new CreateSessionRequest(
-                        "Algorithms", "JQB", "GF", "12", List.of("DCIT 301"), "100", "599", null, null, null, null));
+                        "Algorithms",
+                        "JQB",
+                        "GF",
+                        "12",
+                        List.of("DCIT 301"),
+                        "100",
+                        "599",
+                        null,
+                        null,
+                        null,
+                        List.of("NFC", "MANUAL")));
 
         verify(rosterIngest).prepare(15L);
-        verify(rosterIngest).ingestRangeAsync(15L, "100", "599", "session:15");
+        verify(rosterIngest).ingestRangeAsync(15L, "100", "599", "session:15", false);
     }
 
     @Test
@@ -311,7 +321,7 @@ class SessionServiceTest {
         service.update(creator, 3L, updateRequest());
 
         verify(rosterIngest).prepare(3L);
-        verify(rosterIngest).ingestRangeAsync(3L, "10000001", "10000100", "session:3");
+        verify(rosterIngest).ingestRangeAsync(3L, "10000001", "10000100", "session:3", false);
     }
 
     @Test
@@ -322,9 +332,11 @@ class SessionServiceTest {
         when(sessions.findById(3L)).thenReturn(Optional.of(session));
         when(sessions.save(session)).thenReturn(session);
 
-        service.update(creator, 3L, updateRequest());
+        service.update(creator, 3L, updateRequestWithAllMethods());
 
-        verify(rosterIngest, never()).ingestRangeAsync(anyLong(), anyString(), anyString(), anyString());
+        verify(rosterIngest, never())
+                .ingestRangeAsync(
+                        anyLong(), anyString(), anyString(), anyString(), org.mockito.ArgumentMatchers.anyBoolean());
     }
 
     @Test
@@ -411,7 +423,7 @@ class SessionServiceTest {
 
         service.retryRoster(creator, 3L);
 
-        verify(rosterIngest).retry(3L, "100", "599", "session:3");
+        verify(rosterIngest).retry(3L, "100", "599", "session:3", true);
     }
 
     @Test
@@ -445,5 +457,20 @@ class SessionServiceTest {
                 "09:00",
                 "12:00",
                 List.of("NFC"));
+    }
+
+    private CreateSessionRequest updateRequestWithAllMethods() {
+        return new CreateSessionRequest(
+                "Updated class",
+                "New Building",
+                "Floor 2",
+                "18",
+                List.of("DCIT 401"),
+                "10000001",
+                "10000100",
+                null,
+                "09:00",
+                "12:00",
+                List.of("FACE", "NFC", "MANUAL"));
     }
 }

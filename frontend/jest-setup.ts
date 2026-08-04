@@ -29,7 +29,7 @@ jest.mock('react-native-nfc-manager', () => ({
     getTag: jest.fn(async () => ({ id: 'mock-tag' })),
     cancelTechnologyRequest: jest.fn(async () => undefined),
   },
-  NfcTech: { Ndef: 'Ndef' },
+  NfcTech: { Ndef: 'Ndef', NfcA: 'NfcA', NfcB: 'NfcB', IsoDep: 'IsoDep' },
   Ndef: {},
 }));
 

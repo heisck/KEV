@@ -1,7 +1,7 @@
 import { api } from '@/api/client';
 import { AttendanceDtoSchema, type AttendanceDto, type CheckInMethod } from '@/api/schemas';
 
-export type CheckInInput = { indexNumber: string; method: CheckInMethod };
+export type CheckInInput = { indexNumber?: string; nfcUid?: string; method: CheckInMethod };
 
 export async function checkIn(sessionId: number, input: CheckInInput): Promise<AttendanceDto> {
   const res = await api.post(`/api/sessions/${sessionId}/attendance`, input);

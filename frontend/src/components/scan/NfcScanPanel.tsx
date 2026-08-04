@@ -19,16 +19,16 @@ const ERROR_COPY: Record<NfcErrorKind, string> = {
   disabled: 'NFC is turned off. Enable it in system settings and try again.',
   timeout: 'No card detected in time. Try again.',
   cancelled: 'Scan cancelled.',
-  parse_failed: 'Card read, but no index number was found on it.',
+  parse_failed: 'Card read, but no hardware UID was found on it.',
   read_failed: 'Could not read the card. Hold it steady and try again.',
 };
 
-type NfcScanPanelProps = { onIndexNumber: (indexNumber: string) => void };
+type NfcScanPanelProps = { onNfcUid: (nfcUid: string) => void };
 
 /** NFC mode: reuses the animated scan visual with a start/cancel button and status copy. */
-export function NfcScanPanel({ onIndexNumber }: NfcScanPanelProps) {
+export function NfcScanPanel({ onNfcUid }: NfcScanPanelProps) {
   const p = usePalette();
-  const { status, error, start, cancel } = useNfcScan({ onIndexNumber });
+  const { status, error, start, cancel } = useNfcScan({ onNfcUid });
   const isBusy = status === 'requesting' || status === 'scanning' || status === 'reading';
 
   return (
