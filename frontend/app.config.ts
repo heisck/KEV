@@ -89,7 +89,7 @@ const config: ExpoConfig = {
     sentryDsn: process.env.EXPO_PUBLIC_SENTRY_DSN ?? '',
     googleWebClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID ?? '',
     googleIosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID ?? '',
-    eas: { projectId: process.env.EAS_PROJECT_ID ?? '' },
+    eas: { projectId: '6c958040-3568-417d-a001-40bb2f810756' },
   },
 };
 

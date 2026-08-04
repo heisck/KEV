@@ -1,0 +1,12 @@
+{
+  "expo": {
+    "extra": {
+      "eas": {
+        "projectId": "6c958040-3568-417d-a001-40bb2f810756"
+      }
+    },
+    "android": {
+      "package": "com.jxteli.kev"
+    }
+  }
+}
