@@ -31,7 +31,9 @@
     "backend:test": "node scripts/run-backend.mjs verify",
     "ml": "node scripts/run-ml.mjs",
     "ml:test": "node scripts/run-ml.mjs test",
-    "prepare": "husky"
+    "prepare": "husky",
+    "android": "expo run:android",
+    "ios": "expo run:ios"
   },
   "lint-staged": {
     "*.{js,jsx,ts,tsx,json,jsonc,md,mdx,yml,yaml,css}": [
@@ -51,5 +53,10 @@
     "prettier": "^3.4.2",
     "turbo": "^2.3.3",
     "typescript": "^5.7.3"
+  },
+  "dependencies": {
+    "expo": "~54.0.36",
+    "react": "19.1.0",
+    "react-native": "0.81.5"
   }
 }
