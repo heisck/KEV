@@ -21,7 +21,7 @@
 		<jmh.version>1.37</jmh.version>
 		<spotless.version>2.43.0</spotless.version>
 		<jacoco.version>0.8.12</jacoco.version>
-		<owasp.version>10.0.4</owasp.version>
+		<owasp.version>13.0.0</owasp.version>
 		<exec.version>3.5.0</exec.version>
 		<!--
 			Output tree. Overridable so a test build can compile somewhere other than the
