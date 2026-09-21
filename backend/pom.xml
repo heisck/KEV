@@ -22,7 +22,7 @@
 		<spotless.version>2.43.0</spotless.version>
 		<jacoco.version>0.8.12</jacoco.version>
 		<owasp.version>10.0.4</owasp.version>
-		<exec.version>3.5.0</exec.version>
+		<exec.version>3.6.4</exec.version>
 		<!--
 			Output tree. Overridable so a test build can compile somewhere other than the
 			classes a live `spring-boot:run` has open: rewriting (or `clean`-deleting) those
